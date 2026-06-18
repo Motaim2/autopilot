@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Claude Autopilot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --danger: #ff4757;
+    --warn: #ffa502;
+    --success: #2ed573;
+    --text: #e8e8f0;
+    --muted: #7a7a9a;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+  }
+  .logo-text {
+    font-size: 17px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .server-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .server-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .server-dot.error { background: var(--danger); }
+
+  .tabs {
+    display: flex; padding: 10px 16px; gap: 6px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: 'IBM Plex Sans Arabic', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+  .content { padding: 14px 16px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Cards */
+  .recipe-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 10px; overflow: hidden;
+  }
+  .recipe-card.running {
+    border-color: var(--warn);
+    box-shadow: 0 0 0 1px var(--warn), 0 4px 16px rgba(255,165,2,0.15);
+  }
+  .recipe-card.done {
+    border-color: var(--success);
+  }
+
+  .recipe-header {
+    padding: 12px 14px; display: flex; align-items: center;
+    justify-content: space-between; cursor: pointer;
+  }
+  .recipe-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+  .recipe-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; flex-shrink: 0;
+  }
+  .recipe-meta h3 { font-size: 14px; font-weight: 600; }
+  .recipe-meta p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .badge {
+    padding: 3px 8px; border-radius: 20px;
+    font-size: 10px; font-weight: 600;
+  }
+  .badge-ready { background: rgba(0,212,170,0.15); color: var(--accent2); }
+  .badge-running { background: rgba(255,165,2,0.15); color: var(--warn); }
+  .badge-done { background: rgba(46,213,115,0.15); color: var(--success); }
+  .badge-error { background: rgba(255,71,87,0.15); color: var(--danger); }
+
+  .expand-icon { color: var(--muted); font-size: 11px; transition: transform 0.3s; margin-right: 6px; }
+  .recipe-card.expanded .expand-icon { transform: rotate(180deg); }
+
+  .recipe-body {
+    display: none; padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .recipe-card.expanded .recipe-body { display: block; }
+
+  .steps-list { margin-top: 10px; }
+  .step-item { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: var(--accent); flex-shrink: 0;
+  }
+  .step-text { font-size: 12px; line-height: 1.5; color: var(--text); flex: 1; }
+  .var-highlight {
+    color: var(--accent2); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; background: rgba(0,212,170,0.1);
+    padding: 1px 4px; border-radius: 3px;
+  }
+
+  .section-label {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+
+  .account-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .account-pill {
+    padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+  .account-pill.selected {
+    border-color: var(--accent2); background: rgba(0,212,170,0.1); color: var(--accent2);
+  }
+
+  .control-btns { display: flex; gap: 6px; margin-top: 12px; }
+  .btn {
+    flex: 1; padding: 11px; border-radius: 10px; border: none;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-start { background: var(--accent); color: white; }
+  .btn-stop { background: rgba(255,71,87,0.15); color: var(--danger); border: 1px solid rgba(255,71,87,0.3); }
+  .btn-delete { background: rgba(122,122,154,0.1); color: var(--muted); border: 1px solid var(--border); flex: 0 0 44px; }
+
+  /* Result box */
+  .result-box {
+    margin-top: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px; display: none;
+  }
+  .result-box.show { display: block; }
+  .result-label { font-size: 10px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+  .result-text {
+    font-size: 12px; line-height: 1.6; color: var(--text);
+    max-height: 120px; overflow-y: auto;
+  }
+
+  /* Settings */
+  .settings-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .settings-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--accent2); }
+
+  .form-group { margin-bottom: 12px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 11px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text);
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    font-size: 13px; outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-textarea { min-height: 80px; resize: vertical; }
+
+  .hint-text { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* Server status card */
+  .server-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .server-info { display: flex; align-items: center; gap: 10px; }
+  .server-status-dot {
+    width: 12px; height: 12px; border-radius: 50%; background: var(--muted);
+    transition: all 0.3s; flex-shrink: 0;
+  }
+  .server-status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .server-status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .server-status-text h4 { font-size: 13px; font-weight: 600; }
+  .server-status-text p { font-size: 11px; color: var(--muted); }
+
+  .check-btn {
+    padding: 7px 14px; border-radius: 8px;
+    background: rgba(108,99,255,0.15); color: var(--accent);
+    border: 1px solid rgba(108,99,255,0.3);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+
+  /* Account cards */
+  .account-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .account-info { display: flex; align-items: center; gap: 10px; }
+  .account-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: white;
+  }
+  .account-details h4 { font-size: 13px; font-weight: 600; }
+  .account-details p { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Add form */
+  .add-form {
+    background: var(--card); border: 1px solid var(--accent);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+    display: none;
+  }
+  .add-form.show { display: block; }
+
+  .form-row { display: flex; gap: 6px; }
+  .form-row .btn { flex: 1; padding: 10px; font-size: 12px; }
+
+  /* New recipe */
+  .steps-editor { display: flex; flex-direction: column; gap: 6px; }
+  .step-row { display: flex; gap: 6px; align-items: center; }
+  .step-row .form-input { flex: 1; }
+  .remove-step {
+    width: 30px; height: 30px; border-radius: 7px;
+    border: 1px solid rgba(255,71,87,0.3); background: rgba(255,71,87,0.1);
+    color: var(--danger); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .add-step-btn {
+    padding: 9px; border-radius: 9px; border: 1px dashed var(--border);
+    background: transparent; color: var(--muted);
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    font-size: 12px; cursor: pointer; width: 100%; margin-top: 6px;
+    transition: all 0.2s;
+  }
+  .add-step-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .full-btn {
+    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px;
+    background: var(--accent); color: white; transition: all 0.2s;
+  }
+  .full-btn:active { transform: scale(0.98); }
+
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  }
+  .section-title { font-size: 15px; font-weight: 700; }
+  .btn-new {
+    padding: 7px 12px; border-radius: 8px; background: var(--accent);
+    color: white; border: none; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-title { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+  .empty-desc { font-size: 12px; line-height: 1.5; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 88px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--card); border: 1px solid var(--accent);
+    padding: 9px 18px; border-radius: 20px;
+    font-size: 13px; color: var(--accent2);
+    opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap;
+    max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; padding: 6px 0; z-index: 100;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 5px 0; cursor: pointer; color: var(--muted); font-size: 9px; font-weight: 500;
+    transition: color 0.2s; border: none; background: none;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+  .nav-icon { font-size: 19px; }
+  .nav-item.active { color: var(--accent); }
+
+  /* Running animation */
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .pulsing { animation: pulse 1.5s infinite; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div class="logo-text">Autopilot</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:11px;color:var(--muted)" id="serverLabel">غير متصل</span>
+    <div class="server-dot" id="headerDot"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('recipes')">📋 الوصفات</button>
+  <button class="tab" onclick="switchTab('accounts')">👤 الحسابات</button>
+  <button class="tab" onclick="switchTab('new-recipe')">➕ جديدة</button>
+  <button class="tab" onclick="switchTab('settings')">⚙️ الإعداد</button>
+</div>
+
+<div class="content">
+  <div class="toast" id="toast"></div>
+
+  <!-- RECIPES -->
+  <div class="view active" id="view-recipes">
+    <div id="recipesList"></div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="view" id="view-accounts">
+    <div class="section-header">
+      <div class="section-title">الحسابات</div>
+      <button class="btn-new" onclick="toggleAddAccount()">+ إضافة</button>
+    </div>
+
+    <div class="add-form" id="addAccountForm">
+      <div class="form-group">
+        <label class="form-label">اسم الحساب</label>
+        <input class="form-input" id="newAccName" placeholder="مثل: حساب العمل" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">اسم المستخدم / إيميل</label>
+        <input class="form-input" id="newAccUser" placeholder="user@example.com" dir="ltr" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">كلمة المرور</label>
+        <input class="form-input" id="newAccPass" type="password" placeholder="••••••••" dir="ltr" />
+        <p class="hint-text">🔒 تُحفظ محلياً على جهازك فقط</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظة (اختياري)</label>
+        <input class="form-input" id="newAccNote" placeholder="مثل: غرفة رقم 3" />
+      </div>
+      <div class="form-row">
+        <button class="btn btn-start" onclick="saveAccount()">💾 حفظ</button>
+        <button class="btn btn-stop" onclick="toggleAddAccount()">إلغاء</button>
+      </div>
+    </div>
+
+    <div id="accountsList"></div>
+  </div>
+
+  <!-- NEW RECIPE -->
+  <div class="view" id="view-new-recipe">
+    <div class="section-header">
+      <div class="section-title">وصفة جديدة</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم الوصفة</label>
+      <input class="form-input" id="recName" placeholder="مثل: تسجيل الدخول وفتح الغرفة" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">وصف مختصر</label>
+      <input class="form-input" id="recDesc" placeholder="ماذا تفعل هذه الوصفة؟" />
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div class="form-group" style="flex:0 0 70px;">
+        <label class="form-label">إيموجي</label>
+        <input class="form-input" id="recEmoji" placeholder="🎯" style="text-align:center;" />
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label class="form-label">خطوات المهمة</label>
+      <p class="hint-text" style="margin-bottom:8px;">
+        استخدم <code style="color:var(--accent2);background:rgba(0,212,170,0.1);padding:1px 4px;border-radius:3px;">{{USERNAME}}</code>
+        و <code style="color:var(--accent2);background:rgba(0,212,170,0.1);padding:1px 4px;border-radius:3px;">{{PASSWORD}}</code>
+        للمتغيرات
+      </p>
+      <div class="steps-editor" id="stepsEditor">
+        <div class="step-row">
+          <input class="form-input" placeholder="الخطوة الأولى..." />
+          <button class="remove-step" onclick="removeStep(this)">✕</button>
+        </div>
+      </div>
+      <button class="add-step-btn" onclick="addStep()">+ إضافة خطوة</button>
+    </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label class="form-label">ربط بحسابات (اختياري)</label>
+      <div id="recipeAccountPicker" class="account-pills"></div>
+    </div>
+    <button class="full-btn" onclick="saveRecipe()">💾 حفظ الوصفة</button>
+    <div style="height:10px;"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="view" id="view-settings">
+
+    <div class="server-card" id="serverCard">
+      <div class="server-info">
+        <div class="server-status-dot" id="serverDot"></div>
+        <div class="server-status-text">
+          <h4 id="serverStatusTitle">جاري الفحص...</h4>
+          <p id="serverStatusDesc">تأكد من تشغيل start.bat</p>
+        </div>
+      </div>
+      <button class="check-btn" onclick="checkServer()">فحص</button>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">🔗 إعدادات الاتصال</div>
+      <div class="form-group">
+        <label class="form-label">IP الكمبيوتر + Port</label>
+        <input class="form-input" id="serverUrl" placeholder="http://192.168.1.x:5000" dir="ltr" />
+        <p class="hint-text">يظهر في نافذة السيرفر على الكمبيوتر عند تشغيل start.bat</p>
+      </div>
+      <button class="full-btn" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-title">🔑 API Key</div>
+      <div class="form-group">
+        <label class="form-label">Anthropic API Key</label>
+        <input class="form-input" id="apiKey" type="password" placeholder="sk-ant-..." dir="ltr" />
+        <p class="hint-text">🔒 يُحفظ محلياً على جهازك — لا يُرسل لأحد غير Claude</p>
+      </div>
+      <button class="full-btn" onclick="saveSettings()">💾 حفظ</button>
+    </div>
+
+    <div class="settings-card" style="border-color:rgba(255,71,87,0.2);">
+      <div class="settings-title" style="color:var(--danger);">⚠️ خطر</div>
+      <button class="full-btn" style="background:rgba(255,71,87,0.15);color:var(--danger);border:1px solid rgba(255,71,87,0.3);" onclick="resetAll()">
+        🗑 مسح كل البيانات
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-item active" id="nav-recipes" onclick="switchTab('recipes')">
+    <span class="nav-icon">📋</span><span>الوصفات</span>
+  </button>
+  <button class="nav-item" id="nav-accounts" onclick="switchTab('accounts')">
+    <span class="nav-icon">👤</span><span>الحسابات</span>
+  </button>
+  <button class="nav-item" id="nav-new-recipe" onclick="switchTab('new-recipe')">
+    <span class="nav-icon">➕</span><span>جديدة</span>
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="switchTab('settings')">
+    <span class="nav-icon">⚙️</span><span>الإعداد</span>
+  </button>
+</div>
+
+<script>
+// ============ DATA ============
+let appData = { recipes: [], accounts: [], serverUrl: '', apiKey: '' };
+
+function load() {
+  const s = localStorage.getItem('autopilot_v2');
+  if (s) appData = JSON.parse(s);
+  else {
+    appData.recipes = [{
+      id: 'demo1', name: 'تسجيل الدخول', desc: 'مثال - عدّله حسب تطبيقك',
+      emoji: '🎙️', linkedAccounts: [],
+      steps: [
+        'افتح تطبيق {{APP_NAME}} على الكمبيوتر',
+        'في حقل اسم المستخدم اكتب {{USERNAME}}',
+        'في حقل كلمة المرور اكتب {{PASSWORD}}',
+        'اضغط زر تسجيل الدخول',
+        'ادخل على الغرفة المطلوبة وفعّل المايك'
+      ]
+    }];
+    save();
+  }
+}
+
+function save() { localStorage.setItem('autopilot_v2', JSON.stringify(appData)); }
+
+// ============ TABS ============
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById('view-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab)?.classList.add('active');
+
+  const tabMap = { recipes:0, accounts:1, 'new-recipe':2, settings:3 };
+  const tabs = document.querySelectorAll('.tab');
+  if (tabMap[tab] !== undefined) tabs[tabMap[tab]].classList.add('active');
+
+  if (tab === 'recipes') renderRecipes();
+  if (tab === 'accounts') renderAccounts();
+  if (tab === 'new-recipe') renderAccountPicker();
+  if (tab === 'settings') loadSettings();
+}
+
+// ============ RENDER RECIPES ============
+function renderRecipes() {
+  const c = document.getElementById('recipesList');
+  if (!appData.recipes.length) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">لا توجد وصفات</div><div class="empty-desc">اضغط ➕ لإضافة وصفة جديدة</div></div>`;
+    return;
+  }
+  c.innerHTML = appData.recipes.map(r => {
+    const accs = appData.accounts.filter(a => (r.linkedAccounts||[]).includes(a.id));
+    return `
+      <div class="recipe-card" id="card-${r.id}">
+        <div class="recipe-header" onclick="toggleCard('${r.id}')">
+          <div class="recipe-info">
+            <div class="recipe-icon">${r.emoji||'🎯'}</div>
+            <div class="recipe-meta">
+              <h3>${r.name}</h3>
+              <p>${r.desc||r.steps.length+' خطوات'}</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="badge badge-ready" id="badge-${r.id}">جاهز</span>
+            <span class="expand-icon">▼</span>
+          </div>
+        </div>
+        <div class="recipe-body" id="body-${r.id}">
+          <div class="steps-list">
+            <div class="section-label">الخطوات</div>
+            ${r.steps.map((s,i)=>`
+              <div class="step-item">
+                <div class="step-num">${i+1}</div>
+                <div class="step-text">${fmtStep(s)}</div>
+              </div>`).join('')}
+          </div>
+
+          ${accs.length ? `
+            <div style="margin-top:10px;">
+              <div class="section-label">اختر الحساب</div>
+              <div class="account-pills" id="pills-${r.id}">
+                ${accs.map((a,i)=>`
+                  <button class="account-pill ${i===0?'selected':''}"
+                    onclick="selectAcc('${r.id}','${a.id}',this)" data-id="${a.id}">
+                    ${a.name}
+                  </button>`).join('')}
+              </div>
+            </div>` : ''}
+
+          <div class="control-btns">
+            <button class="btn btn-start" id="startBtn-${r.id}" onclick="startRecipe('${r.id}')">▶ ابدأ</button>
+            <button class="btn btn-stop" onclick="stopRecipe('${r.id}')">⏹ وقف</button>
+            <button class="btn btn-delete" onclick="deleteRecipe('${r.id}')">🗑</button>
+          </div>
+
+          <div class="result-box" id="result-${r.id}">
+            <div class="result-label">نتيجة Claude</div>
+            <div class="result-text" id="resultText-${r.id}"></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function fmtStep(s) {
+  return s.replace(/\{\{(\w+)\}\}/g, '<span class="var-highlight">{{$1}}</span>');
+}
+
+function toggleCard(id) {
+  document.getElementById('card-'+id).classList.toggle('expanded');
+}
+
+function selectAcc(recipeId, accId, btn) {
+  document.querySelectorAll(`#pills-${recipeId} .account-pill`).forEach(p=>p.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function getSelectedAcc(recipeId) {
+  const el = document.querySelector(`#pills-${recipeId} .account-pill.selected`);
+  if (!el) return null;
+  return appData.accounts.find(a=>a.id===el.getAttribute('data-id'));
+}
+
+function buildPrompt(recipe, account) {
+  let steps = recipe.steps.map((s,i) => {
+    let step = s;
+    if (account) {
+      step = step.replace(/\{\{USERNAME\}\}/g, account.username);
+      step = step.replace(/\{\{PASSWORD\}\}/g, account.password);
+    }
+    return `${i+1}. ${step}`;
+  }).join('\n');
+
+  const accInfo = account
+    ? `\n\nبيانات الحساب:\n- المستخدم: ${account.username}\n- كلمة المرور: ${account.password}${account.note?'\n- ملاحظة: '+account.note:''}`
+    : '';
+
+  return `نفّذ المهمة التالية على الكمبيوتر بدقة:\n\nالمهمة: ${recipe.name}${recipe.desc?'\nالوصف: '+recipe.desc:''}${accInfo}\n\nالخطوات:\n${steps}\n\nنفّذ الخطوات بالترتيب. إذا واجهت مشكلة أو طلب تأكيد غير متوقع، أوقف وأخبرني فوراً.`;
+}
+
+async function startRecipe(id) {
+  const recipe = appData.recipes.find(r=>r.id===id);
+  if (!recipe) return;
+
+  const serverUrl = appData.serverUrl?.trim();
+  const apiKey = appData.apiKey?.trim();
+
+  if (!serverUrl) {
+    showToast('⚠️ حط IP الكمبيوتر في الإعدادات أولاً');
+    switchTab('settings');
+    return;
+  }
+  if (!apiKey) {
+    showToast('⚠️ حط API Key في الإعدادات أولاً');
+    switchTab('settings');
+    return;
+  }
+
+  const account = getSelectedAcc(id);
+  const prompt = buildPrompt(recipe, account);
+
+  // Update UI
+  const card = document.getElementById('card-'+id);
+  const badge = document.getElementById('badge-'+id);
+  const btn = document.getElementById('startBtn-'+id);
+  card.className = 'recipe-card running expanded';
+  badge.className = 'badge badge-running pulsing';
+  badge.textContent = '⏳ يعمل';
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري...';
+
+  try {
+    const res = await fetch(serverUrl + '/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        prompt: prompt,
+        recipe_name: recipe.name
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'خطأ في الإرسال');
+
+    showToast('✅ تم الإرسال — Claude يعمل الحين!');
+    pollStatus(id, serverUrl);
+
+  } catch(e) {
+    card.className = 'recipe-card expanded';
+    badge.className = 'badge badge-error';
+    badge.textContent = '❌ خطأ';
+    btn.disabled = false;
+    btn.textContent = '▶ ابدأ';
+    showToast('❌ ' + (e.message.includes('fetch') ? 'تعذر الاتصال بالسيرفر' : e.message));
+  }
+}
+
+function pollStatus(recipeId, serverUrl) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(serverUrl + '/status');
+      const data = await res.json();
+      const job = data.job;
+
+      const badge = document.getElementById('badge-'+recipeId);
+      const btn = document.getElementById('startBtn-'+recipeId);
+      const card = document.getElementById('card-'+recipeId);
+      const resultBox = document.getElementById('result-'+recipeId);
+      const resultText = document.getElementById('resultText-'+recipeId);
+
+      if (job.status === 'done') {
+        clearInterval(interval);
+        card.className = 'recipe-card done expanded';
+        badge.className = 'badge badge-done';
+        badge.textContent = '✅ اكتمل';
+        btn.disabled = false;
+        btn.textContent = '▶ ابدأ';
+        if (job.result) {
+          resultBox.classList.add('show');
+          resultText.textContent = job.result.substring(0, 500);
+        }
+        showToast('✅ اكتملت المهمة!');
+      } else if (job.status === 'error') {
+        clearInterval(interval);
+        card.className = 'recipe-card expanded';
+        badge.className = 'badge badge-error';
+        badge.textContent = '❌ خطأ';
+        btn.disabled = false;
+        btn.textContent = '▶ ابدأ';
+        resultBox.classList.add('show');
+        resultText.textContent = job.message;
+        showToast('❌ ' + job.message);
+      } else if (job.status === 'stopped') {
+        clearInterval(interval);
+        card.className = 'recipe-card expanded';
+        badge.className = 'badge badge-ready';
+        badge.textContent = 'جاهز';
+        btn.disabled = false;
+        btn.textContent = '▶ ابدأ';
+      }
+    } catch(e) {
+      clearInterval(interval);
+    }
+  }, 2000);
+}
+
+async function stopRecipe(id) {
+  const serverUrl = appData.serverUrl?.trim();
+  if (!serverUrl) return;
+  try {
+    await fetch(serverUrl + '/stop', { method: 'POST' });
+    showToast('⏹ تم إيقاف المهمة');
+    const badge = document.getElementById('badge-'+id);
+    const btn = document.getElementById('startBtn-'+id);
+    const card = document.getElementById('card-'+id);
+    if (badge) { badge.className='badge badge-ready'; badge.textContent='جاهز'; }
+    if (btn) { btn.disabled=false; btn.textContent='▶ ابدأ'; }
+    if (card) card.className='recipe-card expanded';
+  } catch(e) { showToast('❌ تعذر الإيقاف'); }
+}
+
+function deleteRecipe(id) {
+  if (confirm('حذف هذه الوصفة؟')) {
+    appData.recipes = appData.recipes.filter(r=>r.id!==id);
+    save(); renderRecipes();
+    showToast('🗑 تم الحذف');
+  }
+}
+
+// ============ ACCOUNTS ============
+function renderAccounts() {
+  const c = document.getElementById('accountsList');
+  if (!appData.accounts.length) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">لا توجد حسابات</div><div class="empty-desc">اضغط + لإضافة حساب</div></div>`;
+    return;
+  }
+  c.innerHTML = appData.accounts.map(a=>`
+    <div class="account-card">
+      <div class="account-info">
+        <div class="account-avatar">${a.name.charAt(0)}</div>
+        <div class="account-details">
+          <h4>${a.name}</h4>
+          <p dir="ltr">${a.username} · ${'•'.repeat(Math.min(a.password.length,8))}</p>
+          ${a.note?`<p style="font-family:inherit;color:var(--muted);font-size:10px;">${a.note}</p>`:''}
+        </div>
+      </div>
+      <button class="icon-btn" onclick="deleteAccount('${a.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function toggleAddAccount() {
+  const f = document.getElementById('addAccountForm');
+  f.classList.toggle('show');
+}
+
+function saveAccount() {
+  const name = document.getElementById('newAccName').value.trim();
+  const user = document.getElementById('newAccUser').value.trim();
+  const pass = document.getElementById('newAccPass').value;
+  const note = document.getElementById('newAccNote').value.trim();
+  if (!name||!user||!pass) { showToast('⚠️ أدخل الاسم والمستخدم وكلمة المرور'); return; }
+  appData.accounts.push({ id:'acc'+Date.now(), name, username:user, password:pass, note });
+  save(); renderAccounts();
+  document.getElementById('addAccountForm').classList.remove('show');
+  ['newAccName','newAccUser','newAccPass','newAccNote'].forEach(id=>document.getElementById(id).value='');
+  showToast('✅ تم حفظ الحساب');
+}
+
+function deleteAccount(id) {
+  if (confirm('حذف هذا الحساب؟')) {
+    appData.accounts = appData.accounts.filter(a=>a.id!==id);
+    save(); renderAccounts(); showToast('🗑 تم الحذف');
+  }
+}
+
+// ============ NEW RECIPE ============
+function addStep() {
+  const e = document.getElementById('stepsEditor');
+  const d = document.createElement('div');
+  d.className = 'step-row';
+  d.innerHTML = `<input class="form-input" placeholder="خطوة..."/><button class="remove-step" onclick="removeStep(this)">✕</button>`;
+  e.appendChild(d);
+  d.querySelector('input').focus();
+}
+
+function removeStep(btn) {
+  const e = document.getElementById('stepsEditor');
+  if (e.children.length>1) btn.parentElement.remove();
+  else showToast('⚠️ خطوة واحدة على الأقل');
+}
+
+function renderAccountPicker() {
+  const c = document.getElementById('recipeAccountPicker');
+  if (!appData.accounts.length) { c.innerHTML='<p style="font-size:11px;color:var(--muted);">أضف حسابات أولاً</p>'; return; }
+  c.innerHTML = appData.accounts.map(a=>`
+    <button class="account-pill" onclick="this.classList.toggle('selected')" data-id="${a.id}">${a.name}</button>`).join('');
+}
+
+function saveRecipe() {
+  const name = document.getElementById('recName').value.trim();
+  const desc = document.getElementById('recDesc').value.trim();
+  const emoji = document.getElementById('recEmoji').value.trim()||'🎯';
+  if (!name) { showToast('⚠️ أدخل اسم الوصفة'); return; }
+  const steps = Array.from(document.querySelectorAll('#stepsEditor .step-row input')).map(i=>i.value.trim()).filter(s=>s);
+  if (!steps.length) { showToast('⚠️ أضف خطوة واحدة'); return; }
+  const linked = Array.from(document.querySelectorAll('#recipeAccountPicker .account-pill.selected')).map(p=>p.getAttribute('data-id'));
+  appData.recipes.push({ id:'rec'+Date.now(), name, desc, emoji, steps, linkedAccounts:linked });
+  save();
+  ['recName','recDesc','recEmoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('stepsEditor').innerHTML=`<div class="step-row"><input class="form-input" placeholder="الخطوة الأولى..."/><button class="remove-step" onclick="removeStep(this)">✕</button></div>`;
+  showToast('✅ تم حفظ الوصفة!');
+  switchTab('recipes');
+}
+
+// ============ SETTINGS ============
+function loadSettings() {
+  document.getElementById('serverUrl').value = appData.serverUrl||'';
+  document.getElementById('apiKey').value = appData.apiKey||'';
+  checkServer();
+}
+
+function saveSettings() {
+  appData.serverUrl = document.getElementById('serverUrl').value.trim();
+  appData.apiKey = document.getElementById('apiKey').value.trim();
+  save();
+  showToast('✅ تم حفظ الإعدادات');
+  checkServer();
+}
+
+async function checkServer() {
+  const url = appData.serverUrl?.trim();
+  const dot = document.getElementById('serverDot');
+  const title = document.getElementById('serverStatusTitle');
+  const desc = document.getElementById('serverStatusDesc');
+  const hDot = document.getElementById('headerDot');
+  const hLabel = document.getElementById('serverLabel');
+
+  if (!url) {
+    dot.className='server-status-dot'; title.textContent='غير مضبوط';
+    desc.textContent='حط IP الكمبيوتر في الأسفل'; hDot.className='server-dot';
+    hLabel.textContent='غير متصل'; return;
+  }
+
+  title.textContent='جاري الفحص...'; desc.textContent='';
+  try {
+    const res = await fetch(url+'/status', { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+    if (data.server === 'online') {
+      dot.className='server-status-dot online'; title.textContent='✅ متصل';
+      desc.textContent='السيرفر يعمل'; hDot.className='server-dot online';
+      hLabel.textContent='متصل';
+    }
+  } catch(e) {
+    dot.className='server-status-dot error'; title.textContent='❌ غير متصل';
+    desc.textContent='تأكد من تشغيل start.bat على الكمبيوتر';
+    hDot.className='server-dot error'; hLabel.textContent='غير متصل';
+  }
+}
+
+function resetAll() {
+  if (confirm('مسح كل البيانات نهائياً؟')) {
+    localStorage.removeItem('autopilot_v2');
+    location.reload();
+  }
+}
+
+// ============ TOAST ============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ============ INIT ============
+load();
+renderRecipes();
+setInterval(()=>{ if(appData.serverUrl) checkServer(); }, 30000);
+</script>
+</body>
+</html>
