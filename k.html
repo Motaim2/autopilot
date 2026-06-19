@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#667eea">
+<title>🎮 Knuz Control</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, 'Segoe UI', 'Cairo', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 200% 200%;
+  animation: gradient 15s ease infinite;
+  min-height: 100vh;
+  padding: 16px;
+  color: white;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container { max-width: 500px; margin: 0 auto; }
+
+.header { text-align: center; padding: 20px 0 16px; }
+.header h1 { font-size: 28px; font-weight: 900; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+.card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.card-title { font-size: 13px; font-weight: 700; opacity: 0.9; margin-bottom: 12px; }
+
+.account-input {
+  width: 100%;
+  background: rgba(255,255,255,0.95);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 16px 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  letter-spacing: 1px;
+  outline: none;
+  direction: ltr;
+}
+
+.account-input:focus { border-color: #fbbf24; }
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 18px;
+  padding: 22px 16px;
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.action-btn:active { transform: scale(0.95); }
+.action-btn .icon { font-size: 32px; }
+
+.btn-login { background: linear-gradient(135deg, #10b981, #059669); grid-column: span 2; }
+.btn-mic { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-logout { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.btn-stop { background: linear-gradient(135deg, #6b7280, #4b5563); grid-column: span 2; font-size: 16px; padding: 16px; }
+.btn-stop .icon { font-size: 24px; }
+
+.footer { text-align: center; font-size: 11px; opacity: 0.6; margin-top: 20px; }
+
+.note {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>🎮 Knuz Control</h1>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👤 رقم الحساب (للـ Login فقط)</div>
+    <input type="text" class="account-input" id="accountId" placeholder="مثال: 880" inputmode="numeric" autocomplete="off" oninput="updateLinks()">
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ اضغط أي زر للتنفيذ</div>
+    <div class="actions-grid">
+      <a href="https://appointee-caliber-reclusive.ngrok-free.dev/run?recipe=login&account_id=" 
+         class="action-btn btn-login" 
+         id="btnLogin"
+         target="_blank">
+        <span class="icon">🟢</span>
+        <span>Login - تسجيل دخول</span>
+      </a>
+      <a href="https://appointee-caliber-reclusive.ngrok-free.dev/run?recipe=mic" 
+         class="action-btn btn-mic"
+         target="_blank">
+        <span class="icon">🎤</span>
+        <span>Mic - مايك</span>
+      </a>
+      <a href="https://appointee-caliber-reclusive.ngrok-free.dev/run?recipe=logout" 
+         class="action-btn btn-logout"
+         target="_blank">
+        <span class="icon">🚪</span>
+        <span>Logout - خروج</span>
+      </a>
+      <a href="https://appointee-caliber-reclusive.ngrok-free.dev/stop" 
+         class="action-btn btn-stop"
+         target="_blank">
+        <span class="icon">⏹️</span>
+        <span>STOP - إيقاف فوري</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    Knuz Autopilot v3.0 • Pure Links
+  </div>
+
+</div>
+
+<script>
+function updateLinks() {
+  var id = document.getElementById('accountId').value.trim();
+  var btn = document.getElementById('btnLogin');
+  btn.href = 'https://appointee-caliber-reclusive.ngrok-free.dev/run?recipe=login&account_id=' + encodeURIComponent(id);
+}
+updateLinks();
+</script>
+
+</body>
+</html>
