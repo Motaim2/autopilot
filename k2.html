@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#667eea">
+<title>🎮 Knuz Control</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, 'Segoe UI', 'Cairo', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 200% 200%;
+  animation: gradient 15s ease infinite;
+  min-height: 100vh;
+  padding: 16px;
+  color: white;
+  user-select: none;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container { max-width: 500px; margin: 0 auto; }
+
+.header { text-align: center; padding: 20px 0 16px; }
+.header h1 { font-size: 28px; font-weight: 900; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+.card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.card-title { font-size: 13px; font-weight: 700; opacity: 0.9; margin-bottom: 12px; }
+
+.account-input {
+  width: 100%;
+  background: rgba(255,255,255,0.95);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 16px 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  letter-spacing: 1px;
+  outline: none;
+  direction: ltr;
+}
+
+.account-input:focus { border-color: #fbbf24; }
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: 18px;
+  padding: 22px 16px;
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.action-btn:active { transform: scale(0.95); }
+.action-btn .icon { font-size: 32px; }
+
+.btn-login { background: linear-gradient(135deg, #10b981, #059669); grid-column: span 2; }
+.btn-mic { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-logout { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.btn-stop { background: linear-gradient(135deg, #6b7280, #4b5563); grid-column: span 2; font-size: 16px; padding: 16px; }
+.btn-stop .icon { font-size: 24px; }
+
+.footer { text-align: center; font-size: 11px; opacity: 0.6; margin-top: 20px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(20px);
+  color: white;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 100;
+  white-space: nowrap;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.success { background: rgba(16, 185, 129, 0.95); }
+.toast.error { background: rgba(239, 68, 68, 0.95); }
+
+/* Hidden iframe */
+#hiddenFrame {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>🎮 Knuz Control</h1>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👤 رقم الحساب (للـ Login فقط)</div>
+    <input type="text" class="account-input" id="accountId" placeholder="مثال: 880" inputmode="numeric" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ الإجراءات</div>
+    <div class="actions-grid">
+      <button class="action-btn btn-login" onclick="runLogin()">
+        <span class="icon">🟢</span>
+        <span>Login - تسجيل دخول</span>
+      </button>
+      <button class="action-btn btn-mic" onclick="runMic()">
+        <span class="icon">🎤</span>
+        <span>Mic - مايك</span>
+      </button>
+      <button class="action-btn btn-logout" onclick="runLogout()">
+        <span class="icon">🚪</span>
+        <span>Logout - خروج</span>
+      </button>
+      <button class="action-btn btn-stop" onclick="runStop()">
+        <span class="icon">⏹️</span>
+        <span>STOP - إيقاف فوري</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    Knuz Autopilot v4.0 • Final
+  </div>
+
+</div>
+
+<!-- Hidden iframe sends requests without leaving the page -->
+<iframe id="hiddenFrame" name="hiddenFrame"></iframe>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SERVER = 'https://appointee-caliber-reclusive.ngrok-free.dev';
+
+function sendRequest(url, label) {
+  // Use hidden iframe to send the request without changing the page
+  document.getElementById('hiddenFrame').src = url;
+  toast('✓ ' + label, 'success');
+}
+
+function runMic() {
+  sendRequest(SERVER + '/run?recipe=mic', 'جاري أخذ المايك...');
+}
+
+function runLogin() {
+  var id = document.getElementById('accountId').value.trim();
+  if (!id) {
+    toast('⚠️ اكتب رقم الحساب أولاً', 'error');
+    document.getElementById('accountId').focus();
+    return;
+  }
+  sendRequest(SERVER + '/run?recipe=login&account_id=' + encodeURIComponent(id), 'جاري الدخول: ' + id);
+}
+
+function runLogout() {
+  if (confirm('تأكيد تسجيل الخروج؟')) {
+    sendRequest(SERVER + '/run?recipe=logout', 'جاري الخروج...');
+  }
+}
+
+function runStop() {
+  sendRequest(SERVER + '/stop', '⏹️ تم الإيقاف');
+}
+
+// Toast
+var toastTimer;
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() {
+    t.classList.remove('show');
+  }, 2500);
+}
+</script>
+
+</body>
+</html>
