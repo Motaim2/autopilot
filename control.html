@@ -472,27 +472,41 @@ setInterval(checkStatus, 5000);
 checkStatus();
 
 // ============================
-// Action runners
+// Action runners (uses GET with URL params - more reliable)
 // ============================
 async function callApi(recipe, extra = {}) {
   try {
-    const body = { recipe, ...extra };
-    const r = await fetch(SERVER_URL + '/run', {
-      method: 'POST',
+    // Build URL with query parameters
+    const params = new URLSearchParams({ recipe, ...extra });
+    const url = SERVER_URL + '/run?' + params.toString();
+    console.log('Calling:', url);
+    
+    const r = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
       headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '1'
-      },
-      body: JSON.stringify(body)
+        'ngrok-skip-browser-warning': 'true'
+      }
     });
-    const data = await r.json();
+    
+    console.log('Response status:', r.status);
+    const text = await r.text();
+    console.log('Response body:', text);
+    
+    let data;
+    try { data = JSON.parse(text); } catch { data = {}; }
+    
     if (data.error) {
       toast('❌ ' + data.error, 'error');
-    } else {
+    } else if (r.ok) {
       toast('✓ تم البدء: ' + recipe, 'success');
+    } else {
+      toast('⚠️ خطأ ' + r.status, 'error');
     }
   } catch (e) {
-    toast('❌ فشل الاتصال بالسيرفر', 'error');
+    console.error('Error:', e);
+    toast('❌ فشل الاتصال: ' + e.message, 'error');
   }
 }
 
