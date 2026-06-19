@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#667eea">
+<title>🎮 Knuz Control</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, 'Segoe UI', 'Cairo', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 200% 200%;
+  animation: gradient 15s ease infinite;
+  min-height: 100vh;
+  padding: 16px;
+  color: white;
+  user-select: none;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  padding: 20px 0 16px;
+  position: relative;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 900;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  margin-bottom: 6px;
+}
+
+.header p {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 10px #4ade80;
+  margin-left: 6px;
+  animation: pulse 2s ease infinite;
+}
+
+.status-dot.off {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.account-input {
+  flex: 1;
+  background: rgba(255,255,255,0.95);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 16px 18px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  letter-spacing: 1px;
+  outline: none;
+  transition: all 0.2s;
+  direction: ltr;
+}
+
+.account-input:focus {
+  border-color: #fbbf24;
+  background: white;
+  transform: scale(1.02);
+}
+
+.account-input::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.paste-btn {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: none;
+  border-radius: 14px;
+  padding: 0 18px;
+  height: 56px;
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+  transition: all 0.15s;
+}
+
+.paste-btn:active {
+  transform: scale(0.92);
+}
+
+.clear-btn {
+  background: rgba(239, 68, 68, 0.9);
+  border: none;
+  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clear-btn:active {
+  transform: scale(0.92);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 18px;
+  padding: 22px 16px;
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-btn .icon {
+  font-size: 32px;
+}
+
+.action-btn:active {
+  transform: scale(0.95) translateY(2px);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-login {
+  background: linear-gradient(135deg, #10b981, #059669);
+  grid-column: span 2;
+}
+
+.btn-mic {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.btn-logout {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.btn-stop {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  grid-column: span 2;
+  font-size: 16px;
+  padding: 16px;
+}
+
+.btn-stop .icon {
+  font-size: 24px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(20px);
+  color: white;
+  padding: 14px 24px;
+  border-radius: 50px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.success { background: rgba(16, 185, 129, 0.95); }
+.toast.error { background: rgba(239, 68, 68, 0.95); }
+
+/* Advanced section */
+.advanced-toggle {
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.4);
+  color: white;
+  border-radius: 14px;
+  padding: 12px;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.2s;
+}
+
+.advanced-toggle:active { transform: scale(0.98); }
+
+.advanced-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.advanced-panel.open {
+  max-height: 500px;
+}
+
+.adv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.adv-row:last-child { border: none; }
+
+.adv-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mic-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mic-num {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 10px 0;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mic-num.active {
+  background: #fbbf24;
+  border-color: #fbbf24;
+  color: #1f2937;
+}
+
+.mic-num:active { transform: scale(0.9); }
+
+.footer {
+  text-align: center;
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>🎮 Knuz Control</h1>
+    <p>السيرفر <span class="status-dot" id="dot"></span> <span id="statusText">جاري الفحص...</span></p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👤 رقم الحساب</div>
+    <input type="text" class="account-input-full" id="accountId" placeholder="اكتب رقم الحساب هنا" inputmode="numeric" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ الإجراءات</div>
+    <div class="actions-grid">
+      <button class="action-btn btn-login" onclick="runLogin()">
+        <span class="icon">🟢</span>
+        <span>Login - تسجيل دخول</span>
+      </button>
+      <button class="action-btn btn-mic" onclick="runMic()">
+        <span class="icon">🎤</span>
+        <span>Mic - مايك</span>
+      </button>
+      <button class="action-btn btn-logout" onclick="runLogout()">
+        <span class="icon">🚪</span>
+        <span>Logout - خروج</span>
+      </button>
+      <button class="action-btn btn-stop" onclick="runStop()">
+        <span class="icon">⏹️</span>
+        <span>STOP - إيقاف فوري</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="advanced-toggle" onclick="toggleAdvanced()">
+      ⚙️ إعدادات متقدمة <span id="advArrow">▼</span>
+    </button>
+    <div class="advanced-panel" id="advancedPanel">
+      <div style="margin-top: 16px;">
+
+        <div class="adv-row">
+          <span class="adv-label">🎤 رقم المايك</span>
+          <span style="opacity: 0.7; font-size: 13px;" id="micLabel">مايك 11</span>
+        </div>
+        <div class="mic-selector">
+          <button class="mic-num" data-mic="1">1</button>
+          <button class="mic-num" data-mic="2">2</button>
+          <button class="mic-num" data-mic="3">3</button>
+          <button class="mic-num" data-mic="4">4</button>
+          <button class="mic-num" data-mic="5">5</button>
+          <button class="mic-num" data-mic="6">6</button>
+          <button class="mic-num" data-mic="7">7</button>
+          <button class="mic-num" data-mic="8">8</button>
+          <button class="mic-num" data-mic="9">9</button>
+          <button class="mic-num" data-mic="10">10</button>
+          <button class="mic-num active" data-mic="11">11</button>
+          <button class="mic-num" data-mic="12">12</button>
+          <button class="mic-num" data-mic="13">13</button>
+          <button class="mic-num" data-mic="14">14</button>
+          <button class="mic-num" data-mic="15">15</button>
+        </div>
+
+        <div class="adv-row" style="margin-top: 12px;">
+          <span class="adv-label">⏱️ تأخير بين العمليات</span>
+          <span style="opacity: 0.7; font-size: 13px;">قريباً</span>
+        </div>
+        <div class="adv-row">
+          <span class="adv-label">🔁 وضع متعدد</span>
+          <span style="opacity: 0.7; font-size: 13px;">قريباً</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Knuz Autopilot v2.0 • Made with ❤️
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================
+// ⚙️ CONFIGURATION
+// ============================
+const SERVER_URL = 'https://appointee-caliber-reclusive.ngrok-free.dev';
+
+// ============================
+// State
+// ============================
+let selectedMic = 11;
+
+// ============================
+// Account input helpers
+// ============================
+async function pasteAccount() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const clean = text.trim().replace(/[^0-9]/g, '');
+    if (clean) {
+      document.getElementById('accountId').value = clean;
+      toast('✓ تم اللصق: ' + clean, 'success');
+    } else {
+      toast('⚠️ الحافظة فارغة أو بدون رقم', 'error');
+    }
+  } catch (e) {
+    toast('❌ المتصفح ما يسمح بقراءة الحافظة - الصق يدوياً', 'error');
+  }
+}
+
+function clearAccount() {
+  document.getElementById('accountId').value = '';
+  document.getElementById('accountId').focus();
+}
+
+// ============================
+// Server status check
+// ============================
+async function checkStatus() {
+  try {
+    const r = await fetch(SERVER_URL + '/status', {
+      headers: { 'ngrok-skip-browser-warning': '1' }
+    });
+    if (r.ok) {
+      document.getElementById('dot').classList.remove('off');
+      document.getElementById('statusText').textContent = 'متصل ✓';
+    } else throw new Error();
+  } catch {
+    document.getElementById('dot').classList.add('off');
+    document.getElementById('statusText').textContent = 'غير متصل';
+  }
+}
+
+setInterval(checkStatus, 5000);
+checkStatus();
+
+// ============================
+// Action runners (uses GET with URL params - more reliable)
+// ============================
+async function callApi(recipe, extra = {}) {
+  try {
+    // Build URL with query parameters
+    const params = new URLSearchParams({ recipe, ...extra });
+    const url = SERVER_URL + '/run?' + params.toString();
+    console.log('Calling:', url);
+    
+    const r = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
+    
+    console.log('Response status:', r.status);
+    const text = await r.text();
+    console.log('Response body:', text);
+    
+    let data;
+    try { data = JSON.parse(text); } catch { data = {}; }
+    
+    if (data.error) {
+      toast('❌ ' + data.error, 'error');
+    } else if (r.ok) {
+      toast('✓ تم البدء: ' + recipe, 'success');
+    } else {
+      toast('⚠️ خطأ ' + r.status, 'error');
+    }
+  } catch (e) {
+    console.error('Error:', e);
+    toast('❌ فشل الاتصال: ' + e.message, 'error');
+  }
+}
+
+function runLogin() {
+  const id = document.getElementById('accountId').value.trim();
+  if (!id) {
+    toast('⚠️ اكتب رقم الحساب أولاً', 'error');
+    document.getElementById('accountId').focus();
+    return;
+  }
+  callApi('login', { account_id: id });
+}
+
+function runMic() {
+  callApi('mic', { mic_number: selectedMic });
+}
+
+function runLogout() {
+  if (confirm('تأكيد تسجيل الخروج؟')) {
+    callApi('logout');
+  }
+}
+
+async function runStop() {
+  try {
+    const r = await fetch(SERVER_URL + '/stop', {
+      method: 'POST',
+      headers: { 'ngrok-skip-browser-warning': '1' }
+    });
+    if (r.ok) toast('⏹️ تم الإيقاف', 'success');
+  } catch {
+    toast('❌ فشل الإيقاف', 'error');
+  }
+}
+
+// ============================
+// Advanced panel
+// ============================
+function toggleAdvanced() {
+  const panel = document.getElementById('advancedPanel');
+  const arrow = document.getElementById('advArrow');
+  panel.classList.toggle('open');
+  arrow.textContent = panel.classList.contains('open') ? '▲' : '▼';
+}
+
+document.querySelectorAll('.mic-num').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mic-num').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMic = parseInt(btn.dataset.mic);
+    document.getElementById('micLabel').textContent = 'مايك ' + selectedMic;
+  });
+});
+
+// ============================
+// Toast notifications
+// ============================
+let toastTimer;
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+  }, 3000);
+}
+
+// Prevent zoom on double-tap
+document.addEventListener('touchend', e => {
+  if (e.target.tagName !== 'INPUT') e.preventDefault();
+}, { passive: false });
+
+</script>
+</body>
+</html>
