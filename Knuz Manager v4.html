@@ -369,7 +369,7 @@ td.mo{font-family:monospace;font-size:10px}
           <th>&#x627;&#x644;&#x627;&#x633;&#x645;</th><th>ID</th><th>&#x62D;&#x627;&#x644;&#x629;</th>
           <th>&#x645;&#x633;&#x62A;&#x648;&#x649;</th><th>&#x1FA99; &#x643;&#x648;&#x646;&#x632;</th>
           <th>&#x1F4B5; &#x631;&#x627;&#x62A;&#x628;</th><th>&#x1F4C5;</th>
-          <th>&#x646;&#x642;&#x644; &#x625;&#x644;&#x649;</th>
+          <th>&#x645;&#x644;&#x627;&#x062D;&#x0638;&#x0627;&#x062A;</th>
         </tr></thead>
         <tbody id="str-body"></tbody>
       </table>
@@ -378,7 +378,7 @@ td.mo{font-family:monospace;font-size:10px}
   <div class="bab">
     <button class="btn b-s" onclick="selAllStr()">&#x2611; &#x62A;&#x62D;&#x62F;&#x64A;&#x62F; &#x627;&#x644;&#x643;&#x644;</button>
     <button class="btn b-s" onclick="clrSelStr()">&#x2610; &#x625;&#x644;&#x63A;&#x627;&#x621;</button>
-    <button class="btn b-p" onclick="addSelStr()">&#x2795; &#x625;&#x636;&#x627;&#x641;&#x629; &#x627;&#x644;&#x645;&#x62D;&#x62F;&#x62F;&#x64A;&#x646;</button>
+    <button class="btn b-p" onclick="showMoveStr()">&#x2795; &#x625;&#x636;&#x627;&#x641;&#x629; &#x627;&#x644;&#x645;&#x62D;&#x62F;&#x62F;&#x64A;&#x646;</button>
     <div class="cbadge" id="str-selcnt" style="color:var(--cyan)">0 &#x645;&#x62D;&#x62F;&#x62F;</div>
   </div>
 </div>
@@ -443,6 +443,56 @@ td.mo{font-family:monospace;font-size:10px}
     <div class="mo-row">
       <button class="btn b-p" onclick="execMove()">&#x2705; &#x646;&#x642;&#x644;</button>
       <button class="btn b-s" onclick="closeMo('mo-move')">&#x625;&#x644;&#x63A;&#x627;&#x621;</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOVE STRANGERS -->
+<div class="mov" id="mo-move-str">
+  <div class="mo-b">
+    <div class="mo-t">&#x2795; &#x625;&#x636;&#x627;&#x641;&#x629; &#x627;&#x644;&#x63A;&#x631;&#x628;&#x627;&#x621;</div>
+    <div class="mo-s">&#x627;&#x644;&#x645;&#x062D;&#x062F;&#x062F;: <span id="mo-move-str-cnt" style="color:var(--cyan);font-weight:700"></span></div>
+    <div style="font-size:10px;color:var(--g3);margin-bottom:8px">&#x062C;&#x0645;&#x064A;&#x0639; &#x0627;&#x0644;&#x062D;&#x0633;&#x0627;&#x0628;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062D;&#x062F;&#x062F;&#x0629; &#x062A;&#x064F;&#x0636;&#x0627;&#x0641; &#x0644;&#x0646;&#x0641;&#x0633; &#x0627;&#x0644;&#x0645;&#x062C;&#x0645;&#x0648;&#x0639;&#x0629; &#x0627;&#x0644;&#x0645;&#x062E;&#x062A;&#x0627;&#x0631;&#x0629;</div>
+    <select class="sel" id="mv-str-tgt" style="width:100%;margin-bottom:4px;font-size:12px"></select>
+    <div class="mo-row">
+      <button class="btn b-p" onclick="execMoveStr()">&#x2705; &#x0625;&#x0636;&#x0627;&#x0641;&#x0629;</button>
+      <button class="btn b-s" onclick="closeMo('mo-move-str')">&#x625;&#x644;&#x63A;&#x627;&#x621;</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FG BULK EDIT -->
+<div class="mov" id="mo-fgbulk">
+  <div class="mo-b">
+    <div class="mo-t">&#x270F;&#xFE0F; &#x062A;&#x0639;&#x062F;&#x064A;&#x0644; &#x062C;&#x0645;&#x0627;&#x0639;&#x064A;</div>
+    <div class="mo-s">&#x627;&#x644;&#x645;&#x062D;&#x062F;&#x062F;: <span id="fgbulk-cnt" style="color:var(--cyan);font-weight:700"></span></div>
+    <input type="hidden" id="fgbulk-gi" value="0">
+    <div style="font-size:10px;color:var(--g3);margin-bottom:10px">&#x0627;&#x062A;&#x0631;&#x0643; &#x0627;&#x0644;&#x062D;&#x0642;&#x0644; &#x0641;&#x0627;&#x0631;&#x063A;&#x064B;&#x0627; &#x0644;&#x062A;&#x062E;&#x0637;&#x064A;&#x0647; &#x062F;&#x0648;&#x0646; &#x062A;&#x063A;&#x064A;&#x064A;&#x0631;</div>
+    <div class="fi-l">&#x1F468;&#x200D;&#x1F4BC; &#x631;&#x627;&#x062A;&#x628; &#x627;&#x644;&#x648;&#x643;&#x064A;&#x644; ($)</div>
+    <input class="fi" type="number" id="fgbulk-agent" placeholder="0.00">
+    <div class="fi-l">&#x1F4B3; &#x633;&#x644;&#x641;&#x629; ($)</div>
+    <input class="fi" type="number" id="fgbulk-adv" placeholder="0.00">
+    <div class="mo-row">
+      <button class="btn b-o" onclick="execFgBulk()">&#x2705; &#x062A;&#x0637;&#x0628;&#x064A;&#x0642;</button>
+      <button class="btn b-s" onclick="closeMo('mo-fgbulk')">&#x625;&#x644;&#x63A;&#x627;&#x621;</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FG MOVE -->
+<div class="mov" id="mo-fgmove">
+  <div class="mo-b">
+    <div class="mo-t">&#x1F500; &#x0646;&#x0642;&#x0644;/&#x0646;&#x0633;&#x062E; &#x0644;&#x0645;&#x062C;&#x0645;&#x0648;&#x0639;&#x0629;</div>
+    <div class="mo-s">&#x627;&#x644;&#x645;&#x062D;&#x062F;&#x062F;: <span id="fgmove-cnt" style="color:var(--cyan);font-weight:700"></span></div>
+    <input type="hidden" id="fgmove-from" value="0">
+    <select class="sel" id="fgmove-to" style="width:100%;margin-bottom:10px;font-size:12px"></select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--g3);margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" class="cb" id="fgmove-copy">
+      &#x0627;&#x062D;&#x062A;&#x0641;&#x0638; &#x0628;&#x0646;&#x0633;&#x062E;&#x0629; &#x0641;&#x064A; &#x0627;&#x0644;&#x0645;&#x062C;&#x0645;&#x0648;&#x0639;&#x0629; &#x0627;&#x0644;&#x0623;&#x0635;&#x0644;&#x064A;&#x0629; (&#x0646;&#x0633;&#x062E; &#x0628;&#x062F;&#x0644; &#x0646;&#x0642;&#x0644;)
+    </label>
+    <div class="mo-row">
+      <button class="btn b-p" onclick="execFgMove()">&#x2705; &#x062A;&#x0623;&#x0643;&#x064A;&#x062F;</button>
+      <button class="btn b-s" onclick="closeMo('mo-fgmove')">&#x625;&#x644;&#x63A;&#x627;&#x621;</button>
     </div>
   </div>
 </div>
@@ -648,24 +698,14 @@ function refreshGrpFilter(){
   if(ckeys.length){h+='<optgroup label="\u062c\u062f\u064a\u062f\u0629">';for(var i=0;i<ckeys.length;i++)h+='<option value="'+ckeys[i]+'">'+ckeys[i]+'</option>';h+='</optgroup>';}
   sel.innerHTML=h;sel.value=cur;
 }
-function getAllGroupOptions(incl_free){
-  var h='<option value="">-- \u0627\u062e\u062a\u0631 \u0645\u062c\u0645\u0648\u0639\u0629 --</option>';
-  h+='<optgroup label="\u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0627\u062a \u0627\u0644\u0623\u0635\u0644\u064a\u0629">';
-  h+='<option value="kunz">Kunz</option><option value="sa">Sa</option><option value="monyera">Monyera</option><option value="tesm knuz">Tesm Knuz</option></optgroup>';
-  var ckeys=Object.keys(CUSTOM_GROUPS);
-  if(ckeys.length){h+='<optgroup label="\u0645\u062c\u0645\u0648\u0639\u0627\u062a \u062c\u062f\u064a\u062f\u0629">';for(var i=0;i<ckeys.length;i++)h+='<option value="'+ckeys[i]+'">'+ckeys[i]+'</option>';h+='</optgroup>';}
-  if(incl_free&&FREE_GROUPS.length){h+='<optgroup label="\u0645\u062c\u0645\u0648\u0639\u0627\u062a\u064a \u0627\u0644\u062e\u0627\u0635\u0629">';for(var i=0;i<FREE_GROUPS.length;i++)h+='<option value="fg:'+i+'">\ud83d\uddc2\ufe0f '+FREE_GROUPS[i].name+'</option>';h+='</optgroup>';}
-  h+='<option value="__newgrp__">\u2795 \u0625\u0646\u0634\u0627\u0621 \u0645\u062c\u0645\u0648\u0639\u0629 \u062c\u062f\u064a\u062f\u0629</option>';
-  return h;
-}
 function showMove(){var ids=getSelIds();if(!ids.length){toast('\u0627\u062e\u062a\u0631 \u062d\u0633\u0627\u0628\u0627\u062a \u0623\u0648\u0644\u0627\u064b');return;}
-  document.getElementById('mv-tgt').innerHTML=getAllGroupOptions(false);
+  document.getElementById('mv-tgt').innerHTML=getAllGrpOpts(true);
   document.getElementById('mo-move-cnt').textContent=ids.length+' \u062d\u0633\u0627\u0628';
   showMo('mo-move');}
 function execMove(){
   var ids=getSelIds(),tgt=document.getElementById('mv-tgt').value;
   if(!tgt){toast('\u0627\u062e\u062a\u0631 \u0645\u062c\u0645\u0648\u0639\u0629');return;}
-  if(tgt==='__newgrp__'){
+  if(tgt==='__new__'){
     var nm=prompt('\u0627\u0633\u0645 \u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0644\u062c\u062f\u064a\u062f\u0629:');
     if(!nm)return;
     if(!CUSTOM_GROUPS[nm])CUSTOM_GROUPS[nm]=1;
@@ -760,59 +800,81 @@ function fltStr(){
     h+='<td class="mo" style="color:var(--gold)">'+fmt(a.konz)+'</td>';
     h+='<td class="mo" style="color:var(--cyan)">'+fmt(a.sal_total,2)+'</td>';
     h+='<td class="mo" style="color:'+(a.days>=20?'var(--tel)':'var(--g3)')+'">'+(a.days||'\u2014')+'</td>';
-    h+='<td><select class="sel" style="font-size:9px;padding:3px 6px" onchange="setStrGrp('+a.id+',this.value)">';
-    h+='<option value="">\u2014</option>';
-    h+='<option value="kunz">Kunz</option><option value="sa">Sa</option><option value="monyera">Monyera</option><option value="tesm knuz">Tesm Knuz</option>';
-    for(var g in CUSTOM_GROUPS)h+='<option value="'+g+'">'+g+'</option>';
-    for(var j=0;j<FREE_GROUPS.length;j++)h+='<option value="fg:'+j+'">\ud83d\uddc2\ufe0f '+FREE_GROUPS[j].name+'</option>';
-    h+='<option value="__new__">\u2795 \u0645\u062c\u0645\u0648\u0639\u0629 \u062c\u062f\u064a\u062f\u0629</option>';
-    h+='</select></td></tr>';
+    h+='<td class="mo" style="color:var(--g3)">\u2014</td></tr>';
   }
   document.getElementById('str-body').innerHTML=h;
 }
-function setStrGrp(id,val){
-  var s=STRANGERS.find(function(x){return x.id===id;});if(!s)return;
-  if(val==='__newgrp__'){
+function getAllGrpOpts(incl_free){
+  var h='<option value="">-- \u0627\u062e\u062a\u0631 \u0645\u062c\u0645\u0648\u0639\u0629 --</option>';
+  h+='<optgroup label="\u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0627\u062a \u0627\u0644\u0623\u0635\u0644\u064a\u0629">';
+  h+='<option value="kunz">Kunz</option><option value="sa">Sa</option><option value="monyera">Monyera</option><option value="tesm knuz">Tesm Knuz</option></optgroup>';
+  var ck=Object.keys(CUSTOM_GROUPS);
+  if(ck.length){
+    h+='<optgroup label="\u0645\u062c\u0645\u0648\u0639\u0627\u062a \u062c\u062f\u064a\u062f\u0629">';
+    for(var i=0;i<ck.length;i++)h+='<option value="'+ck[i]+'">'+ck[i]+'</option>';
+    h+='</optgroup>';
+  }
+  if(incl_free&&FREE_GROUPS.length){
+    h+='<optgroup label="\u0645\u062c\u0645\u0648\u0639\u0627\u062a\u064a \u0627\u0644\u062e\u0627\u0635\u0629 (\u0646\u0633\u062e)">';
+    for(var j=0;j<FREE_GROUPS.length;j++)h+='<option value="fg:'+j+'">\ud83d\uddc2\ufe0f '+FREE_GROUPS[j].name+'</option>';
+    h+='</optgroup>';
+  }
+  h+='<option value="__new__">\u2795 \u0625\u0646\u0634\u0627\u0621 \u0645\u062c\u0645\u0648\u0639\u0629 \u062c\u062f\u064a\u062f\u0629</option>';
+  return h;
+}
+function showMoveStr(){
+  var ids=Array.from(document.querySelectorAll('.scb:checked')).map(function(c){return parseInt(c.value);});
+  if(!ids.length){toast('\u0627\u062e\u062a\u0631 \u062d\u0633\u0627\u0628\u0627\u062a \u0623\u0648\u0644\u0627\u064b');return;}
+  document.getElementById('mv-str-tgt').innerHTML=getAllGrpOpts(true);
+  document.getElementById('mo-move-str-cnt').textContent=ids.length+' \u062d\u0633\u0627\u0628';
+  showMo('mo-move-str');
+}
+function execMoveStr(){
+  var ids=Array.from(document.querySelectorAll('.scb:checked')).map(function(c){return parseInt(c.value);});
+  var tgt=document.getElementById('mv-str-tgt').value;
+  if(!tgt){toast('\u0627\u062e\u062a\u0631 \u0645\u062c\u0645\u0648\u0639\u0629');return;}
+  if(tgt==='__new__'){
     var nm=prompt('\u0627\u0633\u0645 \u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0644\u062c\u062f\u064a\u062f\u0629:');
     if(!nm)return;
     if(!CUSTOM_GROUPS[nm])CUSTOM_GROUPS[nm]=1;
-    s.assigned_grp=nm;sav();fltStr();toast('\u062a\u0645 \u0625\u0646\u0634\u0627\u0621: '+nm);
-  }else if(val===''){s.assigned_grp='';}
-  else{s.assigned_grp=val;}
-}
-function updStrSel(){document.getElementById('str-selcnt').textContent=document.querySelectorAll('.scb:checked').length+' \u0645\u062d\u062f\u062f';}
-function selAllStr(){document.querySelectorAll('.scb').forEach(function(c){c.checked=true;});updStrSel();}
-function clrSelStr(){document.querySelectorAll('.scb').forEach(function(c){c.checked=false;});updStrSel();}
-function togAllStr(el){document.querySelectorAll('.scb').forEach(function(c){c.checked=el.checked;});updStrSel();}
-function addSelStr(){
-  var ids=Array.from(document.querySelectorAll('.scb:checked')).map(function(c){return parseInt(c.value);});
-  if(!ids.length){toast('\u0627\u062e\u062a\u0631 \u062d\u0633\u0627\u0628\u0627\u062a \u0623\u0648\u0644\u0627\u064b');return;}
-  var added=0,nogrp=0;
+    tgt=nm;
+  }
+  var added=0;
+  var isFree=tgt.indexOf('fg:')==0;
+  var fgi=isFree?parseInt(tgt.replace('fg:','')):-1;
+  var base=['kunz','sa','monyera','tesm knuz'];
+  if(!isFree&&base.indexOf(tgt)<0&&CUSTOM_GROUPS[tgt]===undefined)CUSTOM_GROUPS[tgt]=1;
+
   for(var i=ids.length-1;i>=0;i--){
     var id=ids[i];
     var si=STRANGERS.findIndex(function(x){return x.id===id;});
     if(si<0)continue;
     var s=STRANGERS[si];
-    if(!s.assigned_grp){nogrp++;continue;}
-    var newAcc={id:s.id,name:s.name,konz:s.konz,diamond:s.diamond,sal_basic:s.sal_basic||0,sal_diam:s.sal_diam||0,sal_mic:s.sal_mic||0,sal_total:s.sal_total,withdrawn:s.withdrawn||0,remaining:s.remaining||0,hours:s.hours,days:s.days,join:s.join,status:s.status,level:s.level,agent_salary:0,advance:0};
-    if(s.assigned_grp.indexOf('fg:')==0){
-      var fgi=parseInt(s.assigned_grp.replace('fg:',''));
-      newAcc.grp='stranger';
+    var newAcc={id:s.id,name:s.name,konz:s.konz,diamond:s.diamond,
+      sal_basic:s.sal_basic||0,sal_diam:s.sal_diam||0,sal_mic:s.sal_mic||0,
+      sal_total:s.sal_total,withdrawn:s.withdrawn||0,remaining:s.remaining||0,
+      hours:s.hours,days:s.days,join:s.join,status:s.status,level:s.level,
+      agent_salary:0,advance:0};
+    if(isFree){
+      newAcc.grp='';
       if(!ACCOUNTS.find(function(x){return x.id===id;}))ACCOUNTS.push(newAcc);
       if(FREE_GROUPS[fgi]&&FREE_GROUPS[fgi].ids.indexOf(id)<0)FREE_GROUPS[fgi].ids.push(id);
     }else{
-      newAcc.grp=s.assigned_grp;
-      var baseGrps=['kunz','sa','monyera','tesm knuz'];
-      if(baseGrps.indexOf(s.assigned_grp)<0&&CUSTOM_GROUPS[s.assigned_grp]===undefined)CUSTOM_GROUPS[s.assigned_grp]=1;
+      newAcc.grp=tgt;
       if(!ACCOUNTS.find(function(x){return x.id===id;}))ACCOUNTS.push(newAcc);
     }
     STRANGERS.splice(si,1);added++;
   }
-  sav();buildDash();renderStr();
-  toast(added+' \u062a\u0645 \u0625\u0636\u0627\u0641\u062a\u0647\u0645'+(nogrp?' \u2022 '+nogrp+' \u0628\u062f\u0648\u0646 \u0645\u062c\u0645\u0648\u0639\u0629':''));
+  sav();buildDash();renderStr();closeMo('mo-move-str');
+  var dest=isFree?FREE_GROUPS[fgi].name:tgt;
+  toast('\u2705 \u062a\u0645 \u0646\u0642\u0644 '+added+' \u062d\u0633\u0627\u0628 \u0625\u0644\u0649 '+dest);
 }
 
-/* --- UPLOAD --- */
+function updStrSel(){document.getElementById('str-selcnt').textContent=document.querySelectorAll('.scb:checked').length+' \u0645\u062d\u062f\u062f';}
+function selAllStr(){document.querySelectorAll('.scb').forEach(function(c){c.checked=true;});updStrSel();}
+function clrSelStr(){document.querySelectorAll('.scb').forEach(function(c){c.checked=false;});updStrSel();}
+function togAllStr(el){document.querySelectorAll('.scb').forEach(function(c){c.checked=el.checked;});updStrSel();}
+
 function handleUpl(inp){var f=inp.files[0];if(!f)return;toast('\u23f3 \u062c\u0627\u0631\u064a \u0627\u0644\u0642\u0631\u0627\u0621\u0629...');var r=new FileReader();r.onload=function(e){try{var d=new Uint8Array(e.target.result);var wb=XLSX.read(d,{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});procUpl(rows);}catch(err){toast('\u274c '+err.message);}};r.readAsArrayBuffer(f);}
 function procUpl(rows){
   var hr=-1;for(var i=0;i<rows.length;i++){for(var j=0;j<rows[i].length;j++){if(String(rows[i][j]).indexOf('\u0645\u0639\u0631\u0641')>=0){hr=i;break;}}if(hr>=0)break;}
@@ -829,8 +891,26 @@ function procUpl(rows){
     var row=rows[i],uid;try{uid=parseInt(String(row[iI]||'').trim());}catch(e){continue;}if(!uid)continue;
     var ud={name:String(row[iN]||''),konz:sf(row[iK]),diamond:sf(row[iD]),sal_basic:sf(row[iSB]),sal_diam:sf(row[iSD]),sal_mic:sf(row[iSM]),sal_total:sf(row[iST]),withdrawn:sf(row[iW]),remaining:sf(row[iR]),hours:sf(row[iH]),days:si(row[iDy]),join:String(row[iJ]||'')};
     var acc=ACCOUNTS.find(function(x){return x.id===uid;});
-    if(acc){Object.assign(acc,ud);acc.status=acc.konz>=TARGET?'locked':acc.konz>0?'working':'nodata';acc.level=getLv(acc.konz);upd++;ul.push(acc);}
-    else{if(!STRANGERS.find(function(x){return x.id===uid;})){STRANGERS.push({id:uid,name:ud.name,konz:ud.konz,diamond:ud.diamond,sal_total:ud.sal_total,hours:ud.hours,days:ud.days,join:ud.join,status:ud.konz>=TARGET?'locked':'working',level:getLv(ud.konz),assigned_grp:''});ns++;}}
+    if(acc){
+      Object.assign(acc,ud);
+      acc.status=acc.konz>=TARGET?'locked':acc.konz>0?'working':'nodata';
+      acc.level=getLv(acc.konz);upd++;ul.push(acc);
+    }else{
+      var inFreeGroup=false;
+      for(var fgIdx=0;fgIdx<FREE_GROUPS.length;fgIdx++){
+        if(FREE_GROUPS[fgIdx].ids.indexOf(uid)>=0){inFreeGroup=true;break;}
+      }
+      if(inFreeGroup){
+        var newAcc={id:uid,grp:'',name:ud.name,konz:ud.konz,diamond:ud.diamond,
+          sal_basic:ud.sal_basic,sal_diam:ud.sal_diam,sal_mic:ud.sal_mic,sal_total:ud.sal_total,
+          withdrawn:ud.withdrawn,remaining:ud.remaining,hours:ud.hours,days:ud.days,join:ud.join,
+          status:ud.konz>=TARGET?'locked':ud.konz>0?'working':'nodata',level:getLv(ud.konz),
+          agent_salary:0,advance:0};
+        ACCOUNTS.push(newAcc);upd++;ul.push(newAcc);
+      }else if(!STRANGERS.find(function(x){return x.id===uid;})){
+        STRANGERS.push({id:uid,name:ud.name,konz:ud.konz,diamond:ud.diamond,sal_total:ud.sal_total,hours:ud.hours,days:ud.days,join:ud.join,status:ud.konz>=TARGET?'locked':'working',level:getLv(ud.konz),assigned_grp:''});ns++;
+      }
+    }
   }
   sav();buildDash();
   document.getElementById('upl-res').style.display='block';
@@ -893,7 +973,7 @@ function drawMgrp(){
   var h='';
   for(var gi=0;gi<FREE_GROUPS.length;gi++){
     var g=FREE_GROUPS[gi];
-    var members=[],lk=0,wk=0,nd=0,knz=0,dm=0,sal=0,rem=0,hrs=0,days20=0;
+    var members=[],lk=0,wk=0,nd=0,knz=0,dm=0,sal=0,rem=0,hrs=0,days20=0,agentSal=0,advSal=0,gravSal=0,diamSal=0;
     for(var i=0;i<g.ids.length;i++){
       var id=g.ids[i];
       var acc=null;
@@ -909,11 +989,14 @@ function drawMgrp(){
       sal+=acc.sal_total||0;
       rem+=acc.remaining||0;
       hrs+=acc.hours||0;
+      gravSal+=acc.sal_basic||0;
+      diamSal+=acc.sal_diam||0;
+      agentSal+=acc.agent_salary||0;
+      advSal+=acc.advance||0;
       if((acc.days||0)>=20)days20++;
     }
     var pct=members.length>0?(lk/members.length*100):0;
     h+='<div class="fg-c">';
-    // Header
     h+='<div class="fg-h" onclick="togFG('+gi+')">';
     h+='<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
     h+='<span class="fg-arr" id="fg-arr-'+gi+'">\u25b6</span>';
@@ -925,7 +1008,6 @@ function drawMgrp(){
     h+='<button class="btn b-p" style="font-size:10px;padding:4px 9px" onclick="addToFG('+gi+')">\u2795</button>';
     h+='<button class="btn b-r" style="font-size:10px;padding:4px 9px" onclick="delFG('+gi+')">\ud83d\uddd1\ufe0f</button>';
     h+='</div></div>';
-    // Body
     h+='<div class="fg-body" id="fg-body-'+gi+'">';
     // Progress bar
     h+='<div style="margin-bottom:12px">';
@@ -948,6 +1030,9 @@ function drawMgrp(){
       ['\ud83d\udcb0 \u0645\u062a\u0628\u0642\u064a',fmt(rem,2),'var(--tel)'],
       ['\u23f1\ufe0f \u0633\u0627\u0639\u0627\u062a',fmt(hrs,1),'var(--g3)'],
       ['\ud83d\udcc5 \u2265 20 \u064a\u0648\u0645',fmt(days20),'var(--tel)'],
+      ['\ud83c\udfaf \u062c\u0627\u0630\u0628\u064a\u0629 \u0645\u062c\u0645\u0648\u0639',fmt(gravSal,2),'var(--amb)'],
+      ['\ud83d\udc8e \u0623\u0644\u0645\u0627\u0633 \u0645\u062c\u0645\u0648\u0639',fmt(diamSal,2),'var(--pur)'],
+      ['\ud83d\udc68\u200d\ud83d\udcbc \u0648\u0643\u064a\u0644 \u0645\u062c\u0645\u0648\u0639',fmt(agentSal,2),'var(--org)'],
     ];
     for(var si=0;si<stats.length;si++){
       h+='<div style="background:var(--bg1);border-radius:7px;padding:7px 8px">';
@@ -956,19 +1041,28 @@ function drawMgrp(){
       h+='</div>';
     }
     h+='</div>';
+    // Bulk edit toolbar
+    h+='<div class="tb" style="margin-bottom:8px">';
+    h+='<button class="btn b-s" style="font-size:9px;padding:5px 9px" onclick="fgSelAll('+gi+')">\u2611 \u0627\u0644\u0643\u0644</button>';
+    h+='<button class="btn b-s" style="font-size:9px;padding:5px 9px" onclick="fgClrSel('+gi+')">\u2610 \u0625\u0644\u063a\u0627\u0621</button>';
+    h+='<button class="btn b-o" style="font-size:9px;padding:5px 9px" onclick="showFgBulk('+gi+')">\u270f\ufe0f \u062a\u0639\u062f\u064a\u0644 \u062c\u0645\u0627\u0639\u064a</button>';
+    h+='<button class="btn b-p" style="font-size:9px;padding:5px 9px" onclick="showFgMove('+gi+')">\ud83d\udd00 \u0646\u0642\u0644/\u0646\u0633\u062e \u0644\u0645\u062c\u0645\u0648\u0639\u0629 \u0623\u062e\u0631\u0649</button>';
+    h+='<div class="cbadge" id="fg-selcnt-'+gi+'" style="color:var(--cyan)">0 \u0645\u062d\u062f\u062f</div>';
+    h+='</div>';
     // Members table
     if(members.length){
       h+='<div class="ts"><table style="width:100%;font-size:10px">';
       h+='<thead><tr>';
+      h+='<th style="width:24px"><input type="checkbox" class="cb" onchange="fgTogAll('+gi+',this)"></th>';
       h+='<th style="text-align:right">\u0627\u0644\u0627\u0633\u0645</th>';
       h+='<th>ID</th>';
       h+='<th>\u062d\u0627\u0644\u0629</th>';
       h+='<th>\u0645\u0633\u062a\u0648\u0649</th>';
       h+='<th>\ud83e\ude99 \u0643\u0648\u0646\u0632</th>';
-      h+='<th>\ud83d\udc8e \u0645\u0627\u0633</th>';
-      h+='<th>\ud83d\udcb5 \u0631\u0627\u062a\u0628</th>';
-      h+='<th>\ud83d\udcb0 \u0645\u062a\u0628\u0642\u064a</th>';
-      h+='<th>\u23f1\ufe0f</th>';
+      h+='<th>\ud83c\udfaf \u062c\u0627\u0630\u0628\u064a\u0629</th>';
+      h+='<th>\ud83d\udc8e \u0623\u0644\u0645\u0627\u0633</th>';
+      h+='<th>\ud83d\udc68\u200d\ud83d\udcbc \u0648\u0643\u064a\u0644</th>';
+      h+='<th>\ud83d\udcb3 \u0633\u0644\u0641\u0629</th>';
       h+='<th>\ud83d\udcc5</th>';
       h+='<th>\u0645\u062c\u0645\u0648\u0639\u0629</th>';
       h+='<th></th>';
@@ -976,16 +1070,17 @@ function drawMgrp(){
       for(var mi=0;mi<members.length;mi++){
         var a=members[mi];
         var dc=a.days>=20?'var(--tel)':'var(--g3)';
-        h+='<tr onclick="openDrw('+a.id+')" style="cursor:pointer">';
-        h+='<td style="color:var(--wh);font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis">'+(a.name||'\u2014')+'</td>';
-        h+='<td class="mo" onclick="event.stopPropagation();cpId('+a.id+')" style="color:var(--g3);cursor:pointer">'+a.id+'</td>';
+        h+='<tr>';
+        h+='<td onclick="event.stopPropagation()"><input type="checkbox" class="cb fgcb-'+gi+'" value="'+a.id+'" onchange="fgUpdSel('+gi+')"></td>';
+        h+='<td onclick="openDrw('+a.id+')" style="cursor:pointer;color:var(--wh);font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis">'+(a.name||'\u2014')+'</td>';
+        h+='<td class="mo" onclick="cpId('+a.id+')" style="color:var(--g3);cursor:pointer">'+a.id+'</td>';
         h+='<td>'+sbd(a.status)+'</td>';
         h+='<td class="mo" style="color:var(--gold)">'+(a.level||'\u2014')+'</td>';
         h+='<td class="mo" style="color:var(--gold)">'+fmt(a.konz)+'</td>';
-        h+='<td class="mo" style="color:var(--pur)">'+fmt(a.diamond,2)+'</td>';
-        h+='<td class="mo" style="color:var(--cyan)">'+fmt(a.sal_total,2)+'</td>';
-        h+='<td class="mo" style="color:var(--tel)">'+fmt(a.remaining,2)+'</td>';
-        h+='<td class="mo" style="color:var(--g3)">'+(a.hours||'\u2014')+'</td>';
+        h+='<td class="mo" style="color:var(--amb)">'+fmt(a.sal_basic,2)+'</td>';
+        h+='<td class="mo" style="color:var(--pur)">'+fmt(a.sal_diam,2)+'</td>';
+        h+='<td class="mo" style="color:var(--org)">'+fmt(a.agent_salary,2)+'</td>';
+        h+='<td class="mo" style="color:var(--red)">'+fmt(a.advance,2)+'</td>';
         h+='<td class="mo" style="color:'+dc+'">'+(a.days||'\u2014')+'</td>';
         h+='<td>'+(a.grp?gbd(a.grp):'\u063a\u0631\u064a\u0628')+'</td>';
         h+='<td onclick="event.stopPropagation()"><button class="btn b-s" style="font-size:9px;padding:2px 5px" onclick="remFromFG('+gi+','+a.id+')">\u2715</button></td>';
@@ -1000,6 +1095,86 @@ function drawMgrp(){
   c.innerHTML=h;
 }
 
+function fgUpdSel(gi){
+  var n=document.querySelectorAll('.fgcb-'+gi+':checked').length;
+  var el=document.getElementById('fg-selcnt-'+gi);
+  if(el)el.textContent=n+' \u0645\u062d\u062f\u062f';
+}
+function fgSelAll(gi){
+  document.querySelectorAll('.fgcb-'+gi).forEach(function(c){c.checked=true;});
+  fgUpdSel(gi);
+}
+function fgClrSel(gi){
+  document.querySelectorAll('.fgcb-'+gi).forEach(function(c){c.checked=false;});
+  fgUpdSel(gi);
+}
+function fgTogAll(gi,el){
+  document.querySelectorAll('.fgcb-'+gi).forEach(function(c){c.checked=el.checked;});
+  fgUpdSel(gi);
+}
+function fgGetSelIds(gi){
+  return Array.from(document.querySelectorAll('.fgcb-'+gi+':checked')).map(function(c){return parseInt(c.value);});
+}
+function showFgMove(gi){
+  var ids=fgGetSelIds(gi);
+  if(!ids.length){toast('\u0627\u062e\u062a\u0631 \u062d\u0633\u0627\u0628\u0627\u062a \u0623\u0648\u0644\u0627\u064b');return;}
+  if(FREE_GROUPS.length<2){toast('\u0623\u0646\u0634\u0626 \u0645\u062c\u0645\u0648\u0639\u0629 \u062e\u0627\u0635\u0629 \u062b\u0627\u0646\u064a\u0629 \u0623\u0648\u0644\u0627\u064b');return;}
+  document.getElementById('fgmove-from').value=gi;
+  document.getElementById('fgmove-cnt').textContent=ids.length+' \u062d\u0633\u0627\u0628';
+  var h='<option value="">-- \u0627\u062e\u062a\u0631 \u0645\u062c\u0645\u0648\u0639\u0629 --</option>';
+  for(var i=0;i<FREE_GROUPS.length;i++){
+    if(i===gi)continue;
+    h+='<option value="'+i+'">\ud83d\uddc2\ufe0f '+FREE_GROUPS[i].name+'</option>';
+  }
+  document.getElementById('fgmove-to').innerHTML=h;
+  showMo('mo-fgmove');
+}
+function execFgMove(){
+  var fromGi=parseInt(document.getElementById('fgmove-from').value);
+  var toGi=parseInt(document.getElementById('fgmove-to').value);
+  if(isNaN(toGi)){toast('\u0627\u062e\u062a\u0631 \u0627\u0644\u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0644\u0648\u062c\u0647\u0629');return;}
+  var keepCopy=document.getElementById('fgmove-copy').checked;
+  var ids=fgGetSelIds(fromGi);
+  var fromGrp=FREE_GROUPS[fromGi],toGrp=FREE_GROUPS[toGi];
+  var moved=0;
+  ids.forEach(function(id){
+    if(toGrp.ids.indexOf(id)<0){toGrp.ids.push(id);moved++;}
+    if(!keepCopy)fromGrp.ids=fromGrp.ids.filter(function(x){return x!==id;});
+  });
+  sav();closeMo('mo-fgmove');drawMgrp();
+  toast('\u2705 \u062a\u0645 '+(keepCopy?'\u0646\u0633\u062e ':'\u0646\u0642\u0644 ')+moved+' \u062d\u0633\u0627\u0628 \u0625\u0644\u0649 '+toGrp.name);
+}
+
+function showFgBulk(gi){
+  var ids=fgGetSelIds(gi);
+  if(!ids.length){toast('\u0627\u062e\u062a\u0631 \u062d\u0633\u0627\u0628\u0627\u062a \u0623\u0648\u0644\u0627\u064b');return;}
+  document.getElementById('fgbulk-gi').value=gi;
+  document.getElementById('fgbulk-cnt').textContent=ids.length+' \u062d\u0633\u0627\u0628';
+  document.getElementById('fgbulk-agent').value='';
+  document.getElementById('fgbulk-adv').value='';
+  showMo('mo-fgbulk');
+}
+function execFgBulk(){
+  var gi=parseInt(document.getElementById('fgbulk-gi').value);
+  var ids=fgGetSelIds(gi);
+  var agentVal=document.getElementById('fgbulk-agent').value;
+  var advVal=document.getElementById('fgbulk-adv').value;
+  var hasAgent=agentVal!=='';
+  var hasAdv=advVal!=='';
+  if(!hasAgent&&!hasAdv){toast('\u0623\u062f\u062e\u0644 \u0642\u064a\u0645\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644');return;}
+  var agentN=parseFloat(agentVal)||0;
+  var advN=parseFloat(advVal)||0;
+  var count=0;
+  ids.forEach(function(id){
+    var a=ACCOUNTS.find(function(x){return x.id===id;});
+    if(!a)return;
+    if(hasAgent)a.agent_salary=agentN;
+    if(hasAdv)a.advance=advN;
+    count++;
+  });
+  sav();closeMo('mo-fgbulk');drawMgrp();
+  toast('\u2705 \u062a\u0645 \u062a\u062d\u062f\u064a\u062b '+count+' \u062d\u0633\u0627\u0628');
+}
 
 
 /* --- LEVELS --- */
