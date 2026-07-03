@@ -112,7 +112,7 @@ const saveState = (s) => { try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 catch (e) { } };
-const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const fmt0 = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const zeros = () => Object.fromEntries(ORDER.map((s) => [s, 0]));
 const norm = (o) => {
@@ -283,16 +283,19 @@ const FAMILY_SET = {
     crab: ["tomato", "corn"], steak: ["carrot", "tomato"],
     fish: ["corn", "carrot"], chicken: ["cabbage", "crab"],
 };
-function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null) {
+function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null, comp = "free") {
     if (!pred || !pred.length)
         return null;
     const p = pred.map((x) => x.conf / 100);
     const H = -p.reduce((a, v) => a + (v > 0 ? v * Math.log(v) : 0), 0) / Math.log(8);
     const conf = Object.fromEntries(pred.map((x) => [x.symbol, x.conf]));
-    /* Build options with binding strategies:
-       repeat → last symbol is forced in; manual → user anchors;
-       then engine auto-picks fill up, and each auto pick drags along its
-       opposite (strat.opp) and/or its family companions (strat.fam). */
+    /* Composition presets shape the AUTO picks via size quotas:
+         bigs → k from the 4 bigs only · 2x2 → 2 smalls + 2 bigs · 3x3 → 3 + 3.
+       Binding strategies (repeat/manual/opp/fam) are added regardless. */
+    const quota = comp === "bigs" ? { small: 0, big: Math.min(k, 4) }
+        : comp === "2x2" ? { small: 2, big: 2 }
+            : comp === "3x3" ? { small: 3, big: 3 }
+                : null;
     const options = [];
     const origin = {};
     const push = (s, o) => { if (s && !options.includes(s)) {
@@ -303,13 +306,20 @@ function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = nu
         push(lastSym, "repeat");
     if (manualSyms && manualSyms.length)
         manualSyms.forEach((s) => push(s, "manual"));
-    const total = Math.max(k, options.length);
+    const total = quota ? quota.small + quota.big + options.length : Math.max(k, options.length);
+    const autoCount = { small: 0, big: 0 };
     for (const x of pred) {
-        if (options.length >= total)
+        if (quota
+            ? (autoCount.small >= quota.small && autoCount.big >= quota.big)
+            : options.length >= total)
             break;
         if (options.includes(x.symbol))
             continue;
+        const sz = SYMBOLS[x.symbol].size;
+        if (quota && autoCount[sz] >= quota[sz])
+            continue;
         push(x.symbol, "auto");
+        autoCount[sz] += 1;
         if (strat?.opp)
             push(OPP[x.symbol], "opp");
         if (strat?.fam)
@@ -329,13 +339,13 @@ function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = nu
    ruinProb: exact DP probability of hitting a loss-run longer than depth D
    within N rounds, given per-round loss probability q.
    suggestBase: largest base stake keeping ruin ≤ 5% for the planned rounds. */
-function ladderInfo(bankroll, options, base, profit) {
+function ladderInfo(bankroll, options, base, profit, step = false) {
     if (!bankroll || !options?.length)
         return { depth: 0, rungs: [], used: 0 };
     let carry = 0, used = 0;
     const rungs = [];
     for (let d = 0; d < 15; d++) {
-        const plan = computeBetPlan(carry, options, base, profit, d, 0);
+        const plan = computeBetPlan(carry, options, base, profit, d, 0, step);
         if (used + plan.cost > bankroll)
             break;
         used += plan.cost;
@@ -369,10 +379,10 @@ function ruinProb(N, q, D) {
     return ruin;
 }
 const BASE_CANDIDATES = [100, 200, 300, 500, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000];
-function suggestBase(bankroll, options, profit, rounds, q) {
+function suggestBase(bankroll, options, profit, rounds, q, step = false) {
     let best = 100;
     for (const b of BASE_CANDIDATES) {
-        const L = ladderInfo(bankroll, options, b, profit);
+        const L = ladderInfo(bankroll, options, b, profit, step);
         if (L.depth < 1)
             break;
         if (ruinProb(rounds, q, L.depth) <= 0.05)
@@ -381,13 +391,52 @@ function suggestBase(bankroll, options, profit, rounds, q) {
     return best;
 }
 /* ═══════════════ POSITION SIZING (balanced, economical) ═══════════════ */
-function computeBetPlan(carry, options, base, profit, lossRun, limit) {
+function computeBetPlan(carry, options, base, profit, lossRun, limit, step = false) {
+    const desiredProfit = profit * (1 + Math.max(0, lossRun) * 0.5);
+    let capped = false;
+    if (step) {
+        /* Step mode: every stake is a MULTIPLE of the base (1000 → 2000 → 3000…).
+           Recovery is anchored on the SMALLS (×5): their win must cover losses +
+           profit. Bigs ride along at exactly one base step — pure upside. */
+        const stepUp = (v) => Math.max(base, Math.ceil(v / base) * base);
+        const smalls = options.filter((o) => SYMBOLS[o].size === "small");
+        const bigs = options.filter((o) => SYMBOLS[o].size === "big");
+        let rows, cost;
+        if (smalls.length) {
+            const nS = smalls.length, nB = bigs.length;
+            const denom = 5 - nS; // smalls are ×5; nS ≤ 4 so denom ≥ 1
+            let sSmall = denom > 0 ? stepUp((carry + desiredProfit + base * nB) / denom) : base;
+            cost = sSmall * nS + base * nB;
+            if (limit && cost > limit) {
+                capped = true;
+                sSmall = base;
+                cost = sSmall * nS + base * nB;
+            }
+            rows = options.map((o) => ({
+                sym: o, mult: SYMBOLS[o].mult,
+                stake: SYMBOLS[o].size === "small" ? sSmall : base,
+            }));
+        }
+        else {
+            const k = options.length;
+            const minM = Math.min(...options.map((o) => SYMBOLS[o].mult));
+            const denom = minM - k;
+            let st = denom > 0 ? stepUp((carry + desiredProfit) / denom) : base;
+            cost = st * k;
+            if (limit && cost > limit) {
+                capped = true;
+                st = base;
+                cost = st * k;
+            }
+            rows = options.map((o) => ({ sym: o, mult: SYMBOLS[o].mult, stake: st }));
+        }
+        const out = rows.map((r) => ({ ...r, win: r.stake * r.mult, net: r.stake * r.mult - cost - (capped ? 0 : carry) }));
+        return { options, rows: out, cost, capped, desiredProfit: Math.round(desiredProfit) };
+    }
     const mults = options.map((o) => SYMBOLS[o].mult);
     const S = options.reduce((a, o) => a + 1 / SYMBOLS[o].mult, 0);
-    const desiredProfit = profit * (1 + Math.max(0, lossRun) * 0.5);
     const floorT = base * Math.min(...mults);
     let T = S >= 1 ? floorT : Math.max((carry + desiredProfit) / (1 - S), floorT);
-    let capped = false;
     const mk = () => options.map((o) => ({ sym: o, mult: SYMBOLS[o].mult, stake: Math.max(100, Math.ceil(T / SYMBOLS[o].mult / 100) * 100) }));
     let stakes = mk();
     let cost = stakes.reduce((a, s) => a + s.stake, 0);
@@ -399,6 +448,17 @@ function computeBetPlan(carry, options, base, profit, lossRun, limit) {
     }
     const rows = stakes.map((s) => ({ ...s, win: s.stake * s.mult, net: s.stake * s.mult - cost - (capped ? 0 : carry) }));
     return { options, rows, cost, capped, desiredProfit: Math.round(desiredProfit) };
+}
+/* Ladder costs for an exact target depth (no bankroll cap) */
+function ladderCosts(depth, options, base, profit, step = false) {
+    const costs = [];
+    let carry = 0;
+    for (let d = 0; d < depth; d++) {
+        const plan = computeBetPlan(carry, options, base, profit, d, 0, step);
+        costs.push(plan.cost);
+        carry += plan.cost;
+    }
+    return { costs, total: carry };
 }
 /* ═══════════════ FULL-STRIP READING ═══════════════ */
 function liveAnalysis(moves, pred) {
@@ -459,7 +519,7 @@ function liveAnalysis(moves, pred) {
     return { notes, verdict };
 }
 /* ═══════════════ MILESTONE REPORT ═══════════════ */
-function buildReport(moves, coverK = 3, manualSyms = null, strat = null) {
+function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = "free") {
     const chain = moves.map((m) => m.symbol);
     const n = chain.length;
     const ms = [7, 10, 15, 20];
@@ -475,7 +535,7 @@ function buildReport(moves, coverK = 3, manualSyms = null, strat = null) {
     let hits = 0, top1 = 0, chances = 0;
     for (let i = 1; i < n; i++) {
         const p = predictFrom(moves.slice(0, i));
-        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1]);
+        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1], comp);
         if (p && cov) {
             chances++;
             if (cov.options.includes(chain[i]))
@@ -534,6 +594,9 @@ function App() {
     const [stratRepeat, setStratRepeat] = useState(false);
     const [stratOpp, setStratOpp] = useState(false);
     const [stratFam, setStratFam] = useState(false);
+    const [compMode, setCompMode] = useState("free"); // free | bigs | 2x2 | 3x3
+    const [stepMode, setStepMode] = useState(false); // stakes as base multiples, small-profit focus
+    const [targetDepth, setTargetDepth] = useState(20);
     const [showSettings, setShowSettings] = useState(false);
     useEffect(() => {
         const s = loadState();
@@ -551,10 +614,13 @@ function App() {
         setStratRepeat(!!s.stratRepeat);
         setStratOpp(!!s.stratOpp);
         setStratFam(!!s.stratFam);
+        setCompMode(s.compMode || "free");
+        setStepMode(!!s.stepMode);
+        setTargetDepth(s.targetDepth ?? 20);
     }, []);
     useEffect(() => {
-        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam });
-    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam]);
+        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth });
+    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth]);
     const activeManual = manualMode && manualSyms.length >= 1 ? manualSyms : null;
     const strat = useMemo(() => (stratRepeat || stratOpp || stratFam)
         ? { repeat: stratRepeat, opp: stratOpp, fam: stratFam } : null, [stratRepeat, stratOpp, stratFam]);
@@ -574,7 +640,7 @@ function App() {
             const hist = moves.slice(0, i);
             const models = subModels(hist);
             const pred = blend(models, weightsFrom(ema));
-            const cov = pickCoverage(pred, coverK, activeManual, strat, hist[hist.length - 1].symbol);
+            const cov = pickCoverage(pred, coverK, activeManual, strat, hist[hist.length - 1].symbol, compMode);
             const landed = moves[i].symbol;
             for (const k of MODEL_KEYS) {
                 const d = models[k];
@@ -589,7 +655,7 @@ function App() {
                 continue;
             }
             confSeries.push(cov.coverProb);
-            const plan = computeBetPlan(carry, cov.options, base, profit, lossRun, limit);
+            const plan = computeBetPlan(carry, cov.options, base, profit, lossRun, limit, stepMode);
             const won = cov.options.includes(landed);
             let rank = 0;
             if (pred[0]?.symbol === landed)
@@ -621,9 +687,9 @@ function App() {
         let nextPred = null, nextCov = null, nextPlan = null;
         if (moves.length) {
             nextPred = blend(subModels(moves), weightsFrom(ema));
-            nextCov = pickCoverage(nextPred, coverK, activeManual, strat, moves[moves.length - 1].symbol);
+            nextCov = pickCoverage(nextPred, coverK, activeManual, strat, moves[moves.length - 1].symbol, compMode);
             if (nextCov) {
-                nextPlan = computeBetPlan(carry, nextCov.options, base, profit, lossRun, limit);
+                nextPlan = computeBetPlan(carry, nextCov.options, base, profit, lossRun, limit, stepMode);
                 nextPlan.coverProb = nextCov.coverProb;
                 nextPlan.skip = nextCov.skip;
                 nextPlan.confident = nextCov.confident;
@@ -631,7 +697,7 @@ function App() {
         }
         const hot = MODEL_KEYS.filter((k) => used[k]).map((k) => ({ k, v: ema[k] })).sort((a, b) => b.v - a.v)[0] || null;
         return { perMove, carry, lossRun, nextPred, nextCov, nextPlan, hotModel: hot, equity, equitySeries, confSeries };
-    }, [moves, base, profit, limit, coverK, activeManual, strat]);
+    }, [moves, base, profit, limit, coverK, activeManual, strat, compMode, stepMode]);
     const prediction = sim.nextPred;
     const cov = sim.nextCov;
     const betPlan = sim.nextPlan;
@@ -639,12 +705,17 @@ function App() {
     const rankFlags = useMemo(() => sim.perMove.map((p) => p.rank || 0), [sim]);
     const winTrend = useMemo(() => sim.perMove.filter((p) => p.bet).map((p) => (p.bet.won ? (p.rank >= 1 && p.rank <= 3 ? p.rank : 4) : 0)), [sim]);
     const analysis = useMemo(() => liveAnalysis(moves, prediction), [moves, prediction]);
-    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat), [moves, coverK, activeManual, strat]);
+    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat, compMode), [moves, coverK, activeManual, strat, compMode]);
     /* ── Session plan math ── */
     const session = useMemo(() => {
-        const repOptions = cov?.options
-            || activeManual
-            || [...ORDER].sort((a, b) => PRIOR[b] - PRIOR[a]).slice(0, coverK);
+        const byPrior = [...ORDER].sort((a, b) => PRIOR[b] - PRIOR[a]);
+        const smallsP = byPrior.filter((x) => SYMBOLS[x].size === "small");
+        const bigsP = byPrior.filter((x) => SYMBOLS[x].size === "big");
+        const compDefault = compMode === "bigs" ? bigsP.slice(0, Math.min(coverK, 4))
+            : compMode === "2x2" ? [...smallsP.slice(0, 2), ...bigsP.slice(0, 2)]
+                : compMode === "3x3" ? [...smallsP.slice(0, 3), ...bigsP.slice(0, 3)]
+                    : byPrior.slice(0, coverK);
+        const repOptions = cov?.options || activeManual || compDefault;
         const bets = sim.perMove.filter((p) => p.bet).slice(-20);
         let q;
         if (bets.length >= 8)
@@ -653,9 +724,9 @@ function App() {
             q = Math.min(0.95, Math.max(0.05, 1 - cov.coverProb / 100));
         else
             q = Math.min(0.95, Math.max(0.05, 1 - repOptions.reduce((a, s) => a + PRIOR[s], 0)));
-        const ladder = ladderInfo(bankroll, repOptions, base, profit);
+        const ladder = ladderInfo(bankroll, repOptions, base, profit, stepMode);
         const survive = 1 - ruinProb(rounds, q, ladder.depth);
-        const suggested = suggestBase(bankroll, repOptions, profit, rounds, q);
+        const suggested = suggestBase(bankroll, repOptions, profit, rounds, q, stepMode);
         const S = repOptions.reduce((a, o) => a + 1 / SYMBOLS[o].mult, 0);
         const margin = (1 - S) * 100;
         const goalTarget = goalPct > 0 ? Math.round(bankroll * goalPct / 100) : 0;
@@ -664,7 +735,23 @@ function App() {
         const stopTarget = stopPct > 0 ? Math.round(bankroll * stopPct / 100) : 0;
         const stopHit = stopTarget > 0 && sim.equity <= -stopTarget;
         return { repOptions, q, ladder, survive, suggested, margin, goalTarget, goalProgress, goalHit, stopHit };
-    }, [cov, activeManual, coverK, bankroll, base, profit, rounds, goalPct, stopPct, sim]);
+    }, [cov, activeManual, coverK, bankroll, base, profit, rounds, goalPct, stopPct, sim, compMode, stepMode]);
+    /* Survival calculator: to reach round N (losing N-1 then winning at N),
+       total Konz required with current settings, plus the best base that fits
+       the current bankroll for that depth. */
+    const survivalCalc = useMemo(() => {
+        const opts = session.repOptions;
+        const depth = Math.max(1, Math.min(40, targetDepth));
+        const L = ladderCosts(depth, opts, base, profit, stepMode);
+        const cands = stepMode ? [100, 200, 500, 1000, 2000, 3000, 5000, 10000] : BASE_CANDIDATES;
+        let fit = null;
+        for (const b of cands) {
+            const t = ladderCosts(depth, opts, b, profit, stepMode).total;
+            if (t <= bankroll)
+                fit = { base: b, total: t };
+        }
+        return { depth, total: L.total, first: L.costs[0] || 0, fit };
+    }, [session.repOptions, targetDepth, base, profit, stepMode, bankroll]);
     const toggleManualSym = useCallback((s) => {
         setManualSyms((prev) => prev.includes(s)
             ? prev.filter((x) => x !== s)
@@ -795,6 +882,26 @@ function App() {
                                 ")")
                             : React.createElement(React.Fragment, null, " — هي كامل التغطية")))),
                 React.createElement("div", null,
+                    React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "تركيبة التغطية — صغير (×٥) / كبير (×١٠-٤٥)"),
+                    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 5 } }, [
+                        { v: "free", t: "حر", d: "أفضل التوقعات" },
+                        { v: "bigs", t: "كبار فقط", d: "🦀🥩🐟🍗 بعددك" },
+                        { v: "2x2", t: "٢ص + ٢ك", d: "أفضل ٢ من كل" },
+                        { v: "3x3", t: "٣ص + ٣ك", d: "أفضل ٣ من كل" },
+                    ].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setCompMode(o.v), style: {
+                            padding: "8px 3px", borderRadius: 9, fontSize: 10, fontWeight: 800,
+                            background: compMode === o.v ? "rgba(240,176,63,.14)" : "var(--panel2)",
+                            color: compMode === o.v ? "var(--gold)" : "var(--dim)",
+                            border: `1.5px solid ${compMode === o.v ? "var(--gold)" : "var(--line)"}`,
+                        } },
+                        o.t,
+                        React.createElement("div", { style: { fontSize: 7.5, fontWeight: 400, marginTop: 2, opacity: .8 } }, o.d))))),
+                    compMode === "bigs" && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } }, "🔒 الاختيار الآلي محصور بالكبار — العدد من \"كم رمز\" (أقصى ٤).")),
+                    (compMode === "2x2" || compMode === "3x3") && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } },
+                        "🔒 التركيبة تتجاوز \"كم رمز\" — الإجمالي ",
+                        compMode === "2x2" ? "٤" : "٦",
+                        " رموز."))),
+                React.createElement("div", null,
                     React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "قيود إلزامية — تُثبَّت فوق الاختيار الآلي (تقدر تجمع أكثر من واحد)"),
                     React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 } },
                         React.createElement("button", { className: "press", onClick: () => setStratRepeat((v) => !v), style: {
@@ -830,6 +937,24 @@ function App() {
                             color: base === v ? "#06231A" : "var(--tx2)",
                             border: `1px solid ${base === v ? "var(--up)" : "var(--line)"}`,
                         } }, fmt0(v)))))),
+                React.createElement("button", { className: "press", onClick: () => setStepMode((v) => !v), style: {
+                        width: "100%", padding: "9px 11px", borderRadius: 10,
+                        background: stepMode ? "rgba(240,176,63,.12)" : "var(--panel2)",
+                        border: `1.5px solid ${stepMode ? "var(--gold)" : "var(--line)"}`,
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                    } },
+                    React.createElement("span", { style: { textAlign: "right" } },
+                        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: stepMode ? "var(--gold)" : "var(--tx2)" } }, "مضاعفات الأساسي فقط"),
+                        React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } },
+                            "الرهان يقفز بمضاعفات (",
+                            fmt(base),
+                            " → ",
+                            fmt(base * 2),
+                            " → ",
+                            fmt(base * 3),
+                            ") — التركيز على ربح الصغير والكبير مكسب إضافي")),
+                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: stepMode ? "var(--gold)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: stepMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
                 React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
                     React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الربح المستهدف / دورة"),
                     React.createElement("input", { type: "number", value: profit, onChange: (e) => setProfit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
@@ -886,6 +1011,31 @@ function App() {
                         "⚠️ تغطية ",
                         session.repOptions.length,
                         " رموز تترك هامشاً ضئيلاً — قلّل الرموز أو ركّز على الصغار.")),
+                    React.createElement("div", { style: { marginTop: 9, paddingTop: 9, borderTop: "1px dashed var(--line2)" } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7, marginBottom: 6 } },
+                            React.createElement("span", { style: { fontSize: 10.5, color: "var(--tx2)" } }, "أبغى أصمد حتى الجولة"),
+                            React.createElement("input", { type: "number", value: targetDepth, min: 1, max: 40, onChange: (e) => setTargetDepth(Math.max(1, Math.min(40, +e.target.value || 1))), className: "mono", style: { width: 54, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 7, padding: "4px 7px", color: "var(--gold)", fontSize: 12, fontWeight: 700, textAlign: "center" } }),
+                            React.createElement("span", { style: { fontSize: 10.5, color: "var(--tx2)" } },
+                                "(أخسر ",
+                                survivalCalc.depth - 1,
+                                " وأفوز فيها)")),
+                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", lineHeight: 1.9 } },
+                            "برهانك الحالي (",
+                            fmt(base),
+                            "): تحتاج إجمالي ",
+                            React.createElement("b", { className: "mono", style: { color: survivalCalc.total <= bankroll ? "var(--up)" : "var(--dn)" } }, fmt(survivalCalc.total)),
+                            " كونز · تبدأ الجولة الأولى بـ ",
+                            React.createElement("b", { className: "mono", style: { color: "var(--gold)" } }, fmt(survivalCalc.first))),
+                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", lineHeight: 1.9 } }, survivalCalc.fit
+                            ? React.createElement(React.Fragment, null,
+                                "وبرصيدك (",
+                                fmt(bankroll),
+                                ") أقصى بداية آمنة لهذا العمق: ",
+                                React.createElement("b", { className: "mono", style: { color: "var(--up)" } }, fmt(survivalCalc.fit.base)),
+                                " (إجمالي ",
+                                fmt(survivalCalc.fit.total),
+                                ")")
+                            : React.createElement("span", { style: { color: "var(--dn)" } }, "رصيدك لا يكفي لهذا العمق حتى بأصغر رهان — قلّل الجولات أو الربح المستهدف."))),
                     React.createElement("button", { className: "press", onClick: () => setBase(session.suggested), style: {
                             marginTop: 9, width: "100%", padding: "8px 0", borderRadius: 9, fontSize: 11, fontWeight: 800,
                             background: "rgba(0,225,154,.12)", color: "var(--up)", border: "1px solid rgba(0,225,154,.35)",
