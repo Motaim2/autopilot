@@ -80,6 +80,10 @@ const Trash2 = (p) => React.createElement(Svg, { ...p },
 const Clock = (p) => React.createElement(Svg, { ...p },
     React.createElement("circle", { cx: "12", cy: "12", r: "10" }),
     React.createElement("polyline", { points: "12 6 12 12 16 14" }));
+const FlaskConical = (p) => React.createElement(Svg, { ...p },
+    React.createElement("path", { d: "M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.5a1 1 0 0 0 .9 1.5h12.8a1 1 0 0 0 .9-1.5L14.2 10.4a2 2 0 0 1-.2-.9V2" }),
+    React.createElement("path", { d: "M8.5 2h7" }),
+    React.createElement("path", { d: "M7 16h10" }));
 /* ══════════════════════════ GAME MODEL ══════════════════════════ */
 const SYMBOLS = {
     tomato: { emoji: "🍅", ar: "طماطم", size: "small", fam: "steak", mult: 5 },
@@ -114,6 +118,27 @@ const saveState = (s) => { try {
 catch (e) { } };
 const fmt = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const fmt0 = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+const SESSIONS_KEY = "knuz_sessions_v1";
+const storGet = (k) => { try {
+    return localStorage.getItem(k);
+}
+catch (e) {
+    return null;
+} };
+const storSet = (k, v) => { try {
+    localStorage.setItem(k, v);
+}
+catch (e) { } };
+const loadSessions = () => { try {
+    const r = storGet(SESSIONS_KEY);
+    if (r)
+        return JSON.parse(r);
+}
+catch (e) { } return []; };
+const saveSessions = (arr) => { try {
+    storSet(SESSIONS_KEY, JSON.stringify(arr));
+}
+catch (e) { } };
 const zeros = () => Object.fromEntries(ORDER.map((s) => [s, 0]));
 const norm = (o) => {
     const t = ORDER.reduce((a, s) => a + Math.max(o[s] || 0, 0), 0);
@@ -283,7 +308,7 @@ const FAMILY_SET = {
     crab: ["tomato", "corn"], steak: ["carrot", "tomato"],
     fish: ["corn", "carrot"], chicken: ["cabbage", "crab"],
 };
-function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null, comp = "free", moodSym = null) {
+function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null, comp = "free", moodSyms = null) {
     if (!pred || !pred.length)
         return null;
     const p = pred.map((x) => x.conf / 100);
@@ -304,8 +329,8 @@ function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = nu
     } };
     if (strat?.repeat && lastSym)
         push(lastSym, "repeat");
-    if (moodSym)
-        push(moodSym, "mood");
+    if (moodSyms && moodSyms.length)
+        moodSyms.forEach((s) => push(s, "mood"));
     if (manualSyms && manualSyms.length)
         manualSyms.forEach((s) => push(s, "manual"));
     const total = quota ? quota.small + quota.big + options.length : Math.max(k, options.length);
@@ -341,13 +366,13 @@ function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = nu
    ruinProb: exact DP probability of hitting a loss-run longer than depth D
    within N rounds, given per-round loss probability q.
    suggestBase: largest base stake keeping ruin ≤ 5% for the planned rounds. */
-function ladderInfo(bankroll, options, base, profit, step = false) {
+function ladderInfo(bankroll, options, base, profit, step = false, uni = false) {
     if (!bankroll || !options?.length)
         return { depth: 0, rungs: [], used: 0 };
     let carry = 0, used = 0;
     const rungs = [];
     for (let d = 0; d < 15; d++) {
-        const plan = computeBetPlan(carry, options, base, profit, d, 0, step);
+        const plan = computeBetPlan(carry, options, base, profit, d, 0, step, uni);
         if (used + plan.cost > bankroll)
             break;
         used += plan.cost;
@@ -381,10 +406,10 @@ function ruinProb(N, q, D) {
     return ruin;
 }
 const BASE_CANDIDATES = [100, 200, 300, 500, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000];
-function suggestBase(bankroll, options, profit, rounds, q, step = false) {
+function suggestBase(bankroll, options, profit, rounds, q, step = false, uni = false) {
     let best = 100;
     for (const b of BASE_CANDIDATES) {
-        const L = ladderInfo(bankroll, options, b, profit, step);
+        const L = ladderInfo(bankroll, options, b, profit, step, uni);
         if (L.depth < 1)
             break;
         if (ruinProb(rounds, q, L.depth) <= 0.05)
@@ -393,9 +418,30 @@ function suggestBase(bankroll, options, profit, rounds, q, step = false) {
     return best;
 }
 /* ═══════════════ POSITION SIZING (balanced, economical) ═══════════════ */
-function computeBetPlan(carry, options, base, profit, lossRun, limit, step = false) {
+function computeBetPlan(carry, options, base, profit, lossRun, limit, step = false, uni = false) {
     const desiredProfit = profit * (1 + Math.max(0, lossRun) * 0.5);
     let capped = false;
+    if (uni) {
+        /* Unified mode: the SAME stake on every option, big and small alike.
+           Sized so the worst-case (min multiplier) win covers losses + profit. */
+        const k = options.length;
+        const minM = Math.min(...options.map((o) => SYMBOLS[o].mult));
+        const denom = minM - k;
+        let st = denom > 0
+            ? Math.max(100, Math.ceil((carry + desiredProfit) / denom / 100) * 100)
+            : Math.max(100, base);
+        let cost = st * k;
+        if (limit && cost > limit) {
+            capped = true;
+            st = Math.max(100, base);
+            cost = st * k;
+        }
+        const rows = options.map((o) => ({
+            sym: o, mult: SYMBOLS[o].mult, stake: st,
+            win: st * SYMBOLS[o].mult, net: st * SYMBOLS[o].mult - cost - (capped ? 0 : carry),
+        }));
+        return { options, rows, cost, capped, desiredProfit: Math.round(desiredProfit) };
+    }
     if (step) {
         /* Step mode: every stake is a MULTIPLE of the base (1000 → 2000 → 3000…).
            Recovery is anchored on the SMALLS (×5): their win must cover losses +
@@ -452,11 +498,11 @@ function computeBetPlan(carry, options, base, profit, lossRun, limit, step = fal
     return { options, rows, cost, capped, desiredProfit: Math.round(desiredProfit) };
 }
 /* Ladder costs for an exact target depth (no bankroll cap) */
-function ladderCosts(depth, options, base, profit, step = false) {
+function ladderCosts(depth, options, base, profit, step = false, uni = false) {
     const costs = [];
     let carry = 0;
     for (let d = 0; d < depth; d++) {
-        const plan = computeBetPlan(carry, options, base, profit, d, 0, step);
+        const plan = computeBetPlan(carry, options, base, profit, d, 0, step, uni);
         costs.push(plan.cost);
         carry += plan.cost;
     }
@@ -520,8 +566,290 @@ function liveAnalysis(moves, pred) {
     }
     return { notes, verdict };
 }
+/* ═══════════ SHARED SIMULATION (used live and by the Lab) ═══════════ */
+function runSimulation(moves, cfg) {
+    const { base, profit, limit, coverK, manual, strat, comp, moodSyms, step, uni } = cfg;
+    let carry = 0, lossRun = 0, equity = 0;
+    const ema = defaultEMA();
+    const used = {};
+    const perMove = [];
+    const equitySeries = [];
+    const confSeries = [];
+    for (let i = 0; i < moves.length; i++) {
+        if (i === 0) {
+            perMove.push({ bet: null, rank: 0 });
+            continue;
+        }
+        const hist = moves.slice(0, i);
+        const models = subModels(hist);
+        const pred = blend(models, weightsFrom(ema));
+        const cov = pickCoverage(pred, coverK, manual, strat, hist[hist.length - 1].symbol, comp, moodSyms);
+        const landed = moves[i].symbol;
+        for (const k of MODEL_KEYS) {
+            const d = models[k];
+            if (!d)
+                continue;
+            used[k] = true;
+            const top3 = ORDER.map((s) => ({ s, v: d[s] })).sort((a, b) => b.v - a.v).slice(0, 3).map((x) => x.s);
+            ema[k] = ema[k] * 0.8 + (top3.includes(landed) ? 1 : 0) * 0.2;
+        }
+        if (!pred || !cov) {
+            perMove.push({ bet: null, rank: 0 });
+            continue;
+        }
+        confSeries.push(cov.coverProb);
+        const plan = computeBetPlan(carry, cov.options, base, profit, lossRun, limit, step, uni);
+        const won = cov.options.includes(landed);
+        let rank = 0;
+        if (pred[0]?.symbol === landed)
+            rank = 1;
+        else if (pred[1]?.symbol === landed)
+            rank = 2;
+        else if (pred[2]?.symbol === landed)
+            rank = 3;
+        const effCarry = plan.capped ? 0 : carry;
+        if (plan.capped) {
+            carry = 0;
+            lossRun = 0;
+        }
+        if (won) {
+            const payout = plan.rows.find((r) => r.sym === landed).win;
+            equity += payout - plan.cost;
+            perMove.push({ bet: { ...plan, landed, won: true, payout, net: payout - plan.cost - effCarry, coverProb: cov.coverProb }, rank });
+            carry = 0;
+            lossRun = 0;
+        }
+        else {
+            equity -= plan.cost;
+            carry += plan.cost;
+            lossRun += 1;
+            perMove.push({ bet: { ...plan, landed, won: false, coverProb: cov.coverProb }, rank });
+        }
+        equitySeries.push(equity);
+    }
+    let nextPred = null, nextCov = null, nextPlan = null;
+    if (moves.length) {
+        nextPred = blend(subModels(moves), weightsFrom(ema));
+        nextCov = pickCoverage(nextPred, coverK, manual, strat, moves[moves.length - 1].symbol, comp, moodSyms);
+        if (nextCov) {
+            nextPlan = computeBetPlan(carry, nextCov.options, base, profit, lossRun, limit, step, uni);
+            nextPlan.coverProb = nextCov.coverProb;
+            nextPlan.skip = nextCov.skip;
+            nextPlan.confident = nextCov.confident;
+        }
+    }
+    const hot = MODEL_KEYS.filter((k) => used[k]).map((k) => ({ k, v: ema[k] })).sort((a, b) => b.v - a.v)[0] || null;
+    return { perMove, carry, lossRun, nextPred, nextCov, nextPlan, hotModel: hot, equity, equitySeries, confSeries };
+}
+/* summarize a simulation for the Lab */
+function summarizeSim(sim) {
+    const bets = sim.perMove.filter((p) => p.bet);
+    const wins = bets.filter((p) => p.bet.won).length;
+    const top1 = bets.filter((p) => p.rank === 1 && p.bet.won).length;
+    let maxRun = 0, run = 0;
+    bets.forEach((p) => { if (!p.bet.won) {
+        run++;
+        if (run > maxRun)
+            maxRun = run;
+    }
+    else
+        run = 0; });
+    return {
+        bets: bets.length, wins,
+        winPct: bets.length ? Math.round((wins / bets.length) * 100) : 0,
+        top1Pct: bets.length ? Math.round((top1 / bets.length) * 100) : 0,
+        equity: sim.equity, maxLossRun: maxRun,
+    };
+}
+/* ═══════════ MUSTAFA — the studying player ═══════════
+   Reads every saved session + the live strip, measures the reliability of
+   concrete human-style patterns, then plays autonomously by his experience. */
+const SMALL_OF_FAM = { steak: "tomato", fish: "carrot", crab: "corn", chicken: "cabbage" };
+const MUSTAFA_PATTERNS = {
+    lag4: { ar: "الرابعة السابقة", d: "الضربة قبل ٤ جولات ترجع هي أو كبيرها" },
+    dbl: { ar: "بعد التكرار كبير", d: "رمز تكرر مرتين — الكبير قادم" },
+    missing: { ar: "المفقود", d: "رمز غاب أكثر من عادته — عودته مستحقة" },
+    repeatDue: { ar: "التكرار مستحق", d: "نافذة الجولات توشك تُقفل بتكرار العائلة" },
+    bigwave: { ar: "موجة كبار", d: "سلسلة صغار طويلة — الكبار على الباب" },
+    hunch: { ar: "حدس مصطفى", d: "الأسخن حالياً وكبيره" },
+};
+function mustafaCond(moves, i) {
+    /* evaluate every pattern condition at position i (predicting move i) */
+    const chain = moves.slice(0, i).map((m) => m.symbol);
+    const n = chain.length;
+    if (n < 1)
+        return {};
+    const fams = chain.map((c) => SYMBOLS[c].fam);
+    const sizes = chain.map((c) => SYMBOLS[c].size);
+    const out = {};
+    if (n >= 4) {
+        const c4 = chain[n - 4];
+        out.lag4 = { picks: [...new Set([c4, SYMBOLS[c4].fam])] };
+    }
+    if (n >= 2 && chain[n - 1] === chain[n - 2]) {
+        const obs = zeros();
+        let tw = 0;
+        for (let j = 0; j < n; j++) {
+            const w = decayW(j, n);
+            obs[chain[j]] += w;
+            tw += w;
+        }
+        const hotBigs = ["crab", "steak", "fish", "chicken"].sort((a, b) => obs[b] - obs[a]).slice(0, 2);
+        out.dbl = { picks: hotBigs, sizeHit: "big" };
+    }
+    {
+        let best = null;
+        for (const sy of ORDER) {
+            const idxs = [];
+            for (let j = 0; j < n; j++)
+                if (chain[j] === sy)
+                    idxs.push(j);
+            if (idxs.length >= 2) {
+                const gaps = idxs.slice(1).map((v, j2) => v - idxs[j2]);
+                const avg = gaps.reduce((a, g) => a + g, 0) / gaps.length;
+                const since = n - idxs[idxs.length - 1];
+                const ratio = since / Math.max(avg, 1);
+                if (ratio >= 1.4 && (!best || ratio > best.ratio))
+                    best = { sy, ratio };
+            }
+        }
+        if (best) {
+            const fam = SYMBOLS[best.sy].fam;
+            out.missing = { picks: [...new Set([best.sy, fam])], famHit: fam };
+        }
+    }
+    {
+        const events = []; // family repeats back-to-back
+        for (let j = 1; j < n; j++)
+            if (fams[j] === fams[j - 1])
+                events.push(j);
+        const lastEv = events.length ? events[events.length - 1] : -1;
+        const since = n - 1 - lastEv;
+        let maxGap = 6;
+        if (events.length >= 2) {
+            const gs = events.slice(1).map((v, j2) => v - events[j2]);
+            maxGap = Math.max(...gs, 6);
+        }
+        if ((events.length && since >= Math.max(4, maxGap - 1)) || (!events.length && n >= 7)) {
+            const lf = fams[n - 1];
+            out.repeatDue = { picks: [...new Set([SMALL_OF_FAM[lf], lf])], famHit: lf };
+        }
+    }
+    {
+        let sr = 0;
+        for (let j = sizes.length - 1; j >= 0; j--) {
+            if (sizes[j] === "small")
+                sr++;
+            else
+                break;
+        }
+        if (sr >= 5) {
+            const obs = zeros();
+            let tw = 0;
+            for (let j = 0; j < n; j++) {
+                const w = decayW(j, n);
+                obs[chain[j]] += w;
+                tw += w;
+            }
+            const hotBigs = ["crab", "steak", "fish", "chicken"].sort((a, b) => obs[b] - obs[a]).slice(0, 2);
+            out.bigwave = { picks: hotBigs, sizeHit: "big" };
+        }
+    }
+    return out;
+}
+function mustafaStudy(movesArrays) {
+    const stats = {};
+    Object.keys(MUSTAFA_PATTERNS).forEach((k) => (stats[k] = { c: 0, h: 0 }));
+    let studied = 0;
+    for (const arr of movesArrays) {
+        for (let i = 1; i < arr.length; i++) {
+            studied++;
+            const conds = mustafaCond(arr, i);
+            const landed = arr[i].symbol;
+            for (const [k, c] of Object.entries(conds)) {
+                stats[k].c++;
+                const hit = c.sizeHit ? SYMBOLS[landed].size === c.sizeHit
+                    : c.famHit ? SYMBOLS[landed].fam === c.famHit
+                        : c.picks.includes(landed);
+                if (hit)
+                    stats[k].h++;
+            }
+        }
+    }
+    const rel = {};
+    Object.keys(MUSTAFA_PATTERNS).forEach((k) => { rel[k] = (stats[k].h + 1) / (stats[k].c + 2); });
+    rel.hunch = 0.35;
+    return { rel, stats, studied };
+}
+function mustafaDecide(moves, study) {
+    const n = moves.length;
+    const conds = mustafaCond(moves, n);
+    let best = null;
+    for (const [k, c] of Object.entries(conds)) {
+        const r = study.rel[k] || 0.3;
+        if (!best || r > best.rel)
+            best = { key: k, rel: r, picks: c.picks };
+    }
+    if (!best) {
+        const chain = moves.map((m) => m.symbol);
+        const obs = zeros();
+        let tw = 0;
+        for (let j = 0; j < n; j++) {
+            const w = decayW(j, n);
+            obs[chain[j]] += w;
+            tw += w;
+        }
+        const hotSmall = ["tomato", "carrot", "corn", "cabbage"].sort((a, b) => obs[b] - obs[a])[0] || "corn";
+        best = { key: "hunch", rel: study.rel.hunch, picks: [hotSmall, SYMBOLS[hotSmall].fam] };
+    }
+    return best;
+}
+function runMustafa(moves, study, bank, profit) {
+    let carry = 0, equity = 0, ema = 0.3, hits = 0, bets = 0, lossRun = 0;
+    const stakeFor = (picks, cr) => {
+        const k = picks.length;
+        const minM = Math.min(...picks.map((o) => SYMBOLS[o].mult));
+        const denom = minM - k;
+        return denom > 0 ? Math.max(100, Math.ceil((cr + profit) / denom / 100) * 100) : 100;
+    };
+    for (let i = 1; i < moves.length; i++) {
+        const dec = mustafaDecide(moves.slice(0, i), study);
+        let st = stakeFor(dec.picks, carry);
+        let cost = st * dec.picks.length;
+        if (bank && cost > bank) {
+            carry = 0;
+            lossRun = 0;
+            st = stakeFor(dec.picks, 0);
+            cost = st * dec.picks.length;
+        }
+        const landed = moves[i].symbol;
+        const won = dec.picks.includes(landed);
+        bets++;
+        if (won) {
+            hits++;
+            equity += st * SYMBOLS[landed].mult - cost;
+            carry = 0;
+            lossRun = 0;
+        }
+        else {
+            equity -= cost;
+            carry += cost;
+            lossRun++;
+        }
+        ema = ema * 0.88 + (won ? 1 : 0) * 0.12;
+    }
+    const next = moves.length ? mustafaDecide(moves, study) : null;
+    let nextStake = 0, nextCost = 0;
+    if (next) {
+        nextStake = stakeFor(next.picks, carry);
+        nextCost = nextStake * next.picks.length;
+    }
+    const relAvg = Object.values(study.rel).reduce((a, b) => a + b, 0) / Object.values(study.rel).length;
+    const skill = Math.min(99, Math.round(Math.min(30, study.studied / 50) + relAvg * 40 + ema * 30));
+    return { equity, ema, hits, bets, next, nextStake, nextCost, carry, lossRun, skill, relAvg };
+}
 /* ═══════════════ MILESTONE REPORT ═══════════════ */
-function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = "free", moodSym = null) {
+function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = "free", moodSyms = null) {
     const chain = moves.map((m) => m.symbol);
     const n = chain.length;
     const ms = [7, 10, 15, 20];
@@ -537,7 +865,7 @@ function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = 
     let hits = 0, top1 = 0, chances = 0;
     for (let i = 1; i < n; i++) {
         const p = predictFrom(moves.slice(0, i));
-        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1], comp, moodSym);
+        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1], comp, moodSyms);
         if (p && cov) {
             chances++;
             if (cov.options.includes(chain[i]))
@@ -598,7 +926,17 @@ function App() {
     const [stratFam, setStratFam] = useState(false);
     const [compMode, setCompMode] = useState("free"); // free | bigs | 2x2 | 3x3
     const [stepMode, setStepMode] = useState(false); // stakes as base multiples, small-profit focus
-    const [moodSym, setMoodSym] = useState(null); // in-play personal pick, joins the options
+    const [uniMode, setUniMode] = useState(false); // one unified stake for every option
+    const [moodSyms, setMoodSyms] = useState([]); // in-play personal picks (up to 6), join the options
+    const [sessions, setSessions] = useState([]); // saved historical sessions (the Lab database)
+    const [labSel, setLabSel] = useState(null);
+    const [labRes, setLabRes] = useState(null);
+    const [mustafaMode, setMustafaMode] = useState(false);
+    const [mustafaBank, setMustafaBank] = useState(20000);
+    const [labView, setLabView] = useState("free"); // free (sandbox) | sessions
+    const [sbBank, setSbBank] = useState(10000); // sandbox starting konz
+    const [sbStakes, setSbStakes] = useState({}); // manual bet layout {sym: stake}
+    const [sbMoves, setSbMoves] = useState([]); // sandbox strip with per-round pnl
     const [targetDepth, setTargetDepth] = useState(20);
     const [showSettings, setShowSettings] = useState(false);
     useEffect(() => {
@@ -619,89 +957,32 @@ function App() {
         setStratFam(!!s.stratFam);
         setCompMode(s.compMode || "free");
         setStepMode(!!s.stepMode);
+        setUniMode(!!s.uniMode);
+        setSessions(loadSessions());
+        setMustafaMode(!!s.mustafaMode);
+        setMustafaBank(s.mustafaBank ?? 20000);
+        setSbBank(s.sbBank ?? 10000);
+        setSbStakes(s.sbStakes || {});
+        setSbMoves(s.sbMoves || []);
         setTargetDepth(s.targetDepth ?? 20);
-        setMoodSym(s.moodSym || null);
+        setMoodSyms(s.moodSyms || (s.moodSym ? [s.moodSym] : []));
     }, []);
     useEffect(() => {
-        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth, moodSym });
-    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth, moodSym]);
+        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves });
+    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves]);
     const activeManual = manualMode && manualSyms.length >= 1 ? manualSyms : null;
     const strat = useMemo(() => (stratRepeat || stratOpp || stratFam)
         ? { repeat: stratRepeat, opp: stratOpp, fam: stratFam } : null, [stratRepeat, stratOpp, stratFam]);
     /* Adaptive walk: bets, model EMAs, session P&L equity, confidence history */
-    const sim = useMemo(() => {
-        let carry = 0, lossRun = 0, equity = 0;
-        const ema = defaultEMA();
-        const used = {};
-        const perMove = [];
-        const equitySeries = [];
-        const confSeries = [];
-        for (let i = 0; i < moves.length; i++) {
-            if (i === 0) {
-                perMove.push({ bet: null, rank: 0 });
-                continue;
-            }
-            const hist = moves.slice(0, i);
-            const models = subModels(hist);
-            const pred = blend(models, weightsFrom(ema));
-            const cov = pickCoverage(pred, coverK, activeManual, strat, hist[hist.length - 1].symbol, compMode, moodSym);
-            const landed = moves[i].symbol;
-            for (const k of MODEL_KEYS) {
-                const d = models[k];
-                if (!d)
-                    continue;
-                used[k] = true;
-                const top3 = ORDER.map((s) => ({ s, v: d[s] })).sort((a, b) => b.v - a.v).slice(0, 3).map((x) => x.s);
-                ema[k] = ema[k] * 0.8 + (top3.includes(landed) ? 1 : 0) * 0.2;
-            }
-            if (!pred || !cov) {
-                perMove.push({ bet: null, rank: 0 });
-                continue;
-            }
-            confSeries.push(cov.coverProb);
-            const plan = computeBetPlan(carry, cov.options, base, profit, lossRun, limit, stepMode);
-            const won = cov.options.includes(landed);
-            let rank = 0;
-            if (pred[0]?.symbol === landed)
-                rank = 1;
-            else if (pred[1]?.symbol === landed)
-                rank = 2;
-            else if (pred[2]?.symbol === landed)
-                rank = 3;
-            const effCarry = plan.capped ? 0 : carry;
-            if (plan.capped) {
-                carry = 0;
-                lossRun = 0;
-            }
-            if (won) {
-                const payout = plan.rows.find((r) => r.sym === landed).win;
-                equity += payout - plan.cost;
-                perMove.push({ bet: { ...plan, landed, won: true, payout, net: payout - plan.cost - effCarry, coverProb: cov.coverProb }, rank });
-                carry = 0;
-                lossRun = 0;
-            }
-            else {
-                equity -= plan.cost;
-                carry += plan.cost;
-                lossRun += 1;
-                perMove.push({ bet: { ...plan, landed, won: false, coverProb: cov.coverProb }, rank });
-            }
-            equitySeries.push(equity);
-        }
-        let nextPred = null, nextCov = null, nextPlan = null;
-        if (moves.length) {
-            nextPred = blend(subModels(moves), weightsFrom(ema));
-            nextCov = pickCoverage(nextPred, coverK, activeManual, strat, moves[moves.length - 1].symbol, compMode, moodSym);
-            if (nextCov) {
-                nextPlan = computeBetPlan(carry, nextCov.options, base, profit, lossRun, limit, stepMode);
-                nextPlan.coverProb = nextCov.coverProb;
-                nextPlan.skip = nextCov.skip;
-                nextPlan.confident = nextCov.confident;
-            }
-        }
-        const hot = MODEL_KEYS.filter((k) => used[k]).map((k) => ({ k, v: ema[k] })).sort((a, b) => b.v - a.v)[0] || null;
-        return { perMove, carry, lossRun, nextPred, nextCov, nextPlan, hotModel: hot, equity, equitySeries, confSeries };
-    }, [moves, base, profit, limit, coverK, activeManual, strat, compMode, stepMode, moodSym]);
+    const cfg = useMemo(() => ({
+        base, profit, limit, coverK,
+        manual: activeManual, strat, comp: compMode, moodSyms,
+        step: stepMode, uni: uniMode,
+    }), [base, profit, limit, coverK, activeManual, strat, compMode, moodSyms, stepMode, uniMode]);
+    const sim = useMemo(() => runSimulation(moves, cfg), [moves, cfg]);
+    /* Mustafa: studies all saved sessions + the live strip */
+    const study = useMemo(() => mustafaStudy([...sessions.map((x) => x.moves), moves]), [sessions, moves]);
+    const msim = useMemo(() => (mustafaMode && moves.length ? runMustafa(moves, study, mustafaBank, 1000) : null), [mustafaMode, moves, study, mustafaBank]);
     const prediction = sim.nextPred;
     const cov = sim.nextCov;
     const betPlan = sim.nextPlan;
@@ -709,7 +990,7 @@ function App() {
     const rankFlags = useMemo(() => sim.perMove.map((p) => p.rank || 0), [sim]);
     const winTrend = useMemo(() => sim.perMove.filter((p) => p.bet).map((p) => (p.bet.won ? (p.rank >= 1 && p.rank <= 3 ? p.rank : 4) : 0)), [sim]);
     const analysis = useMemo(() => liveAnalysis(moves, prediction), [moves, prediction]);
-    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat, compMode, moodSym), [moves, coverK, activeManual, strat, compMode, moodSym]);
+    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat, compMode, moodSyms), [moves, coverK, activeManual, strat, compMode, moodSyms]);
     /* ── Session plan math ── */
     const session = useMemo(() => {
         const byPrior = [...ORDER].sort((a, b) => PRIOR[b] - PRIOR[a]);
@@ -728,9 +1009,9 @@ function App() {
             q = Math.min(0.95, Math.max(0.05, 1 - cov.coverProb / 100));
         else
             q = Math.min(0.95, Math.max(0.05, 1 - repOptions.reduce((a, s) => a + PRIOR[s], 0)));
-        const ladder = ladderInfo(bankroll, repOptions, base, profit, stepMode);
+        const ladder = ladderInfo(bankroll, repOptions, base, profit, stepMode, uniMode);
         const survive = 1 - ruinProb(rounds, q, ladder.depth);
-        const suggested = suggestBase(bankroll, repOptions, profit, rounds, q, stepMode);
+        const suggested = suggestBase(bankroll, repOptions, profit, rounds, q, stepMode, uniMode);
         const S = repOptions.reduce((a, o) => a + 1 / SYMBOLS[o].mult, 0);
         const margin = (1 - S) * 100;
         const goalTarget = goalPct > 0 ? Math.round(bankroll * goalPct / 100) : 0;
@@ -739,23 +1020,106 @@ function App() {
         const stopTarget = stopPct > 0 ? Math.round(bankroll * stopPct / 100) : 0;
         const stopHit = stopTarget > 0 && sim.equity <= -stopTarget;
         return { repOptions, q, ladder, survive, suggested, margin, goalTarget, goalProgress, goalHit, stopHit };
-    }, [cov, activeManual, coverK, bankroll, base, profit, rounds, goalPct, stopPct, sim, compMode, stepMode]);
+    }, [cov, activeManual, coverK, bankroll, base, profit, rounds, goalPct, stopPct, sim, compMode, stepMode, uniMode]);
     /* Survival calculator: to reach round N (losing N-1 then winning at N),
        total Konz required with current settings, plus the best base that fits
        the current bankroll for that depth. */
     const survivalCalc = useMemo(() => {
         const opts = session.repOptions;
         const depth = Math.max(1, Math.min(40, targetDepth));
-        const L = ladderCosts(depth, opts, base, profit, stepMode);
+        const L = ladderCosts(depth, opts, base, profit, stepMode, uniMode);
         const cands = stepMode ? [100, 200, 500, 1000, 2000, 3000, 5000, 10000] : BASE_CANDIDATES;
         let fit = null;
         for (const b of cands) {
-            const t = ladderCosts(depth, opts, b, profit, stepMode).total;
+            const t = ladderCosts(depth, opts, b, profit, stepMode, uniMode).total;
             if (t <= bankroll)
                 fit = { base: b, total: t };
         }
         return { depth, total: L.total, first: L.costs[0] || 0, fit };
-    }, [session.repOptions, targetDepth, base, profit, stepMode, bankroll]);
+    }, [session.repOptions, targetDepth, base, profit, stepMode, uniMode, bankroll]);
+    /* ── Sandbox (free practice) ── */
+    const sbToggleSym = useCallback((sy) => {
+        setSbStakes((prev) => {
+            const nx = { ...prev };
+            if (nx[sy] !== undefined)
+                delete nx[sy];
+            else
+                nx[sy] = 100;
+            return nx;
+        });
+    }, []);
+    const sbSetStake = useCallback((sy, v) => {
+        setSbStakes((prev) => ({ ...prev, [sy]: Math.max(100, Math.round(v / 100) * 100 || 100) }));
+    }, []);
+    const sbLog = useCallback((landed) => {
+        setSbStakes((cur) => {
+            setSbMoves((prev) => {
+                const cost = Object.values(cur).reduce((a, b) => a + b, 0);
+                const pnl = (cur[landed] || 0) * SYMBOLS[landed].mult - cost;
+                return [...prev, { symbol: landed, ts: Date.now(), cost, pnl, stakes: { ...cur } }];
+            });
+            return cur;
+        });
+    }, []);
+    const sbUndo = useCallback(() => setSbMoves((prev) => prev.slice(0, -1)), []);
+    const sbClear = useCallback(() => setSbMoves([]), []);
+    const sb = useMemo(() => {
+        const pnl = sbMoves.reduce((a, m) => a + m.pnl, 0);
+        const betRounds = sbMoves.filter((m) => m.cost > 0);
+        const wins = betRounds.filter((m) => m.pnl > 0).length;
+        const losses = betRounds.filter((m) => m.pnl < 0).length;
+        let streak = 0;
+        for (let i = betRounds.length - 1; i >= 0; i--) {
+            const w = betRounds[i].pnl > 0;
+            if (i === betRounds.length - 1)
+                streak = w ? 1 : -1;
+            else if ((betRounds[i].pnl > 0) === (streak > 0))
+                streak += streak > 0 ? 1 : -1;
+            else
+                break;
+        }
+        const best = betRounds.reduce((a, m) => (m.pnl > (a?.pnl ?? -Infinity) ? m : a), null);
+        const worst = betRounds.reduce((a, m) => (m.pnl < (a?.pnl ?? Infinity) ? m : a), null);
+        const cost = Object.values(sbStakes).reduce((a, b) => a + b, 0);
+        return { pnl, balance: sbBank + pnl, rounds: sbMoves.length, betRounds: betRounds.length, wins, losses, streak, best, worst, cost };
+    }, [sbMoves, sbBank, sbStakes]);
+    const saveSession = useCallback(() => {
+        if (!moves.length)
+            return;
+        const summ = summarizeSim(runSimulation(moves, cfg));
+        const item = {
+            id: Date.now(),
+            name: `جلسة ${sessions.length + 1} · ${moves.length} جولة`,
+            ts: Date.now(), moves: [...moves],
+            meta: { n: moves.length, winPct: summ.winPct, equity: summ.equity },
+        };
+        const next = [...sessions, item];
+        setSessions(next);
+        saveSessions(next);
+    }, [moves, cfg, sessions]);
+    const deleteSession = useCallback((id) => {
+        const next = sessions.filter((x) => x.id !== id);
+        setSessions(next);
+        saveSessions(next);
+        if (labSel === id) {
+            setLabSel(null);
+            setLabRes(null);
+        }
+    }, [sessions, labSel]);
+    const runLabTest = useCallback((sess) => {
+        setLabSel(sess.id);
+        const r = runSimulation(sess.moves, cfg);
+        setLabRes({ id: sess.id, summ: summarizeSim(r) });
+    }, [cfg]);
+    const loadSessionLive = useCallback((sess) => {
+        setMoves([...sess.moves]);
+        setTab("play");
+    }, []);
+    const toggleMoodSym = useCallback((sy) => {
+        setMoodSyms((prev) => prev.includes(sy)
+            ? prev.filter((x) => x !== sy)
+            : prev.length >= 6 ? prev : [...prev, sy]);
+    }, []);
     const toggleManualSym = useCallback((s) => {
         setManualSyms((prev) => prev.includes(s)
             ? prev.filter((x) => x !== s)
@@ -941,7 +1305,8 @@ function App() {
                             color: base === v ? "#06231A" : "var(--tx2)",
                             border: `1px solid ${base === v ? "var(--up)" : "var(--line)"}`,
                         } }, fmt0(v)))))),
-                React.createElement("button", { className: "press", onClick: () => setStepMode((v) => !v), style: {
+                React.createElement("button", { className: "press", onClick: () => { setStepMode((v) => { const nv = !v; if (nv)
+                        setUniMode(false); return nv; }); }, style: {
                         width: "100%", padding: "9px 11px", borderRadius: 10,
                         background: stepMode ? "rgba(240,176,63,.12)" : "var(--panel2)",
                         border: `1.5px solid ${stepMode ? "var(--gold)" : "var(--line)"}`,
@@ -959,6 +1324,18 @@ function App() {
                             ") — التركيز على ربح الصغير والكبير مكسب إضافي")),
                     React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: stepMode ? "var(--gold)" : "var(--line2)", display: "block", flexShrink: 0 } },
                         React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: stepMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
+                React.createElement("button", { className: "press", onClick: () => { setUniMode((v) => { const nv = !v; if (nv)
+                        setStepMode(false); return nv; }); }, style: {
+                        width: "100%", padding: "9px 11px", borderRadius: 10,
+                        background: uniMode ? "rgba(0,225,154,.1)" : "var(--panel2)",
+                        border: `1.5px solid ${uniMode ? "var(--up)" : "var(--line)"}`,
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                    } },
+                    React.createElement("span", { style: { textAlign: "right" } },
+                        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: uniMode ? "var(--up)" : "var(--tx2)" } }, "رهان موحّد للكل"),
+                        React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } }, "نفس المبلغ على الكبير والصغير — أبسط وأسرع، والكبير لو ضرب يعوّض بقوة")),
+                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: uniMode ? "var(--up)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: uniMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
                 React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
                     React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الربح المستهدف / دورة"),
                     React.createElement("input", { type: "number", value: profit, onChange: (e) => setProfit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
@@ -1068,6 +1445,69 @@ function App() {
                         React.createElement("span", { className: "mono", style: { fontSize: 9, color: "var(--up)" } },
                             Math.round(session.goalProgress * 100),
                             "%"))))),
+                React.createElement("button", { className: "press", onClick: () => setMustafaMode((v) => !v), style: {
+                        width: "100%", marginBottom: 10, padding: "10px 13px", borderRadius: 13,
+                        background: mustafaMode ? "rgba(180,120,255,.1)" : "var(--panel)",
+                        border: `1.5px solid ${mustafaMode ? "var(--vio)" : "var(--line)"}`,
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                    } },
+                    React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 8 } },
+                        React.createElement("span", { style: { fontSize: 16 } }, "🧑‍🎓"),
+                        React.createElement("span", { style: { textAlign: "right" } },
+                            React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: mustafaMode ? "var(--vio)" : "var(--tx2)" } }, "وضع مصطفى — اللاعب المتعلّم"),
+                            React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)" } }, "يدرس جلساتك المحفوظة ويلعب بخبرته بدون تدخل"))),
+                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: mustafaMode ? "var(--vio)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: mustafaMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
+                mustafaMode && (React.createElement("section", { className: "panel", style: { padding: 13, marginBottom: 11, borderColor: "rgba(180,120,255,.35)" } },
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 } },
+                        React.createElement("span", { style: { fontSize: 12.5, fontWeight: 800, color: "var(--vio)" } }, "🧑‍🎓 مصطفى يلعب"),
+                        React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5, fontSize: 9.5, color: "var(--tx2)" } },
+                            "كونزه:",
+                            React.createElement("input", { type: "number", value: mustafaBank, onChange: (e) => setMustafaBank(Math.max(0, +e.target.value)), className: "mono", style: { width: 76, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 7, padding: "3px 7px", color: "var(--vio)", fontSize: 11, fontWeight: 700, direction: "ltr", textAlign: "right" } }))),
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 9 } },
+                        React.createElement("span", { style: { fontSize: 10, color: "var(--tx2)", flexShrink: 0 } }, "احترافيته"),
+                        React.createElement("div", { style: { flex: 1, height: 7, borderRadius: 99, background: "var(--panel2)", overflow: "hidden", border: "1px solid var(--line)" } },
+                            React.createElement("div", { style: { height: "100%", width: `${msim ? msim.skill : Math.min(30, Math.round(study.studied / 50))}%`, background: "linear-gradient(90deg,#8A4FE0,#B478FF)", borderRadius: 99, transition: "width .6s" } })),
+                        React.createElement("span", { className: "mono", style: { fontSize: 13, fontWeight: 800, color: "var(--vio)" } },
+                            msim ? msim.skill : Math.min(30, Math.round(study.studied / 50)),
+                            "%")),
+                    React.createElement("div", { style: { fontSize: 9.5, color: "var(--dim)", marginBottom: 9 } },
+                        "درس ",
+                        React.createElement("b", { className: "mono", style: { color: "var(--tx2)" } }, fmt(study.studied)),
+                        " جولة من ",
+                        sessions.length,
+                        " جلسة محفوظة + الشريط الحي — احفظ جلسات أكثر ليتطور."),
+                    msim?.next ? (React.createElement(React.Fragment, null,
+                        React.createElement("div", { style: { padding: "8px 11px", borderRadius: 10, background: "rgba(180,120,255,.08)", border: "1px solid rgba(180,120,255,.25)", marginBottom: 8 } },
+                            React.createElement("div", { style: { fontSize: 11.5, fontWeight: 800, marginBottom: 2 } },
+                                "نمطه الآن: ",
+                                MUSTAFA_PATTERNS[msim.next.key].ar,
+                                React.createElement("span", { className: "mono", style: { fontSize: 9.5, color: "var(--vio)", marginRight: 6 } },
+                                    "موثوقية ",
+                                    Math.round(msim.next.rel * 100),
+                                    "%")),
+                            React.createElement("div", { style: { fontSize: 9, color: "var(--dim)" } }, MUSTAFA_PATTERNS[msim.next.key].d)),
+                        React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 } }, msim.next.picks.map((pk) => (React.createElement("span", { key: pk, style: { display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 10, background: "var(--panel2)", border: "1px solid rgba(180,120,255,.3)" } },
+                            React.createElement("span", { style: { fontSize: 18 } }, SYMBOLS[pk].emoji),
+                            React.createElement("span", { style: { fontSize: 10.5, fontWeight: 700 } }, SYMBOLS[pk].ar),
+                            React.createElement("span", { className: "mono", style: { fontSize: 11, fontWeight: 800, color: "var(--vio)", direction: "ltr" } }, fmt(msim.nextStake)))))),
+                        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--tx2)" } },
+                            React.createElement("span", null,
+                                "مخاطرته: ",
+                                React.createElement("b", { className: "mono" }, fmt(msim.nextCost)),
+                                msim.lossRun > 0 && React.createElement(React.Fragment, null,
+                                    " · يعوّض ",
+                                    fmt(msim.carry))),
+                            React.createElement("span", null,
+                                "محفظته: ",
+                                React.createElement("b", { className: "mono", style: { color: msim.equity >= 0 ? "var(--up)" : "var(--dn)", direction: "ltr" } },
+                                    msim.equity >= 0 ? "+" : "",
+                                    fmt(msim.equity)),
+                                " (",
+                                msim.hits,
+                                "/",
+                                msim.bets,
+                                ")")))) : (React.createElement("div", { style: { fontSize: 10.5, color: "var(--dim)", textAlign: "center", padding: "6px 0" } }, "سجّل ضربات ليبدأ مصطفى قراراته")))),
                 React.createElement("section", { className: "panel", style: { padding: 16, marginBottom: 11, position: "relative", overflow: "hidden" } }, top ? (React.createElement(React.Fragment, null,
                     React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 } },
                         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
@@ -1120,17 +1560,26 @@ function App() {
                             : React.createElement("span", { className: "chip", style: { background: "rgba(0,225,154,.1)", color: "var(--up)" } },
                                 "هدف +",
                                 fmt0(betPlan.desiredProfit))),
-                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 9, flexWrap: "wrap" } },
-                        React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: "#FF7AB8", flexShrink: 0 } }, "🎯 اختياري:"),
-                        ORDER.map((sy) => (React.createElement("button", { key: sy, className: "press", onClick: () => setMoodSym(moodSym === sy ? null : sy), style: {
-                                width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", fontSize: 15,
-                                background: moodSym === sy ? "rgba(255,122,184,.16)" : "var(--panel2)",
-                                border: `1.5px solid ${moodSym === sy ? "#FF7AB8" : "var(--line)"}`,
-                            } }, SYMBOLS[sy].emoji))),
-                        moodSym && (React.createElement("button", { className: "press", onClick: () => setMoodSym(null), style: {
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 4, flexWrap: "wrap" } },
+                        React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: "#FF7AB8", flexShrink: 0 } },
+                            "🎯 اختياري (",
+                            moodSyms.length,
+                            "/6):"),
+                        ORDER.map((sy) => {
+                            const on = moodSyms.includes(sy);
+                            return (React.createElement("button", { key: sy, className: "press", onClick: () => toggleMoodSym(sy), style: {
+                                    width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", fontSize: 15,
+                                    background: on ? "rgba(255,122,184,.16)" : "var(--panel2)",
+                                    border: `1.5px solid ${on ? "#FF7AB8" : "var(--line)"}`,
+                                } }, SYMBOLS[sy].emoji));
+                        }),
+                        moodSyms.length > 0 && (React.createElement("button", { className: "press", onClick: () => setMoodSyms([]), style: {
                                 padding: "3px 8px", borderRadius: 7, fontSize: 9.5, fontWeight: 800,
                                 background: "var(--panel2)", color: "var(--dim)", border: "1px solid var(--line)",
-                            } }, "✕ بدون"))),
+                            } }, "✕ مسح"))),
+                    moodSyms.length > 0 && (React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginBottom: 8 } }, moodSyms.length >= 6
+                        ? "أمر الصفقة كامل من اختيارك — بدون إكمال آلي."
+                        : `اختياراتك مثبّتة والنظام يكمّل الباقي آلياً.`)),
                     React.createElement("div", { style: { display: "grid", gap: 6 } }, betPlan.rows.map((r, i) => {
                         const ori = sim.nextCov?.origin?.[r.sym];
                         const isAnchor = ori === "manual" || ori === "repeat";
@@ -1203,7 +1652,7 @@ function App() {
                                 React.createElement(Star, { size: 9, color: "var(--sky)", fill: "var(--sky)" }),
                                 "ثاني"),
                             React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 3 } },
-                                React.createElement(Star, { size: 9, color: "var(--vio)", fill: "var(--vio)" }),
+                                React.createElement(Star, { size: 9, color: "var(--up)", fill: "var(--up)" }),
                                 "ثالث"))),
                     React.createElement("div", { style: { overflowX: "auto", paddingBottom: 4, direction: "ltr" } },
                         React.createElement("div", { style: { display: "flex", gap: 5, flexDirection: "row-reverse", justifyContent: "flex-end", width: "max-content" } }, moves.length === 0
@@ -1222,7 +1671,7 @@ function App() {
                                         SYMBOLS[m.symbol].emoji,
                                         rk === 1 && React.createElement(Star, { size: 12, color: "var(--gold)", fill: "var(--gold)", style: { position: "absolute", top: -4, left: -4 } }),
                                         rk === 2 && React.createElement(Star, { size: 12, color: "var(--sky)", fill: "var(--sky)", style: { position: "absolute", top: -4, left: -4 } }),
-                                        rk === 3 && React.createElement(Star, { size: 12, color: "var(--vio)", fill: "var(--vio)", style: { position: "absolute", top: -4, left: -4 } }),
+                                        rk === 3 && React.createElement(Star, { size: 12, color: "var(--up)", fill: "var(--up)", style: { position: "absolute", top: -4, left: -4 } }),
                                         m.eight && React.createElement("span", { className: "mono", style: { position: "absolute", bottom: -3, right: -3, width: 14, height: 14, borderRadius: 99, background: "var(--gold)", color: "#221600", fontSize: 8.5, fontWeight: 800, display: "grid", placeItems: "center" } }, "8")),
                                     React.createElement("span", { className: "mono", style: { fontSize: 9, fontWeight: 700, color: broke ? "var(--dn)" : "var(--dim)" } }, run)));
                             })))),
@@ -1246,7 +1695,7 @@ function App() {
                     React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 2, height: 42, direction: "ltr" } }, winTrend.slice(-30).map((w, i) => (React.createElement("div", { key: i, style: { flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
                         React.createElement("div", { style: {
                                 width: "100%", borderRadius: 1.5, height: w ? "100%" : "36%",
-                                background: w === 1 ? "var(--gold)" : w === 2 ? "var(--sky)" : w === 3 ? "var(--vio)" : w === 4 ? "var(--up)" : "rgba(255,77,94,.6)",
+                                background: w === 1 ? "var(--gold)" : w === 2 ? "var(--sky)" : w === 3 ? "var(--up)" : w === 4 ? "var(--vio)" : "rgba(255,77,94,.6)",
                             } }))))),
                     (() => {
                         const last = winTrend.slice(-30);
@@ -1296,7 +1745,16 @@ function App() {
                             opacity: moves.length ? 1 : .4, color: "var(--dn)",
                         } },
                         React.createElement(Trash2, { size: 13 }),
-                        " مسح الكل")))),
+                        " مسح الكل")),
+                React.createElement("button", { className: "press", onClick: saveSession, disabled: !moves.length, style: {
+                        width: "100%", marginTop: 7, padding: "11px 0", borderRadius: 12,
+                        background: "rgba(240,176,63,.08)", border: "1px solid rgba(240,176,63,.35)",
+                        fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                        opacity: moves.length ? 1 : .4, color: "var(--gold)",
+                    } },
+                    "💾 حفظ الجلسة للمختبر (",
+                    sessions.length,
+                    " محفوظة)"))),
             tab === "history" && (React.createElement("section", { style: { paddingTop: 4 } },
                 React.createElement("div", { style: { fontSize: 12.5, fontWeight: 800, marginBottom: 9, display: "flex", alignItems: "center", gap: 6 } },
                     React.createElement(History, { size: 13, color: "var(--gold)" }),
@@ -1318,11 +1776,167 @@ function App() {
                                 streaks[ri]),
                             rk === 1 && React.createElement(Star, { size: 12, color: "var(--gold)", fill: "var(--gold)" }),
                             rk === 2 && React.createElement(Star, { size: 12, color: "var(--sky)", fill: "var(--sky)" }),
-                            rk === 3 && React.createElement(Star, { size: 12, color: "var(--vio)", fill: "var(--vio)" }),
+                            rk === 3 && React.createElement(Star, { size: 12, color: "var(--up)", fill: "var(--up)" }),
                             m.eight && React.createElement("span", { className: "chip", style: { background: "rgba(240,176,63,.1)", color: "var(--gold)" } },
                                 React.createElement(Clock, { size: 9 }),
                                 " ٨")));
                     })))),
+            tab === "lab" && (React.createElement("section", { style: { paddingTop: 4 } },
+                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5, marginBottom: 12, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 12, padding: 4 } },
+                    React.createElement("button", { className: "press", onClick: () => setLabView("free"), style: {
+                            padding: "8px 0", borderRadius: 9, fontSize: 11.5, fontWeight: 800,
+                            background: labView === "free" ? "rgba(180,120,255,.15)" : "transparent",
+                            color: labView === "free" ? "var(--vio)" : "var(--dim)",
+                            border: `1px solid ${labView === "free" ? "rgba(180,120,255,.4)" : "transparent"}`,
+                        } }, "🎮 التجربة الحرة"),
+                    React.createElement("button", { className: "press", onClick: () => setLabView("sessions"), style: {
+                            padding: "8px 0", borderRadius: 9, fontSize: 11.5, fontWeight: 800,
+                            background: labView === "sessions" ? "rgba(180,120,255,.15)" : "transparent",
+                            color: labView === "sessions" ? "var(--vio)" : "var(--dim)",
+                            border: `1px solid ${labView === "sessions" ? "rgba(180,120,255,.4)" : "transparent"}`,
+                        } },
+                        "💾 الجلسات (",
+                        sessions.length,
+                        ")")),
+                labView === "free" && (React.createElement(React.Fragment, null,
+                    React.createElement("div", { className: "panel", style: { padding: 14, marginBottom: 11, position: "relative", overflow: "hidden", borderColor: sb.pnl > 0 ? "rgba(0,225,154,.3)" : sb.pnl < 0 ? "rgba(255,77,94,.3)" : undefined } },
+                        React.createElement("div", { style: { position: "absolute", inset: 0, background: `radial-gradient(300px 140px at 50% -30%, ${sb.pnl >= 0 ? "rgba(0,225,154,.07)" : "rgba(255,77,94,.07)"}, transparent 70%)`, pointerEvents: "none" } }),
+                        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+                            React.createElement("span", { style: { fontSize: 10.5, fontWeight: 800, color: "var(--vio)" } }, "🎮 طاولة التدريب"),
+                            React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5, fontSize: 9.5, color: "var(--tx2)" } },
+                                "بدأت بـ",
+                                React.createElement("input", { type: "number", value: sbBank, onChange: (e) => setSbBank(Math.max(0, +e.target.value)), className: "mono", style: { width: 74, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 7, padding: "3px 7px", color: "var(--gold)", fontSize: 11, fontWeight: 700, direction: "ltr", textAlign: "right" } }))),
+                        React.createElement("div", { style: { textAlign: "center", marginBottom: 8 } },
+                            React.createElement("div", { className: "mono", style: { fontSize: 32, fontWeight: 800, lineHeight: 1, color: sb.pnl > 0 ? "var(--up)" : sb.pnl < 0 ? "var(--dn)" : "var(--tx)" } }, fmt(sb.balance)),
+                            React.createElement("div", { className: "mono", style: { fontSize: 11.5, fontWeight: 700, marginTop: 3, color: sb.pnl > 0 ? "var(--up)" : sb.pnl < 0 ? "var(--dn)" : "var(--dim)", direction: "ltr" } },
+                                sb.pnl >= 0 ? "+" : "",
+                                fmt(sb.pnl))),
+                        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 5, textAlign: "center" } }, [
+                            { l: "جولات", v: sb.rounds, c: "var(--tx)" },
+                            { l: "فوز", v: sb.wins, c: "var(--up)" },
+                            { l: "خسارة", v: sb.losses, c: "var(--dn)" },
+                            { l: "سلسلة", v: sb.streak === 0 ? "—" : (sb.streak > 0 ? `فوز ${sb.streak}` : `خسارة ${-sb.streak}`), c: sb.streak > 0 ? "var(--up)" : sb.streak < 0 ? "var(--dn)" : "var(--dim)" },
+                        ].map((x, i) => (React.createElement("div", { key: i, style: { background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 9, padding: "6px 2px" } },
+                            React.createElement("div", { className: "mono", style: { fontSize: 12, fontWeight: 800, color: x.c } }, x.v),
+                            React.createElement("div", { style: { fontSize: 8, color: "var(--dim)", marginTop: 1 } }, x.l))))),
+                        (sb.best || sb.worst) && (React.createElement("div", { style: { display: "flex", justifyContent: "center", gap: 12, marginTop: 8, fontSize: 9, color: "var(--dim)" } },
+                            sb.best && React.createElement("span", null,
+                                "أفضل ضربة: ",
+                                SYMBOLS[sb.best.symbol].emoji,
+                                " ",
+                                React.createElement("b", { className: "mono", style: { color: "var(--up)", direction: "ltr" } },
+                                    "+",
+                                    fmt(sb.best.pnl))),
+                            sb.worst && sb.worst.pnl < 0 && React.createElement("span", null,
+                                "أقسى خسارة: ",
+                                React.createElement("b", { className: "mono", style: { color: "var(--dn)", direction: "ltr" } }, fmt(sb.worst.pnl)))))),
+                    React.createElement("div", { className: "panel", style: { padding: 13, marginBottom: 11 } },
+                        React.createElement("div", { style: { fontSize: 11.5, fontWeight: 800, marginBottom: 3 } }, "١ · وزّع رهانك بنفسك"),
+                        React.createElement("div", { style: { fontSize: 9, color: "var(--dim)", marginBottom: 9 } }, "المس الرمز لإضافته، وعدّل مبلغه بـ − / + أو بالكتابة. يدوي ١٠٠٪ — بدون محرك."),
+                        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: sbStakes && Object.keys(sbStakes).length ? 9 : 0 } }, ORDER.map((sy) => {
+                            const on = sbStakes[sy] !== undefined;
+                            return (React.createElement("button", { key: sy, className: "press", onClick: () => sbToggleSym(sy), style: {
+                                    padding: "8px 2px", borderRadius: 11, display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                                    background: on ? "rgba(240,176,63,.12)" : "var(--panel2)",
+                                    border: `1.5px solid ${on ? "var(--gold)" : "var(--line)"}`,
+                                } },
+                                React.createElement("span", { style: { fontSize: 20 } }, SYMBOLS[sy].emoji),
+                                React.createElement("span", { className: "mono", style: { fontSize: 7.5, color: on ? "var(--gold)" : "var(--dim)", fontWeight: 700 } },
+                                    "×",
+                                    SYMBOLS[sy].mult)));
+                        })),
+                        Object.keys(sbStakes).length > 0 && (React.createElement(React.Fragment, null,
+                            React.createElement("div", { style: { display: "grid", gap: 5 } }, Object.keys(sbStakes).map((sy) => (React.createElement("div", { key: sy, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 9px", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 10 } },
+                                React.createElement("span", { style: { fontSize: 18 } }, SYMBOLS[sy].emoji),
+                                React.createElement("div", { style: { flex: 1 } },
+                                    React.createElement("div", { style: { fontSize: 10.5, fontWeight: 700 } }, SYMBOLS[sy].ar),
+                                    React.createElement("div", { className: "mono", style: { fontSize: 8, color: "var(--dim)" } },
+                                        "لو ضرب: ",
+                                        fmt(sbStakes[sy] * SYMBOLS[sy].mult))),
+                                React.createElement("button", { className: "press mono", onClick: () => sbSetStake(sy, sbStakes[sy] - 100), style: { width: 26, height: 26, borderRadius: 7, background: "var(--panel)", border: "1px solid var(--line)", fontSize: 13, color: "var(--tx2)" } }, "−"),
+                                React.createElement("input", { type: "number", value: sbStakes[sy], onChange: (e) => sbSetStake(sy, +e.target.value), className: "mono", style: { width: 66, background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 7, padding: "4px 6px", color: "var(--gold)", fontSize: 12, fontWeight: 800, direction: "ltr", textAlign: "center" } }),
+                                React.createElement("button", { className: "press mono", onClick: () => sbSetStake(sy, sbStakes[sy] + 100), style: { width: 26, height: 26, borderRadius: 7, background: "var(--panel)", border: "1px solid var(--line)", fontSize: 13, color: "var(--tx2)" } }, "+"))))),
+                            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "var(--tx2)" } },
+                                React.createElement("span", null,
+                                    "إجمالي المخاطرة: ",
+                                    React.createElement("b", { className: "mono", style: { color: "var(--gold)" } }, fmt(sb.cost))),
+                                React.createElement("span", { className: "mono", style: { color: "var(--dim)" } },
+                                    Math.round(sb.cost / Math.max(sb.balance, 1) * 100),
+                                    "% من رصيدك"))))),
+                    React.createElement("div", { className: "panel", style: { padding: 13, marginBottom: 11 } },
+                        React.createElement("div", { style: { fontSize: 11.5, fontWeight: 800, marginBottom: 3 } }, "٢ · وش نزلت الضربة؟"),
+                        React.createElement("div", { style: { fontSize: 9, color: "var(--dim)", marginBottom: 9 } }, "اضغط الرمز الفعلي — يُحسب الربح/الخسارة فوراً ويدخل الشريط. بدون رهان = مراقبة فقط."),
+                        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 } }, ORDER.map((sy) => (React.createElement("button", { key: sy, className: "press", onClick: () => sbLog(sy), style: {
+                                padding: "10px 2px", borderRadius: 11, display: "grid", placeItems: "center",
+                                background: "var(--panel2)", border: "1px solid var(--line2)", fontSize: 22,
+                            } }, SYMBOLS[sy].emoji))))),
+                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, fontSize: 10.5, color: "var(--tx2)" } },
+                        React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5 } },
+                            React.createElement(History, { size: 11 }),
+                            " شريط التجربة (",
+                            sbMoves.length,
+                            ")"),
+                        React.createElement("span", { style: { display: "flex", gap: 6 } },
+                            React.createElement("button", { className: "press", onClick: sbUndo, disabled: !sbMoves.length, style: { padding: "3px 9px", borderRadius: 7, fontSize: 9.5, fontWeight: 800, background: "var(--panel2)", color: "var(--tx2)", border: "1px solid var(--line)", opacity: sbMoves.length ? 1 : .4 } }, "↩ تراجع"),
+                            React.createElement("button", { className: "press", onClick: sbClear, disabled: !sbMoves.length, style: { padding: "3px 9px", borderRadius: 7, fontSize: 9.5, fontWeight: 800, background: "rgba(255,77,94,.08)", color: "var(--dn)", border: "1px solid rgba(255,77,94,.25)", opacity: sbMoves.length ? 1 : .4 } }, "مسح"))),
+                    React.createElement("div", { style: { overflowX: "auto", paddingBottom: 6, direction: "ltr" } },
+                        React.createElement("div", { style: { display: "flex", gap: 5, flexDirection: "row-reverse", justifyContent: "flex-end", width: "max-content" } }, sbMoves.length === 0
+                            ? React.createElement("span", { style: { fontSize: 11, color: "var(--dim)", padding: "8px 0" } }, "سجّل أول ضربة تجريبية…")
+                            : sbMoves.slice(-40).map((m, i) => (React.createElement("div", { key: m.ts + "" + i, style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 } },
+                                React.createElement("div", { style: {
+                                        width: 38, height: 38, borderRadius: 10, display: "grid", placeItems: "center", fontSize: 19,
+                                        background: m.pnl > 0 ? "rgba(0,225,154,.1)" : m.pnl < 0 ? "rgba(255,77,94,.08)" : "var(--panel)",
+                                        border: `1px solid ${m.pnl > 0 ? "rgba(0,225,154,.45)" : m.pnl < 0 ? "rgba(255,77,94,.4)" : "var(--line)"}`,
+                                    } }, SYMBOLS[m.symbol].emoji),
+                                React.createElement("span", { className: "mono", style: { fontSize: 8, fontWeight: 700, direction: "ltr", color: m.pnl > 0 ? "var(--up)" : m.pnl < 0 ? "var(--dn)" : "var(--dim)" } },
+                                    m.pnl > 0 ? "+" : "",
+                                    m.pnl === 0 ? "·" : fmt(m.pnl))))))))),
+                labView === "sessions" && (React.createElement(React.Fragment, null,
+                    React.createElement("div", { style: { fontSize: 9.5, color: "var(--dim)", marginBottom: 11 } }, "اختبر أي جلسة تاريخية بإعداداتك الحالية (التركيبة/القيود/نمط الرهان) وشوف كيف كانت بتطلع نتائجك."),
+                    sessions.length === 0 ? (React.createElement("div", { className: "panel", style: { padding: 22, textAlign: "center" } },
+                        React.createElement(FlaskConical, { size: 24, style: { opacity: .3, marginBottom: 9 } }),
+                        React.createElement("div", { style: { fontSize: 12, color: "var(--tx2)" } }, "لا توجد جلسات محفوظة بعد"),
+                        React.createElement("div", { style: { fontSize: 10, color: "var(--dim)", marginTop: 5 } }, "من شاشة التداول اضغط \"💾 حفظ الجلسة للمختبر\""))) : (React.createElement("div", { style: { display: "grid", gap: 7 } }, [...sessions].reverse().map((sess) => (React.createElement("div", { key: sess.id, className: "panel", style: { padding: 11, borderColor: labSel === sess.id ? "rgba(180,120,255,.4)" : undefined } },
+                        React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 } },
+                            React.createElement("div", null,
+                                React.createElement("div", { style: { fontSize: 12, fontWeight: 800 } }, sess.name),
+                                React.createElement("div", { className: "mono", style: { fontSize: 8.5, color: "var(--dim)" } },
+                                    "وقت الحفظ: فوز ",
+                                    sess.meta.winPct,
+                                    "% · صافي ",
+                                    sess.meta.equity >= 0 ? "+" : "",
+                                    fmt(sess.meta.equity))),
+                            React.createElement("div", { style: { display: "flex", gap: 4 } },
+                                React.createElement("button", { className: "press", onClick: () => runLabTest(sess), style: { padding: "5px 10px", borderRadius: 8, fontSize: 10, fontWeight: 800, background: "rgba(180,120,255,.12)", color: "var(--vio)", border: "1px solid rgba(180,120,255,.35)" } }, "🧪 اختبار"),
+                                React.createElement("button", { className: "press", onClick: () => loadSessionLive(sess), style: { padding: "5px 10px", borderRadius: 8, fontSize: 10, fontWeight: 800, background: "var(--panel2)", color: "var(--tx2)", border: "1px solid var(--line)" } }, "تحميل"),
+                                React.createElement("button", { className: "press", onClick: () => deleteSession(sess.id), style: { padding: "5px 8px", borderRadius: 8, fontSize: 10, fontWeight: 800, background: "rgba(255,77,94,.08)", color: "var(--dn)", border: "1px solid rgba(255,77,94,.25)" } }, "✕"))),
+                        React.createElement("div", { style: { display: "flex", gap: 3, overflow: "hidden", direction: "ltr" } }, sess.moves.slice(-16).map((m, i) => (React.createElement("span", { key: i, style: { fontSize: 14 } }, SYMBOLS[m.symbol].emoji)))),
+                        labRes && labRes.id === sess.id && (React.createElement("div", { style: { marginTop: 9, paddingTop: 9, borderTop: "1px dashed var(--line2)" } },
+                            React.createElement("div", { style: { fontSize: 10, fontWeight: 800, color: "var(--vio)", marginBottom: 6 } }, "نتيجة الاختبار بإعداداتك الحالية:"),
+                            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 10, color: "var(--tx2)" } },
+                                React.createElement("div", null,
+                                    "فوز المراهنة: ",
+                                    React.createElement("b", { className: "mono", style: { color: "var(--up)" } },
+                                        labRes.summ.winPct,
+                                        "%"),
+                                    " (",
+                                    labRes.summ.wins,
+                                    "/",
+                                    labRes.summ.bets,
+                                    ")"),
+                                React.createElement("div", null,
+                                    "تطابق الأول: ",
+                                    React.createElement("b", { className: "mono", style: { color: "var(--gold)" } },
+                                        labRes.summ.top1Pct,
+                                        "%")),
+                                React.createElement("div", null,
+                                    "الصافي: ",
+                                    React.createElement("b", { className: "mono", style: { color: labRes.summ.equity >= 0 ? "var(--up)" : "var(--dn)", direction: "ltr" } },
+                                        labRes.summ.equity >= 0 ? "+" : "",
+                                        fmt(labRes.summ.equity))),
+                                React.createElement("div", null,
+                                    "أطول جحفلة: ",
+                                    React.createElement("b", { className: "mono", style: { color: "var(--dn)" } }, labRes.summ.maxLossRun)))))))))))))),
             tab === "report" && (React.createElement("section", { style: { paddingTop: 4 } },
                 React.createElement("div", { style: { fontSize: 12.5, fontWeight: 800, marginBottom: 11, display: "flex", alignItems: "center", gap: 6 } },
                     React.createElement(FileText, { size: 13, color: "var(--gold)" }),
@@ -1346,8 +1960,9 @@ function App() {
                             React.createElement("div", { style: { height: "100%", width: `${report.acc}%`, borderRadius: 99, background: "linear-gradient(90deg,#0AA872,#00E19A)", transition: "width .6s" } }))),
                     React.createElement("div", { className: "panel", style: { padding: 13, display: "grid", gap: 7 } }, report.lines.map((l, i) => (React.createElement("div", { key: i, style: { fontSize: 12, lineHeight: 1.75, color: i === 0 ? "var(--tx)" : "var(--tx2)", fontWeight: i === 0 ? 800 : 400 } }, l))))))))),
         React.createElement("nav", { style: { position: "fixed", bottom: 0, insetInline: 0, background: "rgba(7,9,12,.94)", backdropFilter: "blur(12px)", borderTop: "1px solid var(--line)" } },
-            React.createElement("div", { style: { maxWidth: 432, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(3,1fr)" } }, [
+            React.createElement("div", { style: { maxWidth: 432, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)" } }, [
                 { id: "play", label: "التداول", icon: Target },
+                { id: "lab", label: "المختبر", icon: FlaskConical },
                 { id: "history", label: "السجل", icon: History },
                 { id: "report", label: "التقرير", icon: FileText },
             ].map((t) => {
