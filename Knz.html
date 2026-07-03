@@ -283,7 +283,7 @@ const FAMILY_SET = {
     crab: ["tomato", "corn"], steak: ["carrot", "tomato"],
     fish: ["corn", "carrot"], chicken: ["cabbage", "crab"],
 };
-function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null, comp = "free") {
+function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = null, comp = "free", moodSym = null) {
     if (!pred || !pred.length)
         return null;
     const p = pred.map((x) => x.conf / 100);
@@ -304,6 +304,8 @@ function pickCoverage(pred, k = 3, manualSyms = null, strat = null, lastSym = nu
     } };
     if (strat?.repeat && lastSym)
         push(lastSym, "repeat");
+    if (moodSym)
+        push(moodSym, "mood");
     if (manualSyms && manualSyms.length)
         manualSyms.forEach((s) => push(s, "manual"));
     const total = quota ? quota.small + quota.big + options.length : Math.max(k, options.length);
@@ -519,7 +521,7 @@ function liveAnalysis(moves, pred) {
     return { notes, verdict };
 }
 /* ═══════════════ MILESTONE REPORT ═══════════════ */
-function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = "free") {
+function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = "free", moodSym = null) {
     const chain = moves.map((m) => m.symbol);
     const n = chain.length;
     const ms = [7, 10, 15, 20];
@@ -535,7 +537,7 @@ function buildReport(moves, coverK = 3, manualSyms = null, strat = null, comp = 
     let hits = 0, top1 = 0, chances = 0;
     for (let i = 1; i < n; i++) {
         const p = predictFrom(moves.slice(0, i));
-        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1], comp);
+        const cov = pickCoverage(p, coverK, manualSyms, strat, chain[i - 1], comp, moodSym);
         if (p && cov) {
             chances++;
             if (cov.options.includes(chain[i]))
@@ -596,6 +598,7 @@ function App() {
     const [stratFam, setStratFam] = useState(false);
     const [compMode, setCompMode] = useState("free"); // free | bigs | 2x2 | 3x3
     const [stepMode, setStepMode] = useState(false); // stakes as base multiples, small-profit focus
+    const [moodSym, setMoodSym] = useState(null); // in-play personal pick, joins the options
     const [targetDepth, setTargetDepth] = useState(20);
     const [showSettings, setShowSettings] = useState(false);
     useEffect(() => {
@@ -617,10 +620,11 @@ function App() {
         setCompMode(s.compMode || "free");
         setStepMode(!!s.stepMode);
         setTargetDepth(s.targetDepth ?? 20);
+        setMoodSym(s.moodSym || null);
     }, []);
     useEffect(() => {
-        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth });
-    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth]);
+        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth, moodSym });
+    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, targetDepth, moodSym]);
     const activeManual = manualMode && manualSyms.length >= 1 ? manualSyms : null;
     const strat = useMemo(() => (stratRepeat || stratOpp || stratFam)
         ? { repeat: stratRepeat, opp: stratOpp, fam: stratFam } : null, [stratRepeat, stratOpp, stratFam]);
@@ -640,7 +644,7 @@ function App() {
             const hist = moves.slice(0, i);
             const models = subModels(hist);
             const pred = blend(models, weightsFrom(ema));
-            const cov = pickCoverage(pred, coverK, activeManual, strat, hist[hist.length - 1].symbol, compMode);
+            const cov = pickCoverage(pred, coverK, activeManual, strat, hist[hist.length - 1].symbol, compMode, moodSym);
             const landed = moves[i].symbol;
             for (const k of MODEL_KEYS) {
                 const d = models[k];
@@ -687,7 +691,7 @@ function App() {
         let nextPred = null, nextCov = null, nextPlan = null;
         if (moves.length) {
             nextPred = blend(subModels(moves), weightsFrom(ema));
-            nextCov = pickCoverage(nextPred, coverK, activeManual, strat, moves[moves.length - 1].symbol, compMode);
+            nextCov = pickCoverage(nextPred, coverK, activeManual, strat, moves[moves.length - 1].symbol, compMode, moodSym);
             if (nextCov) {
                 nextPlan = computeBetPlan(carry, nextCov.options, base, profit, lossRun, limit, stepMode);
                 nextPlan.coverProb = nextCov.coverProb;
@@ -697,7 +701,7 @@ function App() {
         }
         const hot = MODEL_KEYS.filter((k) => used[k]).map((k) => ({ k, v: ema[k] })).sort((a, b) => b.v - a.v)[0] || null;
         return { perMove, carry, lossRun, nextPred, nextCov, nextPlan, hotModel: hot, equity, equitySeries, confSeries };
-    }, [moves, base, profit, limit, coverK, activeManual, strat, compMode, stepMode]);
+    }, [moves, base, profit, limit, coverK, activeManual, strat, compMode, stepMode, moodSym]);
     const prediction = sim.nextPred;
     const cov = sim.nextCov;
     const betPlan = sim.nextPlan;
@@ -705,7 +709,7 @@ function App() {
     const rankFlags = useMemo(() => sim.perMove.map((p) => p.rank || 0), [sim]);
     const winTrend = useMemo(() => sim.perMove.filter((p) => p.bet).map((p) => (p.bet.won ? (p.rank >= 1 && p.rank <= 3 ? p.rank : 4) : 0)), [sim]);
     const analysis = useMemo(() => liveAnalysis(moves, prediction), [moves, prediction]);
-    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat, compMode), [moves, coverK, activeManual, strat, compMode]);
+    const report = useMemo(() => buildReport(moves, coverK, activeManual, strat, compMode, moodSym), [moves, coverK, activeManual, strat, compMode, moodSym]);
     /* ── Session plan math ── */
     const session = useMemo(() => {
         const byPrior = [...ORDER].sort((a, b) => PRIOR[b] - PRIOR[a]);
@@ -1116,6 +1120,17 @@ function App() {
                             : React.createElement("span", { className: "chip", style: { background: "rgba(0,225,154,.1)", color: "var(--up)" } },
                                 "هدف +",
                                 fmt0(betPlan.desiredProfit))),
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 9, flexWrap: "wrap" } },
+                        React.createElement("span", { style: { fontSize: 10, fontWeight: 800, color: "#FF7AB8", flexShrink: 0 } }, "🎯 اختياري:"),
+                        ORDER.map((sy) => (React.createElement("button", { key: sy, className: "press", onClick: () => setMoodSym(moodSym === sy ? null : sy), style: {
+                                width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", fontSize: 15,
+                                background: moodSym === sy ? "rgba(255,122,184,.16)" : "var(--panel2)",
+                                border: `1.5px solid ${moodSym === sy ? "#FF7AB8" : "var(--line)"}`,
+                            } }, SYMBOLS[sy].emoji))),
+                        moodSym && (React.createElement("button", { className: "press", onClick: () => setMoodSym(null), style: {
+                                padding: "3px 8px", borderRadius: 7, fontSize: 9.5, fontWeight: 800,
+                                background: "var(--panel2)", color: "var(--dim)", border: "1px solid var(--line)",
+                            } }, "✕ بدون"))),
                     React.createElement("div", { style: { display: "grid", gap: 6 } }, betPlan.rows.map((r, i) => {
                         const ori = sim.nextCov?.origin?.[r.sym];
                         const isAnchor = ori === "manual" || ori === "repeat";
@@ -1129,6 +1144,8 @@ function App() {
                                     SYMBOLS[r.sym].ar,
                                     (() => {
                                         const o = sim.nextCov?.origin?.[r.sym];
+                                        if (o === "mood")
+                                            return React.createElement("span", { style: { fontSize: 8.5, color: "#FF7AB8", fontWeight: 800 } }, "🎯 اختياري");
                                         if (o === "manual")
                                             return React.createElement("span", { style: { fontSize: 8.5, color: "var(--gold)", fontWeight: 800 } }, "📌 أساسي");
                                         if (o === "repeat")
