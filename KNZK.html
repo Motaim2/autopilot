@@ -91,7 +91,7 @@ const FlaskConical = (p) => React.createElement(Svg, { ...p },
 /* ══════════════════ GAME REGISTRY (KnzK · KNZF) ══════════════════ */
 const GAMES = {
     knzk: {
-        title: "عرّاف الكونز", badge: "KnzK·v22",
+        title: "عرّاف الكونز", badge: "KnzK·v23",
         storageKey: "knuz_trader_v1", sessionsKey: "knuz_sessions_v1",
         tagMode: "eight", infoNote: null,
         symbols: {
@@ -116,7 +116,7 @@ const GAMES = {
         basketBig: { icon: "🍖", t: "نزل لحم", d: "أي كبير ×10-45 — بدون تحديد", short: "لحم" },
     },
     knzf: {
-        title: "عرّاف الفواكه", badge: "KNZF·v22",
+        title: "عرّاف الفواكه", badge: "KNZF·v23",
         storageKey: "knzf_v1", sessionsKey: "knzf_sessions_v1",
         tagMode: "bonus",
         infoNote: "لعبة الحظ قد تمنح: فاكهة +1 / +2 / +3، مكافآت كبيرة، ×2 أو ×3 مكافآت، أو JACKPOT. الضربات الإضافية تجيك بنفس المسار — علّمها بوسمها (＋ / ✳ / 🎰) قبل تسجيلها عشان يقرأها الشريط صح.",
@@ -1374,17 +1374,11 @@ function App() {
             /* الكانفاس لازم يكون مرسوماً داخل الصفحة عشان المتصفح يبث إطاراته باستمرار */
             Object.assign(R.canvas.style, { position: "fixed", bottom: "2px", left: "2px", width: "64px", height: "82px", opacity: "0.04", pointerEvents: "none", zIndex: "0", borderRadius: "6px" });
             document.body.appendChild(R.canvas);
-            let stream;
+            const stream = R.canvas.captureStream(5); // البث المستمر — نفس النمط اللي فتح عندك
             try {
-                stream = R.canvas.captureStream(0);
                 R.track = stream.getVideoTracks()[0];
-                if (!R.track.requestFrame) {
-                    stream = R.canvas.captureStream(6);
-                    R.track = null;
-                }
             }
             catch (e0) {
-                stream = R.canvas.captureStream(6);
                 R.track = null;
             }
             R.video.srcObject = stream;
@@ -1521,12 +1515,19 @@ function App() {
         R.pids = ids;
         R.draw = draw;
         const pump = () => { draw(); try {
-            R.track && R.track.requestFrame();
+            R.track && R.track.requestFrame && R.track.requestFrame();
         }
         catch (e) { } };
         R.pump = pump;
         pump();
         await R.video.play();
+        await new Promise((res) => {
+            if (R.video.readyState >= 2)
+                return res();
+            R.video.addEventListener("loadeddata", res, { once: true });
+            setTimeout(res, 700);
+        });
+        pump();
         if (R.video.requestPictureInPicture) {
             if (!document.pictureInPictureElement)
                 await R.video.requestPictureInPicture();
