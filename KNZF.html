@@ -20,7 +20,7 @@
 <div id="root"><div id="boot">⏳ جارٍ التشغيل…</div></div>
 <script>
 "use strict";
-const { useState, useEffect, useMemo, useCallback } = React;
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 /* ── Inline SVG icons (lucide-style, dependency-free) ── */
 const Svg = ({ size = 16, color = "currentColor", fill = "none", strokeWidth = 2, style, children }) => (React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: fill, stroke: color, strokeWidth: strokeWidth, strokeLinecap: "round", strokeLinejoin: "round", style: style }, children));
 const Target = (p) => React.createElement(Svg, { ...p },
@@ -91,7 +91,7 @@ const FlaskConical = (p) => React.createElement(Svg, { ...p },
 /* ══════════════════ GAME REGISTRY (KnzK · KNZF) ══════════════════ */
 const GAMES = {
     knzk: {
-        title: "عرّاف الكونز", badge: "KnzK·v14",
+        title: "عرّاف الكونز", badge: "KnzK·v18",
         storageKey: "knuz_trader_v1", sessionsKey: "knuz_sessions_v1",
         tagMode: "eight", infoNote: null,
         symbols: {
@@ -116,7 +116,7 @@ const GAMES = {
         basketBig: { icon: "🍖", t: "نزل لحم", d: "أي كبير ×10-45 — بدون تحديد", short: "لحم" },
     },
     knzf: {
-        title: "عرّاف الفواكه", badge: "KNZF·v14",
+        title: "عرّاف الفواكه", badge: "KNZF·v18",
         storageKey: "knzf_v1", sessionsKey: "knzf_sessions_v1",
         tagMode: "bonus",
         infoNote: "لعبة الحظ قد تمنح: فاكهة +1 / +2 / +3، مكافآت كبيرة، ×2 أو ×3 مكافآت، أو JACKPOT. الضربات الإضافية تجيك بنفس المسار — علّمها بوسمها (＋ / ✳ / 🎰) قبل تسجيلها عشان يقرأها الشريط صح.",
@@ -1034,6 +1034,14 @@ function App() {
     const [mtCarry, setMtCarry] = useState(0);
     const [mtLossRun, setMtLossRun] = useState(0);
     const [mtLog, setMtLog] = useState([]); // {ts,landed,won,cost,pnl,syms}
+    const [knzOpen, setKnzOpen] = useState({ stats: true, pad: true, strip: true, trend: true, fore: true, set: false, tools: true });
+    const [bestMsg, setBestMsg] = useState(null);
+    const [knzOrder, setKnzOrder] = useState(["stats", "pad", "strip", "trend", "fore", "set", "tools"]);
+    const [pipSet, setPipSet] = useState([]); // cards inside the floating window
+    const [pipDocWin, setPipDocWin] = useState(null); // interactive Document-PiP window (desktop Chrome)
+    const [toast, setToast] = useState(null);
+    const pipRef = useRef({});
+    const pipDataRef = useRef({});
     const [targetDepth, setTargetDepth] = useState(20);
     const [showSettings, setShowSettings] = useState(false);
     useEffect(() => {
@@ -1072,12 +1080,16 @@ function App() {
         setMtCarry(s.mtCarry ?? 0);
         setMtLossRun(s.mtLossRun ?? 0);
         setMtLog(s.mtLog || []);
+        if (s.knzOpen)
+            setKnzOpen({ stats: true, ...s.knzOpen });
+        if (s.knzOrder && s.knzOrder.length)
+            setKnzOrder(s.knzOrder.includes("stats") ? s.knzOrder : ["stats", ...s.knzOrder]);
         setTargetDepth(s.targetDepth ?? 20);
         setMoodSyms(s.moodSyms || (s.moodSym ? [s.moodSym] : []));
     }, []);
     useEffect(() => {
-        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, mnvMode, mnvTurbo, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves, motaimSyms, mtMode, mtBase, mtProfit, mtBank, mtRounds, mtCarry, mtLossRun, mtLog });
-    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, mnvMode, mnvTurbo, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves, motaimSyms, mtMode, mtBase, mtProfit, mtBank, mtRounds, mtCarry, mtLossRun, mtLog]);
+        saveState({ moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, mnvMode, mnvTurbo, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves, motaimSyms, mtMode, mtBase, mtProfit, mtBank, mtRounds, mtCarry, mtLossRun, mtLog, knzOpen, knzOrder });
+    }, [moves, base, profit, limit, bankroll, rounds, coverK, manualMode, manualSyms, goalPct, stopPct, stratRepeat, stratOpp, stratFam, compMode, stepMode, uniMode, mnvMode, mnvTurbo, targetDepth, moodSyms, mustafaMode, mustafaBank, sbBank, sbStakes, sbMoves, motaimSyms, mtMode, mtBase, mtProfit, mtBank, mtRounds, mtCarry, mtLossRun, mtLog, knzOpen, knzOrder]);
     const activeManual = manualMode && manualSyms.length >= 1 ? manualSyms : null;
     const strat = useMemo(() => (stratRepeat || stratOpp || stratFam)
         ? { repeat: stratRepeat, opp: stratOpp, fam: stratFam } : null, [stratRepeat, stratOpp, stratFam]);
@@ -1289,6 +1301,186 @@ function App() {
         setMoves([...sess.moves]);
         setTab("play");
     }, []);
+    /* 💉 إجمالي المضخوخ (كل الرهانات مع آخر ضربة) والربح حتى قبل الأخيرة */
+    const pumped = useMemo(() => sim.perMove.reduce((a, p) => a + (p.bet ? p.bet.cost : 0), 0), [sim]);
+    const netBeforeLast = useMemo(() => (sim.equitySeries.length >= 2 ? sim.equitySeries[sim.equitySeries.length - 2] : 0), [sim]);
+    const moveSec = useCallback((id, dir) => {
+        setKnzOrder((ord) => {
+            const i = ord.indexOf(id);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= ord.length)
+                return ord;
+            const nx = [...ord];
+            [nx[i], nx[j]] = [nx[j], nx[i]];
+            return nx;
+        });
+    }, []);
+    /* 📺 مرآة فوق النظام (PiP): تعرض أرقام البطاقة حيّة فوق أي تطبيق — iOS يسمح بالعرض فقط،
+       والتعديل من داخل التطبيق ينعكس عليها فوراً */
+    const pipLines = (id) => {
+        const D = pipDataRef.current;
+        if (id === "stats")
+            return ["💉 الضخ والربح", `المضخوخ الكلي: ${fmt(D.pumped || 0)}`, `الربح قبل الأخيرة: ${(D.netBeforeLast >= 0 ? "+" : "") + fmt(D.netBeforeLast || 0)}`, `الصافي الآن: ${(D.equity >= 0 ? "+" : "") + fmt(D.equity || 0)}`];
+        if (id === "fore" && D.pred) {
+            const L = [`🔮 التوقع: ${SYMBOLS[D.pred[0].symbol].ar} ${D.pred[0].conf.toFixed(0)}%`];
+            (D.rows || []).slice(0, 4).forEach((r) => L.push(`${SYMBOLS[r.sym].ar}: ${fmt(r.stake)}`));
+            L.push(`المخاطرة: ${fmt(D.cost || 0)}${D.carry ? " · تعويض " + fmt(D.carry) : ""}`);
+            return L;
+        }
+        if (id === "strip")
+            return ["📼 آخر الضربات", (D.last || []).join("  ") || "—"];
+        return [`${id}`, "افتح التطبيق للتفاصيل"];
+    };
+    const stopVideoPip = useCallback(() => {
+        const R = pipRef.current;
+        if (R.timer)
+            clearInterval(R.timer);
+        try {
+            if (document.pictureInPictureElement)
+                document.exitPictureInPicture();
+        }
+        catch (e) { }
+        try {
+            if (R.video && R.video.webkitPresentationMode === "picture-in-picture")
+                R.video.webkitSetPresentationMode("inline");
+        }
+        catch (e) { }
+    }, []);
+    const startVideoPip = useCallback(async (ids) => {
+        const R = pipRef.current;
+        if (!R.canvas) {
+            R.canvas = document.createElement("canvas");
+            R.canvas.width = 480;
+            R.canvas.height = 620;
+            R.video = document.createElement("video");
+            R.video.muted = true;
+            R.video.playsInline = true;
+            R.video.autoplay = true;
+            R.video.setAttribute("playsinline", "");
+            R.video.setAttribute("muted", "");
+            R.video.setAttribute("autoplay", "");
+            R.video.srcObject = R.canvas.captureStream(8);
+            Object.assign(R.video.style, { position: "fixed", bottom: "0", left: "0", width: "2px", height: "2px", opacity: "0.01", pointerEvents: "none", zIndex: "-1" });
+            document.body.appendChild(R.video);
+            const cleanup = () => { if (R.timer)
+                clearInterval(R.timer); setPipSet([]); };
+            R.video.addEventListener("leavepictureinpicture", cleanup);
+            R.video.addEventListener("webkitpresentationmodechanged", () => {
+                if (R.video.webkitPresentationMode === "inline")
+                    cleanup();
+            });
+        }
+        const draw = () => {
+            const ctx = R.canvas.getContext("2d");
+            ctx.fillStyle = "#0B0F14";
+            ctx.fillRect(0, 0, 480, 620);
+            ctx.direction = "rtl";
+            ctx.textAlign = "right";
+            let y = 44;
+            (R.pids || ids).forEach((cid, idx) => {
+                const lines = pipLines(cid);
+                ctx.fillStyle = "#F0B03F";
+                ctx.font = "700 25px system-ui";
+                ctx.fillText(lines[0], 456, y);
+                y += 38;
+                ctx.fillStyle = "#E8EDF4";
+                ctx.font = "600 21px system-ui";
+                lines.slice(1).forEach((l) => { ctx.fillText(l, 456, y); y += 34; });
+                if (idx < (R.pids || ids).length - 1) {
+                    ctx.strokeStyle = "#232B36";
+                    ctx.beginPath();
+                    ctx.moveTo(24, y - 12);
+                    ctx.lineTo(456, y - 12);
+                    ctx.stroke();
+                    y += 14;
+                }
+            });
+            ctx.fillStyle = "#5A6678";
+            ctx.font = "15px system-ui";
+            ctx.fillText(G.badge + " · مباشر", 456, 606);
+        };
+        R.pids = ids;
+        draw();
+        await R.video.play();
+        if (R.video.requestPictureInPicture) {
+            if (!document.pictureInPictureElement)
+                await R.video.requestPictureInPicture();
+        }
+        else if (R.video.webkitSupportsPresentationMode && R.video.webkitSupportsPresentationMode("picture-in-picture")) {
+            if (R.video.webkitPresentationMode !== "picture-in-picture")
+                R.video.webkitSetPresentationMode("picture-in-picture");
+        }
+        else {
+            throw new Error("no-pip");
+        }
+        if (R.timer)
+            clearInterval(R.timer);
+        R.timer = setInterval(draw, 700);
+    }, []);
+    const openDocPip = useCallback(async () => {
+        const w = await window.documentPictureInPicture.requestWindow({ width: 342, height: 560 });
+        document.querySelectorAll("style").forEach((st) => {
+            const c = w.document.createElement("style");
+            c.textContent = st.textContent;
+            w.document.head.appendChild(c);
+        });
+        w.document.documentElement.dir = "rtl";
+        w.document.documentElement.lang = "ar";
+        Object.assign(w.document.body.style, { margin: "0", background: "#07090C", color: "#E8EDF4", fontFamily: "system-ui" });
+        w.addEventListener("pagehide", () => { setPipDocWin(null); setPipSet([]); });
+        setPipDocWin(w);
+        return w;
+    }, []);
+    /* 📺 يضيف/يشيل البطاقة من النافذة العائمة فوق الجوال/الكمبيوتر — ويجمع أكثر من بطاقة */
+    const togglePipCard = useCallback(async (id) => {
+        const next = pipSet.includes(id) ? pipSet.filter((x) => x !== id) : [...pipSet, id];
+        try {
+            if (typeof window !== "undefined" && window.documentPictureInPicture) {
+                if (!pipDocWin && next.length)
+                    await openDocPip();
+                if (pipDocWin && !next.length) {
+                    pipDocWin.close();
+                    setPipDocWin(null);
+                }
+                setPipSet(next);
+            }
+            else {
+                setPipSet(next);
+                if (next.length)
+                    await startVideoPip(next);
+                else
+                    stopVideoPip();
+            }
+        }
+        catch (e) {
+            setToast("جهازك ما فتح النافذة العائمة — على الجوال افتح الملف في Safari مباشرة، وعلى الكمبيوتر استخدم كروم");
+        }
+    }, [pipSet, pipDocWin, openDocPip, startVideoPip, stopVideoPip]);
+    useEffect(() => { if (!toast)
+        return; const t = setTimeout(() => setToast(null), 3200); return () => clearTimeout(t); }, [toast]);
+    /* ✨ يحلل شريطك: يجرّب التوليفات ويطبّق الأفضل */
+    const findBestSettings = useCallback(() => {
+        if (moves.length < 8) {
+            setBestMsg({ err: "سجّل ٨ ضربات على الأقل عشان أحلل" });
+            return;
+        }
+        let best = null;
+        for (const k of [2, 3, 4])
+            for (const comp of ["free", "2x2"])
+                for (const uni of [false, true]) {
+                    const c = { ...cfg, coverK: k, comp, uni, step: false, mnv: false, manual: null, moodSyms: [] };
+                    const su = summarizeSim(runSimulation(moves, c));
+                    const score = su.equity + su.winPct * 50;
+                    if (!best || score > best.score)
+                        best = { score, k, comp, uni, su };
+                }
+        setCoverK(best.k);
+        setCompMode(best.comp);
+        setUniMode(best.uni);
+        setStepMode(false);
+        setMnvMode(false);
+        setBestMsg({ k: best.k, comp: best.comp, uni: best.uni, su: best.su });
+    }, [moves, cfg]);
     const toggleMotaimSym = useCallback((sy) => {
         setMotaimSyms((prev) => {
             const nx = prev.includes(sy) ? prev.filter((x) => x !== sy)
@@ -1321,6 +1513,469 @@ function App() {
     const signal = !cov ? null : cov.skip ? { t: "تخطَّ الجولة", c: "var(--dim)", bg: "rgba(140,150,170,.1)" }
         : cov.confident ? { t: "إشارة قوية", c: "var(--up)", bg: "rgba(0,225,154,.12)" }
             : { t: "إشارة متوسطة", c: "var(--gold)", bg: "rgba(240,176,63,.12)" };
+    pipDataRef.current = {
+        pumped, netBeforeLast, equity: sim.equity,
+        pred: prediction, rows: betPlan?.rows, cost: betPlan?.cost, carry: sim.lossRun > 0 ? sim.carry : 0,
+        last: moves.slice(-9).map((m) => SYMBOLS[m.symbol].emoji),
+    };
+    const Sec = ({ id, icon, title, badge, children }) => (React.createElement("section", { className: "panel", style: { marginBottom: 10, overflow: "hidden", borderColor: pipSet.includes(id) ? "rgba(180,120,255,.45)" : undefined } },
+        React.createElement("div", { style: { display: "flex", alignItems: "center" } },
+            React.createElement("button", { className: "press", onClick: () => setKnzOpen((o) => ({ ...o, [id]: !o[id] })), style: {
+                    flex: 1, padding: "11px 13px", display: "flex", alignItems: "center", gap: 8, minWidth: 0,
+                    background: knzOpen[id] ? "transparent" : "var(--panel2)",
+                } },
+                React.createElement("span", { style: { fontSize: 14 } }, icon),
+                React.createElement("span", { style: { fontSize: 12, fontWeight: 800, flex: 1, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, title),
+                badge && React.createElement("span", { className: "chip", style: { background: "var(--panel2)", border: "1px solid var(--line)", color: "var(--tx2)", flexShrink: 0 } }, badge),
+                React.createElement("span", { style: { fontSize: 10, color: "var(--dim)", transform: knzOpen[id] ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform .15s" } }, "▾")),
+            React.createElement("span", { style: { display: "flex", gap: 3, padding: "0 8px 0 10px", flexShrink: 0 } },
+                React.createElement("button", { className: "press", onClick: () => moveSec(id, -1), style: { width: 24, height: 24, borderRadius: 7, background: "var(--panel2)", border: "1px solid var(--line)", color: "var(--tx2)", fontSize: 10, display: "grid", placeItems: "center" } }, "▲"),
+                React.createElement("button", { className: "press", onClick: () => moveSec(id, 1), style: { width: 24, height: 24, borderRadius: 7, background: "var(--panel2)", border: "1px solid var(--line)", color: "var(--tx2)", fontSize: 10, display: "grid", placeItems: "center" } }, "▼"),
+                React.createElement("button", { className: "press", onClick: () => togglePipCard(id), style: {
+                        width: 24, height: 24, borderRadius: 7, fontSize: 11, display: "grid", placeItems: "center",
+                        background: pipSet.includes(id) ? "rgba(180,120,255,.2)" : "var(--panel2)",
+                        border: `1px solid ${pipSet.includes(id) ? "var(--vio)" : "var(--line)"}`,
+                        color: pipSet.includes(id) ? "var(--vio)" : "var(--tx2)",
+                    } }, "📺"))),
+        knzOpen[id] && React.createElement("div", { style: { padding: "0 12px 12px" } }, children)));
+    const settingsPanel = (React.createElement("div", { className: "panel", style: { padding: 13, marginBottom: 12, display: "grid", gap: 12 } },
+        React.createElement("div", { style: { fontSize: 12.5, fontWeight: 800, color: "var(--up)", display: "flex", alignItems: "center", gap: 6 } },
+            React.createElement(Wallet, { size: 13 }),
+            " خطة الجلسة"),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+            React.createElement("div", null,
+                React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "رصيد الكونز"),
+                React.createElement("input", { type: "number", value: bankroll, onChange: (e) => setBankroll(Math.max(0, +e.target.value)), className: "mono", style: { width: "100%", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", color: "var(--gold)", fontSize: 13, fontWeight: 700, direction: "ltr", textAlign: "right" } })),
+            React.createElement("div", null,
+                React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "عدد الجولات المخططة"),
+                React.createElement("div", { style: { display: "flex", gap: 4 } }, [10, 20, 30, 50].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setRounds(v), style: {
+                        flex: 1, padding: "7px 0", borderRadius: 8, fontSize: 11.5, fontWeight: 700,
+                        background: rounds === v ? "var(--up)" : "var(--panel2)",
+                        color: rounds === v ? "#06231A" : "var(--tx2)",
+                        border: `1px solid ${rounds === v ? "var(--up)" : "var(--line)"}`,
+                    } }, v)))))),
+        React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "كم رمز تراهن عليه كل جولة؟ (الإجمالي)"),
+            React.createElement("div", { style: { display: "flex", gap: 4 } }, [1, 2, 3, 4, 5, 6].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setCoverK(v), style: {
+                    flex: 1, padding: "7px 0", borderRadius: 8, fontSize: 12, fontWeight: 800,
+                    background: coverK === v ? "var(--up)" : "var(--panel2)",
+                    color: coverK === v ? "#06231A" : "var(--tx2)",
+                    border: `1px solid ${coverK === v ? "var(--up)" : "var(--line)"}`,
+                } }, v))))),
+        React.createElement("div", null,
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 } },
+                React.createElement("span", { style: { fontSize: 10.5, color: "var(--tx2)" } }, "اختيار الرموز"),
+                React.createElement("div", { style: { display: "flex", gap: 4 } },
+                    React.createElement("button", { className: "press", onClick: () => setManualMode(false), style: {
+                            padding: "3px 10px", borderRadius: 7, fontSize: 10, fontWeight: 800,
+                            background: !manualMode ? "rgba(0,225,154,.15)" : "var(--panel2)",
+                            color: !manualMode ? "var(--up)" : "var(--dim)",
+                            border: `1px solid ${!manualMode ? "var(--up)" : "var(--line)"}`,
+                        } }, "تلقائي — المحرك يختار"),
+                    React.createElement("button", { className: "press", onClick: () => setManualMode(true), style: {
+                            padding: "3px 10px", borderRadius: 7, fontSize: 10, fontWeight: 800,
+                            background: manualMode ? "rgba(240,176,63,.15)" : "var(--panel2)",
+                            color: manualMode ? "var(--gold)" : "var(--dim)",
+                            border: `1px solid ${manualMode ? "var(--gold)" : "var(--line)"}`,
+                        } }, "يدوي — أنا أحدد"))),
+            manualMode && (React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 4 } }, ORDER.map((s) => {
+                const on = manualSyms.includes(s);
+                return (React.createElement("button", { key: s, className: "press", onClick: () => toggleManualSym(s), style: {
+                        aspectRatio: "1", borderRadius: 9, display: "grid", placeItems: "center", fontSize: 17,
+                        background: on ? "rgba(240,176,63,.16)" : "var(--panel2)",
+                        border: `1.5px solid ${on ? "var(--gold)" : "var(--line)"}`,
+                    } },
+                    React.createElement(Ico, { s: s })));
+            }))),
+            manualMode && manualSyms.length === 0 && (React.createElement("div", { style: { fontSize: 9.5, color: "var(--dim)", marginTop: 4 } }, "اختر رموزك الأساسية — وإلا أرجع للتلقائي")),
+            manualMode && manualSyms.length > 0 && (React.createElement("div", { style: { fontSize: 9.5, color: "var(--gold)", marginTop: 5 } },
+                "📌 ثبّتّ ",
+                manualSyms.length,
+                " أساسية",
+                coverK > manualSyms.length
+                    ? React.createElement(React.Fragment, null,
+                        " — والنظام يكمّل ",
+                        React.createElement("b", { className: "mono" }, coverK - manualSyms.length),
+                        " تلقائياً (الإجمالي ",
+                        coverK,
+                        ")")
+                    : React.createElement(React.Fragment, null, " — هي كامل التغطية")))),
+        React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "تركيبة التغطية — صغير (×٥) / كبير (×١٠-٤٥)"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 5 } }, [
+                { v: "free", t: "حر", d: "أفضل التوقعات" },
+                { v: "bigs", t: "كبار فقط", d: "🦀🥩🐟🍗 بعددك" },
+                { v: "2x2", t: "٢ص + ٢ك", d: "أفضل ٢ من كل" },
+                { v: "3x3", t: "٣ص + ٣ك", d: "أفضل ٣ من كل" },
+            ].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setCompMode(o.v), style: {
+                    padding: "8px 3px", borderRadius: 9, fontSize: 10, fontWeight: 800,
+                    background: compMode === o.v ? "rgba(240,176,63,.14)" : "var(--panel2)",
+                    color: compMode === o.v ? "var(--gold)" : "var(--dim)",
+                    border: `1.5px solid ${compMode === o.v ? "var(--gold)" : "var(--line)"}`,
+                } },
+                o.t,
+                React.createElement("div", { style: { fontSize: 7.5, fontWeight: 400, marginTop: 2, opacity: .8 } }, o.d))))),
+            compMode === "bigs" && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } }, "🔒 الاختيار الآلي محصور بالكبار — العدد من \"كم رمز\" (أقصى ٤).")),
+            (compMode === "2x2" || compMode === "3x3") && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } },
+                "🔒 التركيبة تتجاوز \"كم رمز\" — الإجمالي ",
+                compMode === "2x2" ? "٤" : "٦",
+                " رموز."))),
+        React.createElement("div", null,
+            React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "قيود إلزامية — تُثبَّت فوق الاختيار الآلي (تقدر تجمع أكثر من واحد)"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 } },
+                React.createElement("button", { className: "press", onClick: () => setStratRepeat((v) => !v), style: {
+                        padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
+                        background: stratRepeat ? "rgba(0,225,154,.14)" : "var(--panel2)",
+                        color: stratRepeat ? "var(--up)" : "var(--dim)",
+                        border: `1.5px solid ${stratRepeat ? "var(--up)" : "var(--line)"}`,
+                    } },
+                    "🔁 تكرار الأخير",
+                    React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "آخر رمز يُثبَّت غصباً")),
+                React.createElement("button", { className: "press", onClick: () => setStratOpp((v) => !v), style: {
+                        padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
+                        background: stratOpp ? "rgba(67,198,255,.13)" : "var(--panel2)",
+                        color: stratOpp ? "var(--sky)" : "var(--dim)",
+                        border: `1.5px solid ${stratOpp ? "var(--sky)" : "var(--line)"}`,
+                    } },
+                    "↔️ المقابل",
+                    React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "كل آلي يجي معه مقابله")),
+                React.createElement("button", { className: "press", onClick: () => setStratFam((v) => !v), style: {
+                        padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
+                        background: stratFam ? "rgba(180,120,255,.13)" : "var(--panel2)",
+                        color: stratFam ? "var(--vio)" : "var(--dim)",
+                        border: `1.5px solid ${stratFam ? "var(--vio)" : "var(--line)"}`,
+                    } },
+                    "👪 العائلة",
+                    React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "كل آلي يجي مع عائلته"))),
+            strat && (React.createElement("div", { style: { fontSize: 9, color: "var(--dim)", marginTop: 5 } }, "المقابلات: 🍅↔🦀 · 🥕↔🥩 · 🌽↔🐟 · 🥬↔🍗 — العائلات: 🍅(🦀🥩) 🥕(🥩🐟) 🌽(🐟🦀) 🥬(🍗🦀)"))),
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+            React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الرهان الأساسي"),
+            React.createElement("div", { style: { display: "flex", gap: 5, alignItems: "center" } }, [100, 1000, 10000, 50000].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setBase(v), style: {
+                    padding: "4px 8px", borderRadius: 7, fontSize: 10.5, fontWeight: 700,
+                    background: base === v ? "var(--up)" : "var(--panel2)",
+                    color: base === v ? "#06231A" : "var(--tx2)",
+                    border: `1px solid ${base === v ? "var(--up)" : "var(--line)"}`,
+                } }, fmt0(v)))))),
+        React.createElement("button", { className: "press", onClick: () => { setStepMode((v) => { const nv = !v; if (nv) {
+                setUniMode(false);
+                setMnvMode(false);
+            } return nv; }); }, style: {
+                width: "100%", padding: "9px 11px", borderRadius: 10,
+                background: stepMode ? "rgba(240,176,63,.12)" : "var(--panel2)",
+                border: `1.5px solid ${stepMode ? "var(--gold)" : "var(--line)"}`,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+            } },
+            React.createElement("span", { style: { textAlign: "right" } },
+                React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: stepMode ? "var(--gold)" : "var(--tx2)" } }, "مضاعفات الأساسي فقط"),
+                React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } },
+                    "الرهان يقفز بمضاعفات (",
+                    fmt(base),
+                    " → ",
+                    fmt(base * 2),
+                    " → ",
+                    fmt(base * 3),
+                    ") — التركيز على ربح الصغير والكبير مكسب إضافي")),
+            React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: stepMode ? "var(--gold)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: stepMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
+        React.createElement("button", { className: "press", onClick: () => { setUniMode((v) => { const nv = !v; if (nv) {
+                setStepMode(false);
+                setMnvMode(false);
+            } return nv; }); }, style: {
+                width: "100%", padding: "9px 11px", borderRadius: 10,
+                background: uniMode ? "rgba(0,225,154,.1)" : "var(--panel2)",
+                border: `1.5px solid ${uniMode ? "var(--up)" : "var(--line)"}`,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+            } },
+            React.createElement("span", { style: { textAlign: "right" } },
+                React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: uniMode ? "var(--up)" : "var(--tx2)" } }, "رهان موحّد للكل"),
+                React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } }, "نفس المبلغ على الكبير والصغير — أبسط وأسرع، والكبير لو ضرب يعوّض بقوة")),
+            React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: uniMode ? "var(--up)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: uniMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
+        React.createElement("button", { className: "press", onClick: () => { setMnvMode((v) => { const nv = !v; if (nv) {
+                setStepMode(false);
+                setUniMode(false);
+            } return nv; }); }, style: {
+                width: "100%", padding: "9px 11px", borderRadius: 10,
+                background: mnvMode ? "rgba(255,77,94,.1)" : "var(--panel2)",
+                border: `1.5px solid ${mnvMode ? "var(--dn)" : "var(--line)"}`,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+            } },
+            React.createElement("span", { style: { textAlign: "right" } },
+                React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: mnvMode ? "var(--dn)" : "var(--tx2)" } }, "🔥 نمط المراوغة — مخاطرة قوية"),
+                React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } }, "بعد الجحفلة: تعويض + دبل الدبل، وكل خسارة تضاعف الهدف أُضعافاً — مع معزّز يرفع الرهان لما النسبة المتوقعة عالية")),
+            React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: mnvMode ? "var(--dn)" : "var(--line2)", display: "block", flexShrink: 0 } },
+                React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: mnvMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
+        mnvMode && (React.createElement("div", { style: { marginTop: -4 } },
+            React.createElement("button", { className: "press", onClick: () => setMnvTurbo((v) => !v), style: {
+                    width: "100%", padding: "7px 11px", borderRadius: 9,
+                    background: mnvTurbo ? "rgba(255,77,94,.14)" : "var(--panel2)",
+                    border: `1px solid ${mnvTurbo ? "var(--dn)" : "var(--line)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                } },
+                React.createElement("span", { style: { fontSize: 10.5, fontWeight: 800, color: mnvTurbo ? "var(--dn)" : "var(--dim)" } }, "⚡ قوي من البداية — الجولة الأولى مضاعفة أصلاً"),
+                React.createElement("span", { className: "mono", style: { fontSize: 9.5, fontWeight: 800, color: mnvTurbo ? "var(--dn)" : "var(--dim)" } }, mnvTurbo ? "ON" : "OFF")),
+            React.createElement("div", { style: { fontSize: 8.5, color: "var(--dn)", marginTop: 5 } }, "⚠️ نمط شرس — الرهانات تنفجر بسرعة مع الجحفلات المتتالية. فعّل وقف الخسارة وراقب حاسبة الصمود."))),
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+            React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الربح المستهدف / دورة"),
+            React.createElement("input", { type: "number", value: profit, onChange: (e) => setProfit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
+        React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+            React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "سقف الرهان · ٠ = بدون"),
+            React.createElement("input", { type: "number", value: limit, onChange: (e) => setLimit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
+            React.createElement("div", null,
+                React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "هدف الجلسة — أوقفك عنده"),
+                React.createElement("div", { style: { display: "flex", gap: 4 } }, [{ v: 0, t: "بدون" }, { v: 50, t: "+٥٠٪" }, { v: 100, t: "دبل" }, { v: 200, t: "×٣" }].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setGoalPct(o.v), style: {
+                        flex: 1, padding: "6px 0", borderRadius: 8, fontSize: 10, fontWeight: 800,
+                        background: goalPct === o.v ? "rgba(0,225,154,.15)" : "var(--panel2)",
+                        color: goalPct === o.v ? "var(--up)" : "var(--dim)",
+                        border: `1px solid ${goalPct === o.v ? "var(--up)" : "var(--line)"}`,
+                    } }, o.t))))),
+            React.createElement("div", null,
+                React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "وقف الخسارة"),
+                React.createElement("div", { style: { display: "flex", gap: 4 } }, [{ v: 0, t: "بدون" }, { v: 25, t: "٢٥٪" }, { v: 50, t: "٥٠٪" }].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setStopPct(o.v), style: {
+                        flex: 1, padding: "6px 0", borderRadius: 8, fontSize: 10, fontWeight: 800,
+                        background: stopPct === o.v ? "rgba(255,77,94,.12)" : "var(--panel2)",
+                        color: stopPct === o.v ? "var(--dn)" : "var(--dim)",
+                        border: `1px solid ${stopPct === o.v ? "var(--dn)" : "var(--line)"}`,
+                    } }, o.t)))))),
+        React.createElement("div", { style: { background: "var(--panel2)", border: "1px dashed var(--line2)", borderRadius: 11, padding: 11 } },
+            React.createElement("div", { style: { fontSize: 11, fontWeight: 800, color: "var(--gold)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 } },
+                React.createElement(Brain, { size: 12 }),
+                " الحسبة الذكية"),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, fontSize: 10.5 } },
+                React.createElement("div", { style: { color: "var(--tx2)" } },
+                    "يتحمل رصيدك ",
+                    React.createElement("b", { className: "mono", style: { color: "var(--tx)" } }, session.ladder.depth),
+                    " خسائر متتالية"),
+                React.createElement("div", { style: { color: "var(--tx2)" } },
+                    "احتمال النجاة في ",
+                    rounds,
+                    " جولة: ",
+                    React.createElement("b", { className: "mono", style: { color: session.survive >= .9 ? "var(--up)" : session.survive >= .7 ? "var(--gold)" : "var(--dn)" } },
+                        Math.round(session.survive * 100),
+                        "%")),
+                React.createElement("div", { style: { color: "var(--tx2)" } },
+                    "هامش ربح التوزيعة: ",
+                    React.createElement("b", { className: "mono", style: { color: session.margin >= 20 ? "var(--up)" : "var(--gold)" } },
+                        session.margin.toFixed(0),
+                        "%")),
+                React.createElement("div", { style: { color: "var(--tx2)" } },
+                    "احتمال خسارة الجولة: ",
+                    React.createElement("b", { className: "mono", style: { color: "var(--tx)" } },
+                        Math.round(session.q * 100),
+                        "%"))),
+            session.ladder.rungs.length > 0 && (React.createElement("div", { className: "mono", style: { marginTop: 8, fontSize: 9, color: "var(--dim)", direction: "ltr", textAlign: "right" } },
+                "سلّم التعويض: ",
+                session.ladder.rungs.map((r) => fmt0(r)).join(" ← "))),
+            session.margin < 10 && (React.createElement("div", { style: { marginTop: 7, fontSize: 9.5, color: "var(--dn)" } },
+                "⚠️ تغطية ",
+                session.repOptions.length,
+                " رموز تترك هامشاً ضئيلاً — قلّل الرموز أو ركّز على الصغار.")),
+            React.createElement("button", { className: "press", onClick: () => setBase(session.suggested), style: {
+                    marginTop: 9, width: "100%", padding: "8px 0", borderRadius: 9, fontSize: 11, fontWeight: 800,
+                    background: "rgba(0,225,154,.12)", color: "var(--up)", border: "1px solid rgba(0,225,154,.35)",
+                } },
+                "✦ اقتراح رياضي: رهان أساسي ",
+                React.createElement("span", { className: "mono" }, fmt0(session.suggested)),
+                " (نجاة ≥٩٥٪) — طبّقه")),
+        React.createElement("button", { className: "press", onClick: findBestSettings, style: {
+                width: "100%", padding: "11px 0", borderRadius: 11, fontSize: 12, fontWeight: 800,
+                background: "linear-gradient(135deg, rgba(0,225,154,.16), rgba(67,198,255,.14))",
+                color: "var(--up)", border: "1.5px solid rgba(0,225,154,.45)",
+            } }, "✨ أفضل إعدادات من شريطك — حلّل وطبّق"),
+        bestMsg && (React.createElement("div", { style: { fontSize: 10, lineHeight: 1.9, color: bestMsg.err ? "var(--dn)" : "var(--up)", background: "var(--panel2)", border: "1px dashed var(--line2)", borderRadius: 9, padding: "7px 10px" } }, bestMsg.err ? bestMsg.err : (React.createElement(React.Fragment, null,
+            "طبّقت الأفضل: تغطية ",
+            React.createElement("b", { className: "mono" }, bestMsg.k),
+            " · ",
+            bestMsg.comp === "2x2" ? "٢ص+٢ك" : "حر",
+            " · ",
+            bestMsg.uni ? "موحّد" : "متوازن",
+            " — على شريطك: فوز ",
+            React.createElement("b", { className: "mono" },
+                bestMsg.su.winPct,
+                "%"),
+            " · صافي ",
+            React.createElement("b", { className: "mono", style: { direction: "ltr" } },
+                bestMsg.su.equity >= 0 ? "+" : "",
+                fmt(bestMsg.su.equity))))))));
+    const knzBodies = {
+        stats: (React.createElement(React.Fragment, null,
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 } },
+                React.createElement("div", { style: { background: "rgba(240,176,63,.07)", border: "1px solid rgba(240,176,63,.35)", borderRadius: 11, padding: "9px 11px" } },
+                    React.createElement("div", { style: { fontSize: 9, color: "var(--dim)" } },
+                        "💉 المضخوخ الكلي ",
+                        React.createElement("span", { style: { fontSize: 7.5 } }, "(مع آخر ضربة)")),
+                    React.createElement("div", { className: "mono", style: { fontSize: 18, fontWeight: 800, color: "var(--gold)" } }, fmt(pumped))),
+                React.createElement("div", { style: { background: "var(--panel2)", border: `1px solid ${netBeforeLast >= 0 ? "rgba(0,225,154,.35)" : "rgba(255,77,94,.35)"}`, borderRadius: 11, padding: "9px 11px" } },
+                    React.createElement("div", { style: { fontSize: 9, color: "var(--dim)" } }, "الربح حتى قبل الأخيرة"),
+                    React.createElement("div", { className: "mono", style: { fontSize: 18, fontWeight: 800, direction: "ltr", textAlign: "right", color: netBeforeLast >= 0 ? "var(--up)" : "var(--dn)" } },
+                        netBeforeLast >= 0 ? "+" : "",
+                        fmt(netBeforeLast)))),
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: 9.5, color: "var(--tx2)" } },
+                React.createElement("span", null,
+                    "الصافي الآن: ",
+                    React.createElement("b", { className: "mono", style: { direction: "ltr", color: sim.equity >= 0 ? "var(--up)" : "var(--dn)" } },
+                        sim.equity >= 0 ? "+" : "",
+                        fmt(sim.equity))),
+                React.createElement("span", { className: "mono" },
+                    sim.perMove.filter((x) => x.bet).length,
+                    " رهان")))),
+        pad: (React.createElement(React.Fragment, null,
+            G.tagMode === "bonus" ? (React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5, marginBottom: 8 } }, [
+                { v: "plus", t: "＋ إضافية", c: "var(--up)", bg: "rgba(0,225,154,.12)" },
+                { v: "x", t: "✳ مضاعف", c: "var(--gold)", bg: "rgba(240,176,63,.12)" },
+                { v: "jp", t: "🎰 جاكبوت", c: "var(--vio)", bg: "rgba(180,120,255,.12)" },
+            ].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setEightArmed((cur) => (cur === o.v ? false : o.v)), style: {
+                    padding: "7px 3px", borderRadius: 8, fontSize: 9.5, fontWeight: 800,
+                    background: eightArmed === o.v ? o.bg : "var(--panel2)",
+                    color: eightArmed === o.v ? o.c : "var(--dim)",
+                    border: `1.5px solid ${eightArmed === o.v ? o.c : "var(--line)"}`,
+                } }, o.t))))) : (React.createElement("button", { className: "press", onClick: () => setEightArmed((v) => !v), style: {
+                    width: "100%", marginBottom: 8, padding: "8px 11px", borderRadius: 10,
+                    background: eightArmed ? "rgba(240,176,63,.1)" : "var(--panel2)",
+                    border: `1px solid ${eightArmed ? "var(--gold)" : "var(--line)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                } },
+                React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: eightArmed ? "var(--gold)" : "var(--tx2)" } }, "⚡ القادمة عليها الـ ٨"),
+                React.createElement("span", { className: "mono", style: { fontSize: 9.5, fontWeight: 800, color: eightArmed ? "var(--gold)" : "var(--dim)" } }, eightArmed ? "ON" : "OFF"))),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 8 } }, ORDER.map((sy) => (React.createElement("button", { key: sy, className: "press", onClick: () => logHit(sy), style: {
+                    aspectRatio: "1", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+                    background: SYMBOLS[sy].size === "big" ? "linear-gradient(180deg,#10161D,#0C1116)" : "var(--panel2)",
+                    border: `1px solid ${eightArmed ? "rgba(240,176,63,.4)" : "var(--line)"}`,
+                } },
+                React.createElement("span", { style: { fontSize: 33 } },
+                    React.createElement(Ico, { s: sy })),
+                React.createElement("span", { className: "mono", style: { fontSize: 7.5, color: "rgba(240,176,63,.6)", fontWeight: 700 } },
+                    "×",
+                    SYMBOLS[sy].mult))))),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } },
+                React.createElement("button", { className: "press", onClick: undo, disabled: !moves.length, style: { padding: "9px 0", borderRadius: 10, background: "var(--panel2)", border: "1px solid var(--line)", fontSize: 11, fontWeight: 800, opacity: moves.length ? 1 : .4, color: "var(--tx)" } }, "↩ تراجع"),
+                React.createElement("button", { className: "press", onClick: resetAll, disabled: !moves.length, style: { padding: "9px 0", borderRadius: 10, background: "rgba(255,77,94,.07)", border: "1px solid rgba(255,77,94,.28)", fontSize: 11, fontWeight: 800, opacity: moves.length ? 1 : .4, color: "var(--dn)" } }, "🗑 مسح")))),
+        strip: (React.createElement(React.Fragment, null,
+            React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8, fontSize: 9, color: "var(--tx2)", marginBottom: 6 } },
+                React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 3 } },
+                    React.createElement(Star, { size: 9, color: "var(--gold)", fill: "var(--gold)" }),
+                    "أول"),
+                React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 3 } },
+                    React.createElement(Star, { size: 9, color: "var(--sky)", fill: "var(--sky)" }),
+                    "ثاني"),
+                React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 3 } },
+                    React.createElement(Star, { size: 9, color: "var(--up)", fill: "var(--up)" }),
+                    "ثالث")),
+            React.createElement("div", { style: { overflowX: "auto", paddingBottom: 4, direction: "ltr" } },
+                React.createElement("div", { style: { display: "flex", gap: 5, flexDirection: "row-reverse", justifyContent: "flex-end", width: "max-content" } }, moves.length === 0
+                    ? React.createElement("span", { style: { fontSize: 11, color: "var(--dim)", padding: "6px 0" } }, "لا توجد ضربات…")
+                    : moves.slice(-40).map((m, i) => {
+                        const ri = Math.max(0, moves.length - 40) + i;
+                        const rk = rankFlags[ri];
+                        const run = streaks[ri];
+                        return (React.createElement("div", { key: m.ts + "" + i, style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 } },
+                            React.createElement("div", { style: { position: "relative", width: 44, height: 44, borderRadius: 11, display: "grid", placeItems: "center", fontSize: 33,
+                                    background: m.eight ? "rgba(240,176,63,.12)" : "var(--panel)",
+                                    border: `1px solid ${m.eight ? "var(--gold)" : "var(--line)"}` } },
+                                React.createElement(Ico, { s: m.symbol }),
+                                rk === 1 && React.createElement(Star, { size: 12, color: "var(--gold)", fill: "var(--gold)", style: { position: "absolute", top: -4, left: -4 } }),
+                                rk === 2 && React.createElement(Star, { size: 12, color: "var(--sky)", fill: "var(--sky)", style: { position: "absolute", top: -4, left: -4 } }),
+                                rk === 3 && React.createElement(Star, { size: 12, color: "var(--up)", fill: "var(--up)", style: { position: "absolute", top: -4, left: -4 } }),
+                                m.eight && React.createElement("span", { className: "mono", style: { position: "absolute", bottom: -3, right: -3, width: 14, height: 14, borderRadius: 99, background: "var(--gold)", color: "#221600", fontSize: 8.5, fontWeight: 800, display: "grid", placeItems: "center" } }, tagLabel(m.eight))),
+                            run === 1
+                                ? React.createElement("span", { className: "mono", style: { fontSize: 8.5, fontWeight: 800, width: 15, height: 15, borderRadius: 4, background: "rgba(255,77,94,.14)", border: "1px solid var(--dn)", color: "var(--dn)", display: "grid", placeItems: "center" } }, "1")
+                                : React.createElement("span", { className: "mono", style: { fontSize: 9, fontWeight: 700, color: "var(--dim)" } }, run)));
+                    }))))),
+        trend: (winTrend.length >= 2 ? (React.createElement(React.Fragment, null,
+            React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 2, height: 42, direction: "ltr" } }, winTrend.slice(-30).map((w, i) => (React.createElement("div", { key: i, style: { flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+                React.createElement("div", { style: { width: "100%", borderRadius: 1.5, height: w ? "100%" : "36%",
+                        background: w === 1 ? "var(--gold)" : w === 2 ? "var(--sky)" : w === 3 ? "var(--up)" : w === 4 ? "var(--vio)" : "rgba(255,77,94,.6)" } }))))))) : React.createElement("div", { style: { fontSize: 10.5, color: "var(--dim)", textAlign: "center", padding: "8px 0" } }, "سجّل ضربات ليظهر الترند")),
+        fore: (React.createElement(React.Fragment, null, prediction && cov && betPlan ? (React.createElement(React.Fragment, null,
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 11, marginBottom: 9 } },
+                React.createElement("span", { style: { fontSize: 40 } },
+                    React.createElement(Ico, { s: prediction[0].symbol })),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("div", { style: { fontSize: 15, fontWeight: 800 } },
+                        SYMBOLS[prediction[0].symbol].ar,
+                        " ",
+                        React.createElement("span", { className: "mono", style: { color: "var(--up)", fontSize: 13 } },
+                            prediction[0].conf.toFixed(0),
+                            "%")),
+                    React.createElement("div", { style: { fontSize: 9.5, color: "var(--tx2)", display: "flex", gap: 8, marginTop: 2 } },
+                        prediction[1] && React.createElement("span", null,
+                            React.createElement(Star, { size: 9, color: "var(--sky)", fill: "var(--sky)" }),
+                            " ",
+                            SYMBOLS[prediction[1].symbol].ar,
+                            " ",
+                            prediction[1].conf.toFixed(0),
+                            "%"),
+                        prediction[2] && React.createElement("span", null,
+                            React.createElement(Star, { size: 9, color: "var(--up)", fill: "var(--up)" }),
+                            " ",
+                            SYMBOLS[prediction[2].symbol].ar,
+                            " ",
+                            prediction[2].conf.toFixed(0),
+                            "%"))),
+                betPlan.skip
+                    ? React.createElement("span", { className: "chip", style: { background: "rgba(140,150,170,.1)", color: "var(--dim)" } }, "تخطَّ")
+                    : betPlan.confident
+                        ? React.createElement("span", { className: "chip", style: { background: "rgba(0,225,154,.12)", color: "var(--up)" } }, "قوية")
+                        : React.createElement("span", { className: "chip", style: { background: "rgba(240,176,63,.12)", color: "var(--gold)" } }, "متوسطة")),
+            React.createElement("div", { style: { display: "grid", gap: 5 } }, betPlan.rows.map((r, i) => (React.createElement("div", { key: r.sym + i, style: { display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 10 } },
+                React.createElement("span", { style: { fontSize: 24 } },
+                    React.createElement(Ico, { s: r.sym })),
+                React.createElement("div", { style: { flex: 1 } },
+                    React.createElement("div", { style: { fontSize: 11.5, fontWeight: 800 } }, SYMBOLS[r.sym].ar),
+                    React.createElement("div", { className: "mono", style: { fontSize: 8.5, color: "var(--dim)" } },
+                        "×",
+                        r.mult,
+                        " → ",
+                        fmt(r.win))),
+                React.createElement("span", { className: "mono", style: { fontSize: 15.5, fontWeight: 800, color: "var(--gold)", direction: "ltr" } }, fmt(r.stake)))))),
+            React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10, color: "var(--tx2)" } },
+                React.createElement("span", null,
+                    "مخاطرة ",
+                    React.createElement("b", { className: "mono", style: { color: "var(--tx)" } }, fmt(betPlan.cost))),
+                sim.lossRun > 0
+                    ? React.createElement("span", { style: { color: "var(--dn)" } },
+                        "تعويض ",
+                        fmt(sim.carry))
+                    : React.createElement("span", { style: { color: "var(--up)" } },
+                        "هدف +",
+                        fmt(betPlan.desiredProfit))))) : (React.createElement("div", { style: { textAlign: "center", color: "var(--dim)", fontSize: 11.5, padding: "14px 0" } }, "سجّل أول ضربة يبدأ التوقع")))),
+        set: settingsPanel,
+        tools: (React.createElement(React.Fragment, null,
+            analysis && (React.createElement(React.Fragment, null,
+                React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 } }, analysis.notes.map((a, i) => (React.createElement("span", { key: i, className: "chip", style: { background: "var(--panel2)", border: "1px solid var(--line)", color: "var(--tx2)", fontWeight: 400 } }, a)))),
+                analysis.verdict && (React.createElement("div", { style: { marginBottom: 9, padding: "7px 10px", borderRadius: 9, background: "rgba(67,198,255,.08)", border: "1px solid rgba(67,198,255,.2)", fontSize: 11.5, fontWeight: 800 } },
+                    "التوصية: ",
+                    React.createElement(Ico, { s: analysis.verdict.p1.symbol }),
+                    " ",
+                    SYMBOLS[analysis.verdict.p1.symbol].ar,
+                    " ",
+                    analysis.verdict.p1.conf.toFixed(0),
+                    "%",
+                    analysis.verdict.p2 && React.createElement(React.Fragment, null,
+                        " ثم ",
+                        React.createElement(Ico, { s: analysis.verdict.p2.symbol }),
+                        " ",
+                        SYMBOLS[analysis.verdict.p2.symbol].ar,
+                        " ",
+                        analysis.verdict.p2.conf.toFixed(0),
+                        "%"))))),
+            sim.equitySeries.length >= 2 && (React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 9, marginBottom: 10, padding: "8px 10px", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 10 } },
+                React.createElement(Wallet, { size: 13, color: sim.equity >= 0 ? "var(--up)" : "var(--dn)" }),
+                React.createElement("span", { style: { fontSize: 10, color: "var(--tx2)" } }, "محفظة الجلسة"),
+                React.createElement("span", { className: "mono", style: { fontSize: 13, fontWeight: 800, direction: "ltr", color: sim.equity >= 0 ? "var(--up)" : "var(--dn)" } },
+                    sim.equity >= 0 ? "+" : "",
+                    fmt(sim.equity)),
+                React.createElement("svg", { width: "70", height: "20", viewBox: "0 0 70 20", style: { marginRight: "auto", direction: "ltr" } },
+                    React.createElement("path", { d: sparkPath(sim.equitySeries.slice(-30), 70, 20), fill: "none", stroke: sim.equity >= 0 ? "var(--up)" : "var(--dn)", strokeWidth: "1.5", strokeLinejoin: "round" })))),
+            React.createElement("button", { className: "press", onClick: saveSession, disabled: !moves.length, style: {
+                    width: "100%", padding: "12px 0", borderRadius: 12,
+                    background: "rgba(240,176,63,.1)", border: "1.5px solid rgba(240,176,63,.45)",
+                    fontSize: 12.5, fontWeight: 800, opacity: moves.length ? 1 : .4, color: "var(--gold)",
+                } },
+                "💾 حفظ الجلسة (",
+                sessions.length,
+                " محفوظة)"))),
+    };
     return (React.createElement("div", { dir: "rtl", className: "term" },
         React.createElement("style", null, `
         @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
@@ -1377,246 +2032,7 @@ function App() {
                         React.createElement("b", { style: { color: "var(--up)" } }, MODEL_AR[sim.hotModel.k])) : "محطة تداول التوقعات")),
                 React.createElement("button", { className: "press", onClick: () => setShowSettings((v) => !v), style: { width: 35, height: 35, borderRadius: 10, background: "var(--panel)", border: "1px solid var(--line)", display: "grid", placeItems: "center" } },
                     React.createElement(Settings, { size: 15, color: "var(--tx2)" }))),
-            showSettings && (React.createElement("div", { className: "panel", style: { padding: 13, marginBottom: 12, display: "grid", gap: 12 } },
-                React.createElement("div", { style: { fontSize: 12.5, fontWeight: 800, color: "var(--up)", display: "flex", alignItems: "center", gap: 6 } },
-                    React.createElement(Wallet, { size: 13 }),
-                    " خطة الجلسة"),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "رصيد الكونز"),
-                        React.createElement("input", { type: "number", value: bankroll, onChange: (e) => setBankroll(Math.max(0, +e.target.value)), className: "mono", style: { width: "100%", background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "7px 9px", color: "var(--gold)", fontSize: 13, fontWeight: 700, direction: "ltr", textAlign: "right" } })),
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "عدد الجولات المخططة"),
-                        React.createElement("div", { style: { display: "flex", gap: 4 } }, [10, 20, 30, 50].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setRounds(v), style: {
-                                flex: 1, padding: "7px 0", borderRadius: 8, fontSize: 11.5, fontWeight: 700,
-                                background: rounds === v ? "var(--up)" : "var(--panel2)",
-                                color: rounds === v ? "#06231A" : "var(--tx2)",
-                                border: `1px solid ${rounds === v ? "var(--up)" : "var(--line)"}`,
-                            } }, v)))))),
-                React.createElement("div", null,
-                    React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "كم رمز تراهن عليه كل جولة؟ (الإجمالي)"),
-                    React.createElement("div", { style: { display: "flex", gap: 4 } }, [1, 2, 3, 4, 5, 6].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setCoverK(v), style: {
-                            flex: 1, padding: "7px 0", borderRadius: 8, fontSize: 12, fontWeight: 800,
-                            background: coverK === v ? "var(--up)" : "var(--panel2)",
-                            color: coverK === v ? "#06231A" : "var(--tx2)",
-                            border: `1px solid ${coverK === v ? "var(--up)" : "var(--line)"}`,
-                        } }, v))))),
-                React.createElement("div", null,
-                    React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 } },
-                        React.createElement("span", { style: { fontSize: 10.5, color: "var(--tx2)" } }, "اختيار الرموز"),
-                        React.createElement("div", { style: { display: "flex", gap: 4 } },
-                            React.createElement("button", { className: "press", onClick: () => setManualMode(false), style: {
-                                    padding: "3px 10px", borderRadius: 7, fontSize: 10, fontWeight: 800,
-                                    background: !manualMode ? "rgba(0,225,154,.15)" : "var(--panel2)",
-                                    color: !manualMode ? "var(--up)" : "var(--dim)",
-                                    border: `1px solid ${!manualMode ? "var(--up)" : "var(--line)"}`,
-                                } }, "تلقائي — المحرك يختار"),
-                            React.createElement("button", { className: "press", onClick: () => setManualMode(true), style: {
-                                    padding: "3px 10px", borderRadius: 7, fontSize: 10, fontWeight: 800,
-                                    background: manualMode ? "rgba(240,176,63,.15)" : "var(--panel2)",
-                                    color: manualMode ? "var(--gold)" : "var(--dim)",
-                                    border: `1px solid ${manualMode ? "var(--gold)" : "var(--line)"}`,
-                                } }, "يدوي — أنا أحدد"))),
-                    manualMode && (React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 4 } }, ORDER.map((s) => {
-                        const on = manualSyms.includes(s);
-                        return (React.createElement("button", { key: s, className: "press", onClick: () => toggleManualSym(s), style: {
-                                aspectRatio: "1", borderRadius: 9, display: "grid", placeItems: "center", fontSize: 17,
-                                background: on ? "rgba(240,176,63,.16)" : "var(--panel2)",
-                                border: `1.5px solid ${on ? "var(--gold)" : "var(--line)"}`,
-                            } },
-                            React.createElement(Ico, { s: s })));
-                    }))),
-                    manualMode && manualSyms.length === 0 && (React.createElement("div", { style: { fontSize: 9.5, color: "var(--dim)", marginTop: 4 } }, "اختر رموزك الأساسية — وإلا أرجع للتلقائي")),
-                    manualMode && manualSyms.length > 0 && (React.createElement("div", { style: { fontSize: 9.5, color: "var(--gold)", marginTop: 5 } },
-                        "📌 ثبّتّ ",
-                        manualSyms.length,
-                        " أساسية",
-                        coverK > manualSyms.length
-                            ? React.createElement(React.Fragment, null,
-                                " — والنظام يكمّل ",
-                                React.createElement("b", { className: "mono" }, coverK - manualSyms.length),
-                                " تلقائياً (الإجمالي ",
-                                coverK,
-                                ")")
-                            : React.createElement(React.Fragment, null, " — هي كامل التغطية")))),
-                React.createElement("div", null,
-                    React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "تركيبة التغطية — صغير (×٥) / كبير (×١٠-٤٥)"),
-                    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 5 } }, [
-                        { v: "free", t: "حر", d: "أفضل التوقعات" },
-                        { v: "bigs", t: "كبار فقط", d: "🦀🥩🐟🍗 بعددك" },
-                        { v: "2x2", t: "٢ص + ٢ك", d: "أفضل ٢ من كل" },
-                        { v: "3x3", t: "٣ص + ٣ك", d: "أفضل ٣ من كل" },
-                    ].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setCompMode(o.v), style: {
-                            padding: "8px 3px", borderRadius: 9, fontSize: 10, fontWeight: 800,
-                            background: compMode === o.v ? "rgba(240,176,63,.14)" : "var(--panel2)",
-                            color: compMode === o.v ? "var(--gold)" : "var(--dim)",
-                            border: `1.5px solid ${compMode === o.v ? "var(--gold)" : "var(--line)"}`,
-                        } },
-                        o.t,
-                        React.createElement("div", { style: { fontSize: 7.5, fontWeight: 400, marginTop: 2, opacity: .8 } }, o.d))))),
-                    compMode === "bigs" && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } }, "🔒 الاختيار الآلي محصور بالكبار — العدد من \"كم رمز\" (أقصى ٤).")),
-                    (compMode === "2x2" || compMode === "3x3") && (React.createElement("div", { style: { fontSize: 9, color: "var(--gold)", marginTop: 5 } },
-                        "🔒 التركيبة تتجاوز \"كم رمز\" — الإجمالي ",
-                        compMode === "2x2" ? "٤" : "٦",
-                        " رموز."))),
-                React.createElement("div", null,
-                    React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 5 } }, "قيود إلزامية — تُثبَّت فوق الاختيار الآلي (تقدر تجمع أكثر من واحد)"),
-                    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 5 } },
-                        React.createElement("button", { className: "press", onClick: () => setStratRepeat((v) => !v), style: {
-                                padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
-                                background: stratRepeat ? "rgba(0,225,154,.14)" : "var(--panel2)",
-                                color: stratRepeat ? "var(--up)" : "var(--dim)",
-                                border: `1.5px solid ${stratRepeat ? "var(--up)" : "var(--line)"}`,
-                            } },
-                            "🔁 تكرار الأخير",
-                            React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "آخر رمز يُثبَّت غصباً")),
-                        React.createElement("button", { className: "press", onClick: () => setStratOpp((v) => !v), style: {
-                                padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
-                                background: stratOpp ? "rgba(67,198,255,.13)" : "var(--panel2)",
-                                color: stratOpp ? "var(--sky)" : "var(--dim)",
-                                border: `1.5px solid ${stratOpp ? "var(--sky)" : "var(--line)"}`,
-                            } },
-                            "↔️ المقابل",
-                            React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "كل آلي يجي معه مقابله")),
-                        React.createElement("button", { className: "press", onClick: () => setStratFam((v) => !v), style: {
-                                padding: "8px 4px", borderRadius: 9, fontSize: 10, fontWeight: 800,
-                                background: stratFam ? "rgba(180,120,255,.13)" : "var(--panel2)",
-                                color: stratFam ? "var(--vio)" : "var(--dim)",
-                                border: `1.5px solid ${stratFam ? "var(--vio)" : "var(--line)"}`,
-                            } },
-                            "👪 العائلة",
-                            React.createElement("div", { style: { fontSize: 8, fontWeight: 400, marginTop: 2, opacity: .8 } }, "كل آلي يجي مع عائلته"))),
-                    strat && (React.createElement("div", { style: { fontSize: 9, color: "var(--dim)", marginTop: 5 } }, "المقابلات: 🍅↔🦀 · 🥕↔🥩 · 🌽↔🐟 · 🥬↔🍗 — العائلات: 🍅(🦀🥩) 🥕(🥩🐟) 🌽(🐟🦀) 🥬(🍗🦀)"))),
-                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                    React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الرهان الأساسي"),
-                    React.createElement("div", { style: { display: "flex", gap: 5, alignItems: "center" } }, [100, 1000, 10000, 50000].map((v) => (React.createElement("button", { key: v, className: "press mono", onClick: () => setBase(v), style: {
-                            padding: "4px 8px", borderRadius: 7, fontSize: 10.5, fontWeight: 700,
-                            background: base === v ? "var(--up)" : "var(--panel2)",
-                            color: base === v ? "#06231A" : "var(--tx2)",
-                            border: `1px solid ${base === v ? "var(--up)" : "var(--line)"}`,
-                        } }, fmt0(v)))))),
-                React.createElement("button", { className: "press", onClick: () => { setStepMode((v) => { const nv = !v; if (nv) {
-                        setUniMode(false);
-                        setMnvMode(false);
-                    } return nv; }); }, style: {
-                        width: "100%", padding: "9px 11px", borderRadius: 10,
-                        background: stepMode ? "rgba(240,176,63,.12)" : "var(--panel2)",
-                        border: `1.5px solid ${stepMode ? "var(--gold)" : "var(--line)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                    } },
-                    React.createElement("span", { style: { textAlign: "right" } },
-                        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: stepMode ? "var(--gold)" : "var(--tx2)" } }, "مضاعفات الأساسي فقط"),
-                        React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } },
-                            "الرهان يقفز بمضاعفات (",
-                            fmt(base),
-                            " → ",
-                            fmt(base * 2),
-                            " → ",
-                            fmt(base * 3),
-                            ") — التركيز على ربح الصغير والكبير مكسب إضافي")),
-                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: stepMode ? "var(--gold)" : "var(--line2)", display: "block", flexShrink: 0 } },
-                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: stepMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
-                React.createElement("button", { className: "press", onClick: () => { setUniMode((v) => { const nv = !v; if (nv) {
-                        setStepMode(false);
-                        setMnvMode(false);
-                    } return nv; }); }, style: {
-                        width: "100%", padding: "9px 11px", borderRadius: 10,
-                        background: uniMode ? "rgba(0,225,154,.1)" : "var(--panel2)",
-                        border: `1.5px solid ${uniMode ? "var(--up)" : "var(--line)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                    } },
-                    React.createElement("span", { style: { textAlign: "right" } },
-                        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: uniMode ? "var(--up)" : "var(--tx2)" } }, "رهان موحّد للكل"),
-                        React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } }, "نفس المبلغ على الكبير والصغير — أبسط وأسرع، والكبير لو ضرب يعوّض بقوة")),
-                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: uniMode ? "var(--up)" : "var(--line2)", display: "block", flexShrink: 0 } },
-                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: uniMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
-                React.createElement("button", { className: "press", onClick: () => { setMnvMode((v) => { const nv = !v; if (nv) {
-                        setStepMode(false);
-                        setUniMode(false);
-                    } return nv; }); }, style: {
-                        width: "100%", padding: "9px 11px", borderRadius: 10,
-                        background: mnvMode ? "rgba(255,77,94,.1)" : "var(--panel2)",
-                        border: `1.5px solid ${mnvMode ? "var(--dn)" : "var(--line)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                    } },
-                    React.createElement("span", { style: { textAlign: "right" } },
-                        React.createElement("span", { style: { fontSize: 11.5, fontWeight: 800, color: mnvMode ? "var(--dn)" : "var(--tx2)" } }, "🔥 نمط المراوغة — مخاطرة قوية"),
-                        React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", marginTop: 1 } }, "بعد الجحفلة: تعويض + دبل الدبل، وكل خسارة تضاعف الهدف أُضعافاً — مع معزّز يرفع الرهان لما النسبة المتوقعة عالية")),
-                    React.createElement("span", { style: { width: 36, height: 20, borderRadius: 99, padding: 2.5, background: mnvMode ? "var(--dn)" : "var(--line2)", display: "block", flexShrink: 0 } },
-                        React.createElement("span", { style: { width: 15, height: 15, borderRadius: 99, background: "#fff", display: "block", transform: mnvMode ? "translateX(-16px)" : "none", transition: "transform .2s" } }))),
-                mnvMode && (React.createElement("div", { style: { marginTop: -4 } },
-                    React.createElement("button", { className: "press", onClick: () => setMnvTurbo((v) => !v), style: {
-                            width: "100%", padding: "7px 11px", borderRadius: 9,
-                            background: mnvTurbo ? "rgba(255,77,94,.14)" : "var(--panel2)",
-                            border: `1px solid ${mnvTurbo ? "var(--dn)" : "var(--line)"}`,
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                        } },
-                        React.createElement("span", { style: { fontSize: 10.5, fontWeight: 800, color: mnvTurbo ? "var(--dn)" : "var(--dim)" } }, "⚡ قوي من البداية — الجولة الأولى مضاعفة أصلاً"),
-                        React.createElement("span", { className: "mono", style: { fontSize: 9.5, fontWeight: 800, color: mnvTurbo ? "var(--dn)" : "var(--dim)" } }, mnvTurbo ? "ON" : "OFF")),
-                    React.createElement("div", { style: { fontSize: 8.5, color: "var(--dn)", marginTop: 5 } }, "⚠️ نمط شرس — الرهانات تنفجر بسرعة مع الجحفلات المتتالية. فعّل وقف الخسارة وراقب حاسبة الصمود."))),
-                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                    React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "الربح المستهدف / دورة"),
-                    React.createElement("input", { type: "number", value: profit, onChange: (e) => setProfit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
-                React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                    React.createElement("span", { style: { fontSize: 12, color: "var(--tx2)" } }, "سقف الرهان · ٠ = بدون"),
-                    React.createElement("input", { type: "number", value: limit, onChange: (e) => setLimit(Math.max(0, +e.target.value)), className: "mono", style: { width: 100, background: "var(--panel2)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", color: "var(--tx)", fontSize: 12, direction: "ltr", textAlign: "right" } })),
-                React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 } },
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "هدف الجلسة — أوقفك عنده"),
-                        React.createElement("div", { style: { display: "flex", gap: 4 } }, [{ v: 0, t: "بدون" }, { v: 50, t: "+٥٠٪" }, { v: 100, t: "دبل" }, { v: 200, t: "×٣" }].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setGoalPct(o.v), style: {
-                                flex: 1, padding: "6px 0", borderRadius: 8, fontSize: 10, fontWeight: 800,
-                                background: goalPct === o.v ? "rgba(0,225,154,.15)" : "var(--panel2)",
-                                color: goalPct === o.v ? "var(--up)" : "var(--dim)",
-                                border: `1px solid ${goalPct === o.v ? "var(--up)" : "var(--line)"}`,
-                            } }, o.t))))),
-                    React.createElement("div", null,
-                        React.createElement("div", { style: { fontSize: 10.5, color: "var(--tx2)", marginBottom: 4 } }, "وقف الخسارة"),
-                        React.createElement("div", { style: { display: "flex", gap: 4 } }, [{ v: 0, t: "بدون" }, { v: 25, t: "٢٥٪" }, { v: 50, t: "٥٠٪" }].map((o) => (React.createElement("button", { key: o.v, className: "press", onClick: () => setStopPct(o.v), style: {
-                                flex: 1, padding: "6px 0", borderRadius: 8, fontSize: 10, fontWeight: 800,
-                                background: stopPct === o.v ? "rgba(255,77,94,.12)" : "var(--panel2)",
-                                color: stopPct === o.v ? "var(--dn)" : "var(--dim)",
-                                border: `1px solid ${stopPct === o.v ? "var(--dn)" : "var(--line)"}`,
-                            } }, o.t)))))),
-                React.createElement("div", { style: { background: "var(--panel2)", border: "1px dashed var(--line2)", borderRadius: 11, padding: 11 } },
-                    React.createElement("div", { style: { fontSize: 11, fontWeight: 800, color: "var(--gold)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 } },
-                        React.createElement(Brain, { size: 12 }),
-                        " الحسبة الذكية"),
-                    React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, fontSize: 10.5 } },
-                        React.createElement("div", { style: { color: "var(--tx2)" } },
-                            "يتحمل رصيدك ",
-                            React.createElement("b", { className: "mono", style: { color: "var(--tx)" } }, session.ladder.depth),
-                            " خسائر متتالية"),
-                        React.createElement("div", { style: { color: "var(--tx2)" } },
-                            "احتمال النجاة في ",
-                            rounds,
-                            " جولة: ",
-                            React.createElement("b", { className: "mono", style: { color: session.survive >= .9 ? "var(--up)" : session.survive >= .7 ? "var(--gold)" : "var(--dn)" } },
-                                Math.round(session.survive * 100),
-                                "%")),
-                        React.createElement("div", { style: { color: "var(--tx2)" } },
-                            "هامش ربح التوزيعة: ",
-                            React.createElement("b", { className: "mono", style: { color: session.margin >= 20 ? "var(--up)" : "var(--gold)" } },
-                                session.margin.toFixed(0),
-                                "%")),
-                        React.createElement("div", { style: { color: "var(--tx2)" } },
-                            "احتمال خسارة الجولة: ",
-                            React.createElement("b", { className: "mono", style: { color: "var(--tx)" } },
-                                Math.round(session.q * 100),
-                                "%"))),
-                    session.ladder.rungs.length > 0 && (React.createElement("div", { className: "mono", style: { marginTop: 8, fontSize: 9, color: "var(--dim)", direction: "ltr", textAlign: "right" } },
-                        "سلّم التعويض: ",
-                        session.ladder.rungs.map((r) => fmt0(r)).join(" ← "))),
-                    session.margin < 10 && (React.createElement("div", { style: { marginTop: 7, fontSize: 9.5, color: "var(--dn)" } },
-                        "⚠️ تغطية ",
-                        session.repOptions.length,
-                        " رموز تترك هامشاً ضئيلاً — قلّل الرموز أو ركّز على الصغار.")),
-                    React.createElement("button", { className: "press", onClick: () => setBase(session.suggested), style: {
-                            marginTop: 9, width: "100%", padding: "8px 0", borderRadius: 9, fontSize: 11, fontWeight: 800,
-                            background: "rgba(0,225,154,.12)", color: "var(--up)", border: "1px solid rgba(0,225,154,.35)",
-                        } },
-                        "✦ اقتراح رياضي: رهان أساسي ",
-                        React.createElement("span", { className: "mono" }, fmt0(session.suggested)),
-                        " (نجاة ≥٩٥٪) — طبّقه")))),
+            showSettings && settingsPanel,
             tab === "play" && (React.createElement(React.Fragment, null,
                 session.goalHit && (React.createElement("div", { style: { padding: "10px 13px", borderRadius: 12, marginBottom: 10, background: "rgba(0,225,154,.12)", border: "1px solid var(--up)", fontSize: 12, fontWeight: 800, color: "var(--up)", textAlign: "center" } },
                     "🎯 حققت هدف الجلسة (+",
@@ -2017,6 +2433,24 @@ function App() {
                                 " ",
                                 tagLabel(m.eight))));
                     })))),
+            tab === "knz" && (React.createElement("div", { style: { paddingTop: 4 } },
+                knzOrder.map((id) => {
+                    if (id === "trend" && winTrend.length < 3)
+                        return null;
+                    const meta = {
+                        stats: ["💉", "الضخ والربح", null],
+                        pad: ["🎯", "سجّل الضربة", `${moves.length} ضربة`],
+                        strip: ["📼", "الشريط", moves.length ? `${moves.length}` : null],
+                        trend: ["📊", "ترند الجولات", `${winTrend.slice(-20).filter((x) => x).length}/${Math.min(winTrend.length, 20)}`],
+                        fore: ["🔮", "التوقع والكونز المطلوب", cov ? `تغطية ${cov.coverProb.toFixed(0)}%` : null],
+                        set: ["⚙️", "الإعدادات", null],
+                        tools: ["🧰", "الأدوات", null],
+                    }[id];
+                    if (!meta)
+                        return null;
+                    return React.createElement(Sec, { key: id, id: id, icon: meta[0], title: meta[1], badge: meta[2] }, knzBodies[id]);
+                }),
+                React.createElement("div", { style: { fontSize: 8.5, color: "var(--dim)", textAlign: "center", padding: "2px 0 6px" } }, "▲▼ لإعادة رصّ البطاقات · 📺 يطلّع البطاقة نافذة عائمة فوق كل شي — اضغطه على بطاقة ثانية تنضم لنفس النافذة. على الكمبيوتر (كروم): تفاعلية تعدّل منها فوق اللعبة · على الآيفون: عرض حي"))),
             tab === "motaim" && (React.createElement("section", { style: { paddingTop: 4 } },
                 React.createElement("div", { className: "panel", style: { padding: 14, marginBottom: 11, position: "relative", overflow: "hidden", borderColor: mtStats.net > 0 ? "rgba(0,225,154,.3)" : mtStats.net < 0 ? "rgba(255,77,94,.3)" : "rgba(240,176,63,.3)" } },
                     React.createElement("div", { style: { position: "absolute", inset: 0, background: "radial-gradient(300px 140px at 50% -30%, rgba(240,176,63,.08), transparent 70%)", pointerEvents: "none" } }),
@@ -2390,9 +2824,32 @@ function App() {
                         React.createElement("div", { style: { height: 6, borderRadius: 99, background: "var(--panel2)", overflow: "hidden" } },
                             React.createElement("div", { style: { height: "100%", width: `${report.acc}%`, borderRadius: 99, background: "linear-gradient(90deg,#0AA872,#00E19A)", transition: "width .6s" } }))),
                     React.createElement("div", { className: "panel", style: { padding: 13, display: "grid", gap: 7 } }, report.lines.map((l, i) => (React.createElement("div", { key: i, style: { fontSize: 12, lineHeight: 1.75, color: i === 0 ? "var(--tx)" : "var(--tx2)", fontWeight: i === 0 ? 800 : 400 } }, l))))))))),
+        pipDocWin && ReactDOM.createPortal(React.createElement("div", { style: { padding: 11 } },
+            React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 9 } },
+                React.createElement("span", { style: { fontSize: 13 } }, "🔮"),
+                React.createElement("span", { style: { fontSize: 12, fontWeight: 800, flex: 1 } },
+                    G.title,
+                    " — نافذة اللعب"),
+                React.createElement("span", { className: "mono", style: { fontSize: 9, color: "var(--dim)" } }, G.badge)),
+            pipSet.map((id) => {
+                const meta = { stats: ["💉", "الضخ والربح"], pad: ["🎯", "سجّل الضربة"], strip: ["📼", "الشريط"], trend: ["📊", "الترند"], fore: ["🔮", "التوقع والمطلوب"], set: ["⚙️", "الإعدادات"], tools: ["🧰", "الأدوات"] }[id] || ["🪟", id];
+                return (React.createElement("section", { key: id, className: "panel", style: { marginBottom: 9, padding: 11 } },
+                    React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } },
+                        React.createElement("span", { style: { fontSize: 12 } }, meta[0]),
+                        React.createElement("span", { style: { fontSize: 11, fontWeight: 800, flex: 1 } }, meta[1]),
+                        React.createElement("button", { className: "press", onClick: () => togglePipCard(id), style: { width: 21, height: 21, borderRadius: 6, fontSize: 10, display: "grid", placeItems: "center", background: "rgba(255,77,94,.1)", border: "1px solid rgba(255,77,94,.35)", color: "var(--dn)" } }, "✕")),
+                    knzBodies[id]));
+            })), pipDocWin.document.body),
+        toast && (React.createElement("div", { style: {
+                position: "fixed", bottom: 76, insetInline: 16, zIndex: 1200,
+                background: "rgba(20,26,34,.97)", border: "1px solid var(--line2)", borderRadius: 12,
+                padding: "10px 13px", fontSize: 11, color: "var(--tx)", textAlign: "center",
+                boxShadow: "0 10px 30px rgba(0,0,0,.5)",
+            } }, toast)),
         React.createElement("nav", { style: { position: "fixed", bottom: 0, insetInline: 0, background: "rgba(7,9,12,.94)", backdropFilter: "blur(12px)", borderTop: "1px solid var(--line)" } },
-            React.createElement("div", { style: { maxWidth: 432, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(5,1fr)" } }, [
+            React.createElement("div", { style: { maxWidth: 432, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(6,1fr)" } }, [
                 { id: "play", label: "التداول", icon: Target },
+                { id: "knz", label: "كنوز", icon: Coins },
                 { id: "motaim", label: "متيم", icon: Crown },
                 { id: "lab", label: "المختبر", icon: FlaskConical },
                 { id: "history", label: "السجل", icon: History },
@@ -2405,7 +2862,7 @@ function App() {
                         color: active ? "var(--up)" : "var(--dim)",
                     } },
                     React.createElement(Icon, { size: 18 }),
-                    React.createElement("span", { style: { fontSize: 9.5, fontWeight: 800 } }, t.label)));
+                    React.createElement("span", { style: { fontSize: 9, fontWeight: 800 } }, t.label)));
             })))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
