@@ -206,6 +206,7 @@
   const API = "https://cobalt-production-2ab7.up.railway.app";
   // ========================================
 
+  const STORE_KEY = "dl_history_v1";
   const $ = s => document.querySelector(s);
   const urlEl = $("#url");
   const goEl = $("#go");
@@ -219,8 +220,33 @@
     video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="16" rx="2"/><path d="M16 9l6-3v12l-6-3"/></svg>',
     audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>',
     save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
     trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
   };
+
+  // ---------- persistent store ----------
+  // each item: {id, kind, label, srcUrl, fileUrl, status, note, ts}
+  function loadItems() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function saveItems(items) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(items)); } catch {}
+  }
+  function addItem(item) {
+    const items = loadItems();
+    items.unshift(item);
+    saveItems(items);
+  }
+  function updateItem(id, patch) {
+    const items = loadItems();
+    const i = items.findIndex(x => x.id === id);
+    if (i >= 0) { Object.assign(items[i], patch); saveItems(items); }
+  }
+  function removeItem(id) {
+    saveItems(loadItems().filter(x => x.id !== id));
+  }
+  function clearItems() { saveItems([]); }
 
   function refreshEmpty() {
     const has = resultsEl.querySelectorAll(".dl-card").length > 0;
@@ -228,6 +254,67 @@
     clearAllBtn.classList.toggle("show", has);
   }
 
+  // ---------- render one card from a stored item ----------
+  function renderCard(item) {
+    const card = document.createElement("div");
+    card.className = "dl-card " + item.kind;
+    card.dataset.id = item.id;
+    card.innerHTML =
+      '<div class="dl-icon ' + item.kind + '">' + ICON[item.kind] + '</div>' +
+      '<div class="dl-body">' +
+        '<div class="dl-title">' + item.label + '</div>' +
+        '<div class="dl-sub">' + (item.note || '') + '</div>' +
+        '<div class="bar"><div class="fill"></div></div>' +
+      '</div>' +
+      '<div class="dl-actions">' +
+        '<a class="save-btn pending">' + ICON.save + '<span>انتظر</span></a>' +
+        '<button class="trash" title="حذف">' + ICON.trash + '</button>' +
+      '</div>';
+
+    const bar = card.querySelector(".bar");
+    const btn = card.querySelector(".save-btn");
+
+    if (item.status === "ready") {
+      bar.classList.add("done");
+      btn.className = "save-btn";
+      btn.setAttribute("href", item.fileUrl);
+      btn.setAttribute("target", "_blank");
+      btn.setAttribute("rel", "noopener");
+      btn.innerHTML = ICON.save + '<span>تحميل</span>';
+    } else if (item.status === "failed") {
+      bar.classList.add("failed");
+      btn.className = "save-btn pending";
+      btn.innerHTML = ICON.save + '<span>—</span>';
+    } else if (item.status === "expired") {
+      // link no longer valid: offer re-fetch
+      bar.classList.add("done");
+      btn.className = "save-btn";
+      btn.style.background = "linear-gradient(180deg,#4d8dff,#2f6fe0)";
+      btn.innerHTML = ICON.redo + '<span>إعادة</span>';
+      btn.addEventListener("click", (e) => { e.preventDefault(); refetch(item, card); });
+    }
+
+    card.querySelector(".trash").addEventListener("click", () => {
+      card.style.opacity = "0"; card.style.transform = "translateX(30px)";
+      card.style.transition = "all .25s";
+      removeItem(item.id);
+      setTimeout(() => { card.remove(); refreshEmpty(); }, 250);
+    });
+
+    // if a ready link is tapped, mark visually; links from cobalt expire, so if it 404s user can re-tap trash/redo
+    resultsEl.insertBefore(card, resultsEl.firstChild);
+    return card;
+  }
+
+  function renderAll() {
+    resultsEl.querySelectorAll(".dl-card").forEach(c => c.remove());
+    const items = loadItems();
+    // render oldest first so unshift/insertBefore keeps newest on top
+    for (let i = items.length - 1; i >= 0; i--) renderCard(items[i]);
+    refreshEmpty();
+  }
+
+  // ---------- quality + input helpers ----------
   $("#quality").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     $("#quality").querySelectorAll("button").forEach(x => x.classList.remove("on"));
@@ -245,6 +332,7 @@
   });
 
   clearAllBtn.addEventListener("click", () => {
+    clearItems();
     resultsEl.querySelectorAll(".dl-card").forEach(c => c.remove());
     refreshEmpty();
   });
@@ -256,32 +344,34 @@
   }
   function hideBanner() { banner.classList.remove("show"); }
 
-  function makeCard(kind, label, srcNote) {
-    const card = document.createElement("div");
-    card.className = "dl-card " + kind;
-    card.innerHTML =
-      '<div class="dl-icon ' + kind + '">' + ICON[kind] + '</div>' +
-      '<div class="dl-body">' +
-        '<div class="dl-title">' + label + '</div>' +
-        '<div class="dl-sub">' + (srcNote || 'جاري التحضير...') + '</div>' +
-        '<div class="bar"><div class="fill"></div></div>' +
-      '</div>' +
-      '<div class="dl-actions">' +
-        '<a class="save-btn pending">' + ICON.save + '<span>انتظر</span></a>' +
-        '<button class="trash" title="حذف">' + ICON.trash + '</button>' +
-      '</div>';
-    card.querySelector(".trash").addEventListener("click", () => {
-      card.style.opacity = "0"; card.style.transform = "translateX(30px)";
-      card.style.transition = "all .25s";
-      setTimeout(() => { card.remove(); refreshEmpty(); }, 250);
-    });
-    // newest on top
-    resultsEl.insertBefore(card, resultsEl.firstChild);
-    refreshEmpty();
-    return card;
+  // ---------- API ----------
+  async function fetchVideo(url) {
+    const body = { url, downloadMode: "auto", videoQuality: quality, filenameStyle: "pretty" };
+    const res = await fetch(API + "/", { method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    return res.json();
+  }
+  async function fetchAudio(url) {
+    const body = { url, downloadMode: "audio", audioFormat: "mp3", audioBitrate: "320", filenameStyle: "pretty" };
+    const res = await fetch(API + "/", { method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    return res.json();
+  }
+  function resolveUrl(data) {
+    if (!data) return { error: "لا يوجد رد" };
+    if (data.status === "tunnel" || data.status === "redirect") return { url: data.url };
+    if (data.status === "picker") return { picker: data.picker };
+    if (data.status === "error") return { error: (data.error && data.error.code) || "خطأ" };
+    if (data.status === "local-processing") {
+      const first = data.tunnel && data.tunnel[0];
+      return first ? { url: first } : { error: "معالجة محلية" };
+    }
+    return { error: "رد غير متوقّع" };
   }
 
-  function cardReady(card, fileUrl, note) {
+  function setCardReady(card, id, fileUrl, note) {
     card.querySelector(".bar").classList.add("done");
     card.querySelector(".dl-sub").textContent = note || "جاهز — اضغط تحميل";
     const btn = card.querySelector(".save-btn");
@@ -290,47 +380,29 @@
     btn.setAttribute("target", "_blank");
     btn.setAttribute("rel", "noopener");
     btn.innerHTML = ICON.save + '<span>تحميل</span>';
+    updateItem(id, { status: "ready", fileUrl, note });
   }
-
-  function cardFailed(card, msg) {
+  function setCardFailed(card, id, msg) {
     card.querySelector(".bar").classList.add("failed");
     card.querySelector(".dl-sub").textContent = msg || "تعذّر التحميل";
     const btn = card.querySelector(".save-btn");
     btn.className = "save-btn pending";
     btn.innerHTML = ICON.save + '<span>—</span>';
+    updateItem(id, { status: "failed", note: msg });
   }
 
-  // video request
-  async function fetchVideo(url) {
-    const body = { url, downloadMode: "auto", videoQuality: quality, filenameStyle: "pretty" };
-    const res = await fetch(API + "/", {
-      method: "POST",
-      headers: { "Accept": "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    return res.json();
-  }
-  // audio (mp3) request
-  async function fetchAudio(url) {
-    const body = { url, downloadMode: "audio", audioFormat: "mp3", audioBitrate: "320", filenameStyle: "pretty" };
-    const res = await fetch(API + "/", {
-      method: "POST",
-      headers: { "Accept": "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    return res.json();
-  }
-
-  function resolveUrl(data) {
-    if (!data) return { error: "لا يوجد رد" };
-    if (data.status === "tunnel" || data.status === "redirect") return { url: data.url };
-    if (data.status === "picker") return { picker: data.picker, audio: data.audio };
-    if (data.status === "error") return { error: (data.error && data.error.code) || "خطأ" };
-    if (data.status === "local-processing") {
-      const first = data.tunnel && data.tunnel[0];
-      return first ? { url: first } : { error: "معالجة محلية" };
-    }
-    return { error: "رد غير متوقّع" };
+  async function refetch(item, card) {
+    // re-run the request for an expired link
+    const btn = card.querySelector(".save-btn");
+    btn.className = "save-btn pending";
+    btn.innerHTML = ICON.save + '<span>...</span>';
+    card.querySelector(".bar").className = "bar";
+    try {
+      const data = item.kind === "audio" ? await fetchAudio(item.srcUrl) : await fetchVideo(item.srcUrl);
+      const r = resolveUrl(data);
+      if (r.url) setCardReady(card, item.id, r.url, "جاهز مجدداً");
+      else setCardFailed(card, item.id, "تعذّر: " + (r.error || ""));
+    } catch { setCardFailed(card, item.id, "تعذّر الاتصال بالسيرفر"); }
   }
 
   async function start() {
@@ -343,63 +415,53 @@
     goEl.disabled = true;
     goEl.textContent = "جاري المعالجة...";
 
-    // date/time label
-    const now = new Date();
-    const stamp = now.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+    const stamp = new Date().toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+    const vId = "v" + Date.now();
+    const aId = "a" + (Date.now() + 1);
 
-    const vCard = makeCard("video", "الفيديو", "جاري التحضير · " + stamp);
-    const aCard = makeCard("audio", "الصوت · MP3", "جاري التحضير · " + stamp);
+    const vItem = { id: vId, kind: "video", label: "الفيديو", srcUrl: url, fileUrl: "", status: "pending", note: "جاري التحضير · " + stamp, ts: Date.now() };
+    const aItem = { id: aId, kind: "audio", label: "الصوت · MP3", srcUrl: url, fileUrl: "", status: "pending", note: "جاري التحضير · " + stamp, ts: Date.now() };
+    addItem(aItem); addItem(vItem); // video ends up on top
+    const vCard = renderCard(vItem);
+    const aCard = renderCard(aItem);
+    refreshEmpty();
 
     let serverErr = false;
-
-    // video
     try {
       const data = await fetchVideo(url);
       const r = resolveUrl(data);
-      if (r.url) cardReady(vCard, r.url, "جاهز · " + stamp);
-      else if (r.picker) buildPicker(vCard, r.picker, stamp);
-      else cardFailed(vCard, "تعذّر: " + r.error);
-    } catch { serverErr = true; cardFailed(vCard, "تعذّر الاتصال بالسيرفر"); }
+      if (r.url) setCardReady(vCard, vId, r.url, "جاهز · " + stamp);
+      else if (r.picker) { setCardFailed(vCard, vId, "منشور متعدد — افتحه بالصفحة العادية"); }
+      else setCardFailed(vCard, vId, "تعذّر: " + r.error);
+    } catch { serverErr = true; setCardFailed(vCard, vId, "تعذّر الاتصال بالسيرفر"); }
 
-    // audio
     try {
       const data = await fetchAudio(url);
       const r = resolveUrl(data);
-      if (r.url) cardReady(aCard, r.url, "MP3 جاهز · " + stamp);
-      else cardFailed(aCard, "الصوت غير متاح لهذا الرابط");
-    } catch { serverErr = true; cardFailed(aCard, "تعذّر الاتصال بالسيرفر"); }
+      if (r.url) setCardReady(aCard, aId, r.url, "MP3 جاهز · " + stamp);
+      else setCardFailed(aCard, aId, "الصوت غير متاح لهذا الرابط");
+    } catch { serverErr = true; setCardFailed(aCard, aId, "تعذّر الاتصال بالسيرفر"); }
 
-    if (serverErr) {
-      showBanner("تعذّر الاتصال بالسيرفر", "افتح الصفحة من رابط الموقع (https) وتأكد إن السيرفر شغّال على Railway.");
-    }
+    if (serverErr) showBanner("تعذّر الاتصال بالسيرفر", "افتح الصفحة من رابط الموقع (https) وتأكد إن السيرفر شغّال على Railway.");
 
     goEl.disabled = false;
     goEl.textContent = "تحميل";
   }
 
-  function buildPicker(card, items, stamp) {
-    card.querySelector(".bar").classList.add("done");
-    card.querySelector(".dl-sub").textContent = items.length + " عناصر · " + stamp;
-    const actions = card.querySelector(".dl-actions");
-    const trashBtn = actions.querySelector(".trash");
-    actions.innerHTML = "";
-    const body = card.querySelector(".dl-body");
-    const list = document.createElement("div");
-    list.style.marginTop = "8px"; list.style.display = "grid"; list.style.gap = "6px";
-    items.forEach((it, i) => {
-      const a = document.createElement("a");
-      a.href = it.url; a.target = "_blank"; a.rel = "noopener";
-      a.className = "save-btn"; a.style.width = "100%"; a.style.justifyContent = "space-between";
-      a.innerHTML = '<span>عنصر ' + (i + 1) + '</span> ' + ICON.save;
-      list.appendChild(a);
-    });
-    body.appendChild(list);
-    actions.appendChild(trashBtn);
-  }
-
   goEl.addEventListener("click", start);
   urlEl.addEventListener("keydown", e => { if (e.key === "Enter") start(); });
-  refreshEmpty();
+
+  // on load: mark old ready-links as expired (cobalt links are short-lived), then render
+  (function init() {
+    const items = loadItems();
+    const now = Date.now();
+    let changed = false;
+    items.forEach(it => {
+      if (it.status === "ready" && (now - (it.ts || 0)) > 45 * 60 * 1000) { it.status = "expired"; changed = true; }
+    });
+    if (changed) saveItems(items);
+    renderAll();
+  })();
 </script>
 </body>
 </html>
