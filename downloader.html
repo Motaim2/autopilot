@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="تحميل">
+<title>تحميل</title>
+<style>
+  :root {
+    --bg-deep: #070d1a;
+    --bg-panel: #0d1628;
+    --bg-panel-2: #111d34;
+    --line: #1c2c48;
+    --line-glow: #2a4a7a;
+    --ink: #eaf1ff;
+    --ink-dim: #8598b8;
+    --ink-faint: #5a6d8f;
+    --accent: #4d8dff;
+    --accent-soft: #6fa4ff;
+    --accent-deep: #2f6fe0;
+    --ok: #35c98a;
+    --warn: #ffb84d;
+    --err: #ff6b7a;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-deep);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background:
+      radial-gradient(120% 60% at 50% -10%, #10203f 0%, transparent 60%),
+      radial-gradient(90% 50% at 100% 100%, #0a1830 0%, transparent 55%),
+      var(--bg-deep);
+    padding:
+      calc(env(safe-area-inset-top) + 28px)
+      20px
+      calc(env(safe-area-inset-bottom) + 28px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .wrap { width: 100%; max-width: 460px; margin: 0 auto; }
+
+  /* header */
+  .head { margin-bottom: 26px; }
+  .kicker {
+    font-size: 11px; letter-spacing: 3px; font-weight: 700;
+    color: var(--accent-soft); text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    opacity: .9;
+  }
+  .kicker .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 10px var(--ok);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  h1 {
+    margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -.5px;
+    line-height: 1.15;
+  }
+  h1 .g {
+    background: linear-gradient(120deg, var(--accent-soft), var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { margin-top: 8px; color: var(--ink-dim); font-size: 14px; line-height: 1.6; }
+
+  /* card */
+  .card {
+    background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-panel-2) 100%);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+
+  label.field-label {
+    display: block; font-size: 12px; color: var(--ink-faint);
+    margin: 0 4px 8px; font-weight: 600;
+  }
+
+  .input-row { position: relative; }
+  input[type="url"] {
+    width: 100%;
+    background: #060b16;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--ink);
+    font-size: 16px;
+    padding: 16px 16px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    direction: ltr; text-align: left;
+    font-family: ui-monospace, "SF Mono", monospace;
+  }
+  input[type="url"]::placeholder { color: #3a4a66; }
+  input[type="url"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77,141,255,.18);
+  }
+
+  .paste-btn {
+    margin-top: 10px; width: 100%;
+    background: transparent; border: 1px dashed var(--line-glow);
+    color: var(--accent-soft); font-size: 13px; font-weight: 600;
+    padding: 11px; border-radius: 12px; cursor: pointer;
+    transition: background .2s;
+  }
+  .paste-btn:active { background: rgba(77,141,255,.08); }
+
+  /* options */
+  .opts { margin-top: 18px; display: flex; gap: 10px; }
+  .seg {
+    flex: 1; background: #060b16; border: 1px solid var(--line);
+    border-radius: 12px; padding: 4px; display: flex;
+  }
+  .seg button {
+    flex: 1; background: transparent; border: none;
+    color: var(--ink-dim); font-size: 13px; font-weight: 600;
+    padding: 9px 4px; border-radius: 9px; cursor: pointer;
+    font-family: inherit; transition: all .18s;
+  }
+  .seg button.on {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: #fff; box-shadow: 0 4px 14px -4px var(--accent-deep);
+  }
+
+  /* main action */
+  .go {
+    margin-top: 18px; width: 100%;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, var(--accent-deep) 100%);
+    border: none; border-radius: 16px;
+    color: #fff; font-size: 17px; font-weight: 800; font-family: inherit;
+    padding: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 14px 30px -12px var(--accent-deep), inset 0 1px 0 rgba(255,255,255,.25);
+    transition: transform .12s, opacity .2s;
+  }
+  .go:active { transform: scale(.98); }
+  .go:disabled { opacity: .5; cursor: default; }
+  .go .spin {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff;
+    animation: rot .7s linear infinite; display: none;
+  }
+  @keyframes rot { to { transform: rotate(360deg) } }
+  .go.loading .spin { display: block; }
+  .go.loading .lbl { opacity: .8; }
+
+  /* status */
+  .status {
+    margin-top: 16px; border-radius: 14px; padding: 0;
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height .3s ease, opacity .3s ease, padding .3s ease;
+    font-size: 14px; line-height: 1.6;
+  }
+  .status.show { max-height: 400px; opacity: 1; padding: 15px 16px; }
+  .status.ok  { background: rgba(53,201,138,.1);  border: 1px solid rgba(53,201,138,.3); }
+  .status.err { background: rgba(255,107,122,.1); border: 1px solid rgba(255,107,122,.3); }
+  .status.info{ background: rgba(77,141,255,.1);  border: 1px solid rgba(77,141,255,.3); }
+  .status .st-title { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .status.ok  .st-title { color: var(--ok); }
+  .status.err .st-title { color: var(--err); }
+  .status.info .st-title { color: var(--accent-soft); }
+  .status .st-body { color: var(--ink-dim); margin-top: 6px; }
+
+  .save-link {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    margin-top: 14px;
+    background: linear-gradient(180deg, #35c98a 0%, #1f9e69 100%);
+    color: #fff; text-decoration: none; font-weight: 800; font-size: 16px;
+    padding: 15px; border-radius: 14px;
+    box-shadow: 0 12px 26px -12px #1f9e69, inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .save-link:active { transform: scale(.98); }
+
+  .picker-grid { margin-top: 12px; display: grid; gap: 10px; }
+  .picker-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #060b16; border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; text-decoration: none;
+    color: var(--ink); font-size: 14px; font-weight: 600;
+  }
+  .picker-item .tag {
+    font-size: 11px; color: var(--accent-soft);
+    background: rgba(77,141,255,.12); padding: 3px 9px; border-radius: 20px;
+  }
+
+  /* footer note */
+  .foot {
+    margin-top: 22px; text-align: center; font-size: 12px;
+    color: var(--ink-faint); line-height: 1.7;
+  }
+  .foot b { color: var(--ink-dim); }
+
+  .hint {
+    margin-top: 14px; font-size: 12.5px; color: var(--ink-faint);
+    background: rgba(255,184,77,.07); border: 1px solid rgba(255,184,77,.2);
+    border-radius: 12px; padding: 12px 14px; line-height: 1.7;
+  }
+  .hint b { color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="kicker"><span class="dot"></span> سيرفرك الخاص · متصل</div>
+    <h1>حمّل <span class="g">أي فيديو</span></h1>
+    <div class="sub">الصق رابط يوتيوب، تيك توك، انستقرام، بينترست أو غيرها — واحفظه في جهازك.</div>
+  </div>
+
+  <div class="card">
+    <label class="field-label" for="url">رابط الفيديو</label>
+    <div class="input-row">
+      <input id="url" type="url" inputmode="url" autocomplete="off"
+             placeholder="https://..." spellcheck="false">
+    </div>
+    <button class="paste-btn" id="paste">لصق من الحافظة</button>
+
+    <div class="opts">
+      <div class="seg" id="mode">
+        <button data-mode="auto" class="on">فيديو</button>
+        <button data-mode="audio">صوت فقط</button>
+      </div>
+      <div class="seg" id="quality">
+        <button data-q="max" class="on">أعلى جودة</button>
+        <button data-q="1080">1080p</button>
+      </div>
+    </div>
+
+    <button class="go" id="go">
+      <span class="spin"></span>
+      <span class="lbl">تحميل</span>
+    </button>
+
+    <div class="status" id="status">
+      <div class="st-title" id="st-title"></div>
+      <div class="st-body" id="st-body"></div>
+      <div id="st-actions"></div>
+    </div>
+  </div>
+
+  <div class="hint">
+    <b>كيف تحفظ؟</b> بعد ما يجهز، اضغط الزر الأخضر «فتح وحفظ» → بيفتح الفيديو → اضغط زر المشاركة تحت → «حفظ الفيديو» أو «حفظ في الملفات».
+  </div>
+
+  <div class="foot">
+    مربوط على سيرفرك <b>الخاص</b> على Railway.<br>
+    كل التحميلات تمرّ عبر جهازك مباشرة — لا يُخزَّن شيء.
+  </div>
+</div>
+
+<script>
+  // ====== إعداد السيرفر — رابط Cobalt الخاص فيك ======
+  const API = "https://cobalt-production-2ab7.up.railway.app";
+  // ===================================================
+
+  const $ = s => document.querySelector(s);
+  const urlEl = $("#url");
+  const goEl = $("#go");
+  const statusEl = $("#status");
+  const stTitle = $("#st-title");
+  const stBody = $("#st-body");
+  const stActions = $("#st-actions");
+
+  let mode = "auto";
+  let quality = "max";
+
+  // segmented controls
+  $("#mode").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    $("#mode").querySelectorAll("button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); mode = b.dataset.mode;
+  });
+  $("#quality").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    $("#quality").querySelectorAll("button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on"); quality = b.dataset.q;
+  });
+
+  // paste
+  $("#paste").addEventListener("click", async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t) { urlEl.value = t.trim(); urlEl.focus(); }
+    } catch {
+      urlEl.focus();
+      setStatus("info", "الصق يدوياً", "المتصفح ما سمح باللصق التلقائي — الصق الرابط في الخانة يدوياً.");
+    }
+  });
+
+  function setStatus(kind, title, body, actionsHTML = "") {
+    statusEl.className = "status show " + kind;
+    stTitle.textContent = title;
+    stBody.textContent = body || "";
+    stActions.innerHTML = actionsHTML;
+  }
+  function clearStatus() { statusEl.className = "status"; stActions.innerHTML = ""; }
+
+  function loading(on) {
+    goEl.classList.toggle("loading", on);
+    goEl.disabled = on;
+    goEl.querySelector(".lbl").textContent = on ? "جاري المعالجة..." : "تحميل";
+  }
+
+  async function download() {
+    const url = urlEl.value.trim();
+    if (!url || !/^https?:\/\//i.test(url)) {
+      setStatus("err", "رابط غير صالح", "الصق رابط كامل يبدأ بـ http أو https.");
+      return;
+    }
+    clearStatus();
+    loading(true);
+
+    const body = {
+      url,
+      downloadMode: mode,          // auto | audio
+      videoQuality: quality,       // max | 1080
+      filenameStyle: "pretty"
+    };
+
+    try {
+      const res = await fetch(API + "/", {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      loading(false);
+
+      if (data.status === "tunnel" || data.status === "redirect") {
+        openFile(data.url, data.filename);
+      } else if (data.status === "picker") {
+        showPicker(data.picker, data.audio);
+      } else if (data.status === "local-processing") {
+        // نادر — نعطي أول رابط نفق
+        const first = (data.tunnel && data.tunnel[0]) || null;
+        if (first) openFile(first, (data.output && data.output.filename) || "video");
+        else setStatus("err", "تعذّرت المعالجة", "هذا الفيديو يحتاج معالجة محلية غير مدعومة هنا. جرّب رابط ثاني.");
+      } else if (data.status === "error") {
+        const code = data.error && data.error.code || "غير معروف";
+        setStatus("err", "ما قدرنا نحمّله", "رمز الخطأ: " + code + "\nجرّب رابط ثاني، أو تأكد إن الفيديو عام (مو خاص).");
+      } else {
+        setStatus("err", "رد غير متوقّع", JSON.stringify(data).slice(0, 200));
+      }
+    } catch (e) {
+      loading(false);
+      setStatus("err", "تعذّر الاتصال بالسيرفر", "تأكد إن السيرفر شغّال على Railway وإنك متصل بالإنترنت.");
+    }
+  }
+
+  function openFile(fileUrl, filename) {
+    setStatus(
+      "ok",
+      "جاهز للحفظ ✓",
+      "اضغط الزر الأخضر عشان يفتح الفيديو، ثم احفظه من زر المشاركة.",
+      `<a class="save-link" href="${fileUrl}" target="_blank" rel="noopener">
+         فتح وحفظ الملف
+       </a>`
+    );
+  }
+
+  function showPicker(items, audioUrl) {
+    let html = '<div class="picker-grid">';
+    items.forEach((it, i) => {
+      const label = it.type === "photo" ? "صورة" : it.type === "gif" ? "GIF" : "فيديو";
+      html += `<a class="picker-item" href="${it.url}" target="_blank" rel="noopener">
+                 <span>العنصر ${i + 1}</span><span class="tag">${label}</span>
+               </a>`;
+    });
+    if (audioUrl) {
+      html += `<a class="picker-item" href="${audioUrl}" target="_blank" rel="noopener">
+                 <span>الصوت الأصلي</span><span class="tag">صوت</span>
+               </a>`;
+    }
+    html += '</div>';
+    setStatus("info", "فيه أكثر من عنصر", "اختر اللي تبي تحفظه (اضغط ثم احفظ من زر المشاركة):", html);
+  }
+
+  goEl.addEventListener("click", download);
+  urlEl.addEventListener("keydown", e => { if (e.key === "Enter") download(); });
+</script>
+</body>
+</html>
