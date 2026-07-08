@@ -185,6 +185,11 @@
   .trow-al{background:rgba(61,139,253,.18)} .trow-al .tn{color:#9CCBFF} .trow-al .tv2{color:#7CBBFF}
   .trow-as{background:rgba(34,181,115,.18)} .trow-as .tn{color:#8FEFC1} .trow-as .tv2{color:#5EE3A6}
   .trow-wk{background:rgba(139,123,255,.18)} .trow-wk .tn{color:#CFC6FF} .trow-wk .tv2{color:#BBAEFF}
+  .micbtn{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:9px;background:rgba(255,255,255,.12);color:var(--ink);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2}
+  .micbtn.rec{background:#E5544B;color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .micwrap{position:relative;flex:1;min-width:0;display:flex}
+  .micwrap>input{width:100%;padding-left:40px!important}
 </style>
 </head>
 <body>
@@ -739,6 +744,86 @@ function renderTarget(){
   rh+='</div></div>';
   d.innerHTML=rh;
 }
+
+/* ===== إدخال الأرقام بالصوت ===== */
+var MIC_ACTIVE=null;
+function ar2num(txt){
+  // حوّل الأرقام العربية ٠-٩ إلى لاتينية
+  var map={"\u0660":"0","\u0661":"1","\u0662":"2","\u0663":"3","\u0664":"4","\u0665":"5","\u0666":"6","\u0667":"7","\u0668":"8","\u0669":"9"};
+  txt=txt.replace(/[\u0660-\u0669]/g,function(d){return map[d];});
+  // كلمات المضاعفات
+  var t=txt.toLowerCase();
+  var mult=1;
+  if(/مليون|ملايين|مليونين|million/.test(t)) mult=1000000;
+  else if(/[أا]لف|[أا]لفين|الاف|آلاف|thousand/.test(t)) mult=1000;
+  // استخرج الأرقام (مع الفواصل والنقاط)
+  var m=t.replace(/[،,]/g,"").match(/\d+(?:\.\d+)?/g);
+  var num=null;
+  if(m){ num=parseFloat(m.join("")); if(isNaN(num))num=null; }
+  if(num===null){
+    // كلمات عربية بحتة
+    var words=[
+      ["ثلاثمئة",300],["ثلاث مئة",300],["ثلاثمية",300],["اربعمئة",400],["أربعمئة",400],["اربعمية",400],["خمسمئة",500],["خمسمية",500],["ستمئة",600],["ستمية",600],["سبعمئة",700],["سبعمية",700],["ثمانمئة",800],["ثمنمية",800],["تسعمئة",900],["تسعمية",900],
+      ["مئتين",200],["ميتين",200],
+      ["احدعشر",11],["اثنعشر",12],["عشرين",20],["ثلاثين",30],["اربعين",40],["أربعين",40],["خمسين",50],["ستين",60],["سبعين",70],["ثمانين",80],["تسعين",90],
+      ["واحد",1],["اثنين",2],["ثنين",2],["ثلاثة",3],["ثلاث",3],["اربعة",4],["أربعة",4],["اربع",4],["خمسة",5],["خمس",5],["ستة",6],["ست",6],["سبعة",7],["سبع",7],["ثمانية",8],["ثمان",8],["تسعة",9],["تسع",9],["عشرة",10],["عشر",10],
+      ["مئة",100],["مية",100],["ميه",100]];
+    var found=0, any=false;
+    for(var w=0;w<words.length;w++){ if(t.indexOf(words[w][0])!==-1){ found+=words[w][1]; any=true; t=t.replace(words[w][0],""); } }
+    if(/مليونين|[أا]لفين/.test(txt.toLowerCase())){ found=(found||0)+2; any=true; }
+    var half=/نص|نصف/.test(txt);
+    if(half && !any && mult>1){
+      var lt=txt.toLowerCase();
+      var iH=lt.search(/نص|نصف/), iM=lt.search(/مليون|ملايين|[أا]لف|الاف|آلاف/);
+      found=(iH<iM)?0.5:1.5; any=true; // "نص مليون"=0.5 · "مليون ونص"=1.5
+    }
+    else if(half){ found=(found||0)+0.5; any=true; }
+    if(any) num=found;
+    else if(mult>1) num=1;
+    else return null;
+  }
+  if(mult>1 && num<mult) num=num*mult;
+  return num;
+}
+function startMic(inputId,btn){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert("المتصفح ما يدعم الإدخال الصوتي. حدّث iOS أو استخدم Safari."); return; }
+  if(MIC_ACTIVE){ try{MIC_ACTIVE.stop();}catch(e){} MIC_ACTIVE=null; }
+  var rec=new SR();
+  rec.lang="ar-SA"; rec.interimResults=false; rec.maxAlternatives=1;
+  btn.classList.add("rec"); btn.textContent="\u23F9";
+  MIC_ACTIVE=rec;
+  rec.onresult=function(ev){
+    var said=ev.results[0][0].transcript;
+    var num=ar2num(said);
+    var inp=$(inputId);
+    if(inp){
+      if(num!==null){ inp.value=num; inp.dispatchEvent(new Event("input")); }
+      else { alert("ما فهمت رقم من: «"+said+"» — جرّب مرة ثانية."); }
+    }
+  };
+  rec.onend=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  rec.onerror=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  try{ rec.start(); }catch(e){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; }
+}
+function attachMics(root){
+  var inputs=(root||document).querySelectorAll('input[type="number"]');
+  for(var i=0;i<inputs.length;i++){
+    var inp=inputs[i];
+    if(inp.dataset.mic) continue;
+    if(!inp.id){ continue; }
+    inp.dataset.mic="1";
+    var wrap=document.createElement("div");
+    wrap.className="micwrap";
+    inp.parentNode.insertBefore(wrap,inp);
+    wrap.appendChild(inp);
+    var b=document.createElement("button");
+    b.type="button"; b.className="micbtn"; b.textContent="\uD83C\uDFA4";
+    (function(id,bb){ bb.addEventListener("click",function(ev){ ev.stopPropagation(); startMic(id,bb); }); })(inp.id,b);
+    wrap.appendChild(b);
+  }
+}
+
 /* ===== الرسم الكامل ===== */
 function renderItems(arr,boxId,delName,type){ var el=$(boxId); if(!el)return; if(arr.length===0){ el.innerHTML=""; return; } var h=""; for(var i=0;i<arr.length;i++){ var ed=(EDIT&&EDIT.t===type+"item"&&EDIT.i===i); if(ed){ h+='<div class="item"><input id="edit_'+type+'_'+i+'" type="number" value="'+Math.round(arr[i])+'" style="flex:1;background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:6px;color:var(--ink);text-align:center;font-size:13px"><button class="btn grn sm" onclick="saveItem(\''+type+'\','+i+')" style="margin-right:6px">حفظ</button></div>'; } else { h+='<div class="item"><span><span class="x" onclick="'+delName+'('+i+')">&times;</span> <span onclick="editItem(\''+type+'\','+i+')" style="color:var(--muted);cursor:pointer;font-size:12px">تعديل</span></span><span class="n">'+fmt(arr[i])+' كونز</span></div>'; } } el.innerHTML=h; }
 function blockCalc(total,c){ var acc=Math.floor(total/c.thr); return { acc:acc, sal:acc*(c.salAcc+c.salAgent), rooms:acc/c.perRoom, inRoom:acc%c.perRoom }; }
@@ -855,6 +940,7 @@ function render(){
   if($("pc_amount")) calcPct();
   if($("bankList")) renderBanks();
   if($("tgGrid")) renderTarget();
+  try{ attachMics(); }catch(e){}
   save();
 }
 
