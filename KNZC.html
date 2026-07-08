@@ -197,7 +197,13 @@
   .histitem:last-child{border-bottom:none}
   .histitem .hk{color:var(--muted)} .histitem .hv{font-weight:800;font-variant-numeric:tabular-nums}
   .histitem .hd{font-size:9.5px;color:var(--muted)}
+  .flsel{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .flsel .f{display:flex;flex-direction:column}
+  .flsel label{font-size:10px;color:var(--muted);margin-bottom:3px}
+  .flsel select{background:rgba(255,255,255,.1);border:none;border-radius:9px;padding:8px;color:var(--ink);font-size:12px;outline:none}
+  .flsel select option{background:#232B36;color:#fff}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="appbar">
@@ -316,6 +322,17 @@
     </div>
     <div class="prog"><i id="rc_bar2"></i></div><div class="progtxt" id="rc_txt2">0 / 28,000,000</div>
     <div class="badge need" id="rc_badge">ناقصك 80 حساب</div>
+  </div>
+  <div class="stage" style="background:linear-gradient(165deg,#3A2C4E,#2B2040)">
+    <h2 style="color:#D9B8FF">&#127942; فايدتي من كاس الروم (تبادل)</h2>
+    <div class="note" style="margin-top:0">الروم مقفل 28 مليون — اكتب كم دخل فيه من غيرك، يطلع نصيبه من الكاس (فايدتك).</div>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 6px">كم دخل بالروم من غيرك (كونز)</label>
+    <input class="bigc" id="ex_in" type="number" inputmode="numeric" placeholder="0">
+    <div class="hero" style="margin-top:12px;background:rgba(255,255,255,.07);box-shadow:none;padding:13px">
+      <div class="l">فايدتك من الكاس</div>
+      <div class="big2" id="ex_out" style="color:#D9B8FF;font-size:28px">0</div>
+      <div class="s" id="ex_note">6.5% من المبلغ (1,820,000 ÷ 28,000,000)</div>
+    </div>
   </div>
 </div>
 
@@ -497,6 +514,22 @@
   <div class="resetbar"><button class="resetBtn" data-r="play" onclick="doReset('play',this)">تصفير حسابات اللعب</button></div>
 </div>
 
+<!-- ============ تبويب 10: مطابقة الملفات ============ -->
+<div class="pane" id="pane10">
+  <div class="stage stg-ship">
+    <h2>&#128193; الملف الأساسي (حساباتي + التوزيعة)</h2>
+    <input type="file" id="fl_master" accept=".xlsx,.xls,.csv" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div id="fl_masterOpts"></div>
+  </div>
+  <div class="stage stg-acc">
+    <h2>&#128200; ملف التحديث (من السستم)</h2>
+    <input type="file" id="fl_upd" accept=".xlsx,.xls,.csv" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div id="fl_updOpts"></div>
+  </div>
+  <button class="btn gold" onclick="flAnalyze()" style="width:100%;margin-top:10px">حلّل وطابق</button>
+  <div id="fl_results"></div>
+</div>
+
 <!-- شريط التبويبات -->
 <div class="tabbar">
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
@@ -508,6 +541,7 @@
   <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)"><span class="i">&#127974;</span>بنوك</div>
   <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)"><span class="i">&#127919;</span>تارقت</div>
   <div class="tb" data-p="pane9" onclick="switchTab('pane9',this)"><span class="i">&#127922;</span>لعب</div>
+  <div class="tb" data-p="pane10" onclick="switchTab('pane10',this)"><span class="i">&#128193;</span>ملفات</div>
 </div>
 <script>
 function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
@@ -686,6 +720,14 @@ function calcRoomCalc(){
   $("rc_needLock").textContent=fmt(needLock); $("rc_needAcc").textContent=fmt(needAcc); $("rc_needThrow").textContent=fmt(needThrow);
   var p2=Math.min(cur/target*100,100); $("rc_bar2").style.width=p2+"%"; $("rc_txt2").textContent=fmt(cur)+" / "+fmt(target);
   var b=$("rc_badge"); if(needLock<=0){ b.className="badge done"; b.textContent="الروم كامل \u2713 وصل "+fmt(target); } else { b.className="badge need"; b.textContent="جيب "+fmt(needThrow)+" كونز · "+fmt(needAcc)+" حساب"; }
+  // فايدة الكاس من التبادل
+  if($("ex_in")){
+    var exV=num("ex_in");
+    var cupTotal=(num("s_cupShip")||1260000)+(num("s_cupGift")||560000);
+    var ratio=cupTotal/target;
+    $("ex_out").textContent=fmt(exV*ratio);
+    $("ex_note").textContent=fmt1(ratio*100)+"% من المبلغ ("+fmt(cupTotal)+" \u00F7 "+fmt(target)+")";
+  }
 }
 
 function calcPct(){
@@ -876,6 +918,142 @@ function renderPlay(){
   $("pl_heroV").style.color=tNet>=0?"#5EE3A6":"#FF8A80";
   $("pl_heroL").textContent=tNet>=0?"الربح الكلي (مكسب − خسارة)":"الخسارة الكلية";
 }
+
+/* ===== مطابقة الملفات ===== */
+var FL={master:null,upd:null,res:null,view:null};
+function flReadFile(file,slot){
+  if(typeof XLSX==="undefined"){ alert("مكتبة قراءة الملفات ما حمّلت — تحتاج إنترنت."); return; }
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:"array"});
+      FL[slot]={wb:wb,sheet:wb.SheetNames[0]};
+      flLoadSheet(slot);
+    }catch(err){ alert("تعذّر قراءة الملف: "+err.message); }
+  };
+  r.readAsArrayBuffer(file);
+}
+function flLoadSheet(slot){
+  var o=FL[slot]; if(!o)return;
+  var ws=o.wb.Sheets[o.sheet];
+  var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+  // أول صف غير فاضي = العناوين
+  var hi=0; while(hi<rows.length && rows[hi].join("").trim()==="") hi++;
+  o.header=(rows[hi]||[]).map(function(x){return String(x).trim();});
+  o.rows=rows.slice(hi+1).filter(function(r){return r.join("").trim()!=="";});
+  // كشف تلقائي للأعمدة
+  o.idCol=flDetect(o,/ايدي|أيدي|\bid\b|رقم/i,function(v){return /^\d{5,}$/.test(flClean(v));});
+  if(slot==="master"){ o.nameCol=flDetect(o,/اسم|صاحب|مالك|توزيع/i,function(v){return v!==""&&!/^[\d.,]+$/.test(String(v));}); }
+  else { o.jazCol=flDetect(o,/جاذبي/i,function(v){return flNum(v)>=10000;}); }
+  flRenderOpts(slot);
+}
+function flClean(v){ var t=String(v).trim(); if(/^\d+\.0$/.test(t))t=t.slice(0,-2); return t.replace(/[،,\s]/g,""); }
+function flNum(v){ return +String(v).replace(/[،,\s]/g,"")||0; }
+function flDetect(o,headRe,valTest){
+  for(var i=0;i<o.header.length;i++){ if(headRe.test(o.header[i])) return i; }
+  var best=-1,bestScore=0;
+  for(var c=0;c<o.header.length;c++){
+    var score=0,n=Math.min(o.rows.length,30);
+    for(var r=0;r<n;r++){ if(valTest(o.rows[r][c])) score++; }
+    if(score>bestScore){ bestScore=score; best=c; }
+  }
+  return best>=0?best:0;
+}
+function flSel(id,opts,cur){
+  var h='<select id="'+id+'" onchange="flOpt(this)">';
+  for(var i=0;i<opts.length;i++){ h+='<option value="'+i+'"'+(i===cur?' selected':'')+'>'+(opts[i]||("عمود "+(i+1)))+'</option>'; }
+  return h+'</select>';
+}
+function flOpt(sel){
+  var id=sel.id, v=+sel.value;
+  if(id==="fls_msheet"){ FL.master.sheet=FL.master.wb.SheetNames[v]; flLoadSheet("master"); return; }
+  if(id==="fls_usheet"){ FL.upd.sheet=FL.upd.wb.SheetNames[v]; flLoadSheet("upd"); return; }
+  if(id==="fls_mid")FL.master.idCol=v;
+  if(id==="fls_mname")FL.master.nameCol=v;
+  if(id==="fls_uid")FL.upd.idCol=v;
+  if(id==="fls_ujaz")FL.upd.jazCol=v;
+}
+function flRenderOpts(slot){
+  var o=FL[slot];
+  var el=$(slot==="master"?"fl_masterOpts":"fl_updOpts"); if(!el)return;
+  var sheets=o.wb.SheetNames;
+  var h='<div class="note">تم التحميل: '+o.rows.length+' صف. تأكد من الأعمدة:</div><div class="flsel">';
+  if(slot==="master"){
+    h+='<div class="f"><label>الشيت</label>'+flSel("fls_msheet",sheets,sheets.indexOf(o.sheet))+'</div>';
+    h+='<div class="f"><label>عمود الأيدي</label>'+flSel("fls_mid",o.header,o.idCol)+'</div>';
+    h+='<div class="f"><label>عمود الاسم (التوزيعة)</label>'+flSel("fls_mname",o.header,o.nameCol)+'</div>';
+  } else {
+    h+='<div class="f"><label>الشيت</label>'+flSel("fls_usheet",sheets,sheets.indexOf(o.sheet))+'</div>';
+    h+='<div class="f"><label>عمود الأيدي</label>'+flSel("fls_uid",o.header,o.idCol)+'</div>';
+    h+='<div class="f"><label>عمود الجاذبية</label>'+flSel("fls_ujaz",o.header,o.jazCol)+'</div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+function flAnalyze(){
+  if(!FL.master||!FL.upd){ alert("حمّل الملفين أول."); return; }
+  var c=cfg(); var lock=num("s_lock2")||350000; var sal=c.salAcc+c.salAgent;
+  var map={}; // id -> name
+  for(var i=0;i<FL.master.rows.length;i++){
+    var id=flClean(FL.master.rows[i][FL.master.idCol]); if(!id)continue;
+    var nm=String(FL.master.rows[i][FL.master.nameCol]||"").trim()||"بدون اسم";
+    map[id]=nm;
+  }
+  var closed=[],partial=[],byName={},foundIds={};
+  for(var r=0;r<FL.upd.rows.length;r++){
+    var uid=flClean(FL.upd.rows[r][FL.upd.idCol]); if(!uid||!(uid in map))continue;
+    var jaz=flNum(FL.upd.rows[r][FL.upd.jazCol]);
+    foundIds[uid]=1;
+    var nm2=map[uid];
+    if(!byName[nm2])byName[nm2]={closed:0,partial:0,zero:0};
+    if(jaz>=lock){ closed.push({id:uid,jaz:jaz,name:nm2}); byName[nm2].closed++; }
+    else if(jaz>0){ partial.push({id:uid,jaz:jaz,need:lock-jaz,name:nm2}); byName[nm2].partial++; }
+    else { byName[nm2].zero++; }
+  }
+  partial.sort(function(a,b){return a.need-b.need;});
+  var missing=0; for(var k in map){ if(!(k in foundIds))missing++; }
+  FL.res={closed:closed,partial:partial,byName:byName,missing:missing,lock:lock,sal:sal,totalMaster:Object.keys(map).length};
+  FL.view=null;
+  flRenderResults();
+}
+function flView(v){ FL.view=(FL.view===v)?null:v; flRenderResults(); }
+function flRenderResults(){
+  var el=$("fl_results"); if(!el||!FL.res){ if(el)el.innerHTML=""; return; }
+  var R=FL.res;
+  var totalSal=R.closed.length*R.sal;
+  var h='<div class="stage stg-log" style="margin-top:10px"><h2>&#128202; النتيجة</h2>'+
+    '<div class="sumgrid">'+
+    '<div class="c" onclick="flView(\'closed\')" style="cursor:pointer;border:1px solid '+(FL.view==="closed"?"#5EE3A6":"transparent")+';border-radius:10px"><div class="l">حسابات مقفلة (\u2265'+fmt(R.lock)+')</div><div class="v n-green">'+R.closed.length+'</div></div>'+
+    '<div class="c" onclick="flView(\'partial\')" style="cursor:pointer;border:1px solid '+(FL.view==="partial"?"#FFC96B":"transparent")+';border-radius:10px"><div class="l">ما قفلت (فيها كونز)</div><div class="v n-amber">'+R.partial.length+'</div></div>'+
+    '<div class="c"><div class="l">راتب المقفلة (×'+R.sal+'$)</div><div class="v n-gold">$'+fmt(totalSal)+'</div></div>'+
+    '<div class="c"><div class="l">بالأساسي وما ظهرت بالتحديث</div><div class="v" style="color:var(--muted)">'+R.missing+'</div></div>'+
+    '</div>';
+  // القوائم
+  if(FL.view==="closed"){
+    h+='<div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;margin-top:9px"><div class="note" style="margin:0 0 4px">الحسابات المقفلة:</div>';
+    var lim=Math.min(R.closed.length,300);
+    for(var i=0;i<lim;i++){ var x=R.closed[i]; h+='<div class="histitem"><span class="hv" style="direction:ltr">'+x.id+'</span><span class="hk">'+x.name+'</span><span class="hv" style="color:#5EE3A6">'+fmt(x.jaz)+'</span></div>'; }
+    if(R.closed.length>300)h+='<div class="logmore">و'+(R.closed.length-300)+' غيرها</div>';
+    h+='</div>';
+  }
+  if(FL.view==="partial"){
+    h+='<div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;margin-top:9px"><div class="note" style="margin:0 0 4px">اللي ما قفلت (الأقرب أول):</div>';
+    var lim2=Math.min(R.partial.length,300);
+    for(var j=0;j<lim2;j++){ var y=R.partial[j]; h+='<div class="histitem"><span class="hv" style="direction:ltr">'+y.id+'</span><span class="hk">'+y.name+' · '+fmt(y.jaz)+'</span><span class="hv" style="color:#FF8A80">ناقصه '+fmt(y.need)+'</span></div>'; }
+    if(R.partial.length>300)h+='<div class="logmore">و'+(R.partial.length-300)+' غيرها</div>';
+    h+='</div>';
+  }
+  // التوزيعة لكل شخص
+  h+='<h2 style="margin:14px 0 4px;font-size:12px;color:var(--muted)">&#128101; التوزيعة (لكل اسم)</h2>';
+  var names=Object.keys(R.byName);
+  for(var n=0;n<names.length;n++){ var nm=names[n], d=R.byName[nm];
+    h+='<div class="logitem"><div class="top"><div class="nm">'+nm+'</div><span class="st">$'+fmt(d.closed*R.sal)+'</span></div><div class="dt">مقفل: '+d.closed+' · ما قفل: '+d.partial+' · صفر: '+d.zero+'</div></div>';
+  }
+  h+='<div class="line" style="margin-top:8px"><span class="l" style="font-weight:700;color:var(--ink)">المجموع الكلي للرواتب</span><span class="v v-grn" style="font-size:19px">$'+fmt(totalSal)+'</span></div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+
 /* ===== إدخال الأرقام بالصوت ===== */
 var MIC_ACTIVE=null;
 function ar2num(txt){
@@ -1114,10 +1292,14 @@ function render(){
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
+(function(){
+  var fm=$("fl_master"); if(fm)fm.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"master"); });
+  var fu=$("fl_upd"); if(fu)fu.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"upd"); });
+})();
 </script>
 </body>
 </html>
