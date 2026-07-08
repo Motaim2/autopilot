@@ -455,6 +455,41 @@
   </div>
 </div>
 
+<!-- ============ تبويب 9: حسابات اللعب ============ -->
+<div class="pane" id="pane9">
+  <div class="stage stg-agency">
+    <h2>&#129518; حاسبة رواتب سريعة</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:6px 0">عدد الحسابات المقفلة</label>
+    <input class="bigc" id="qs_count" type="number" inputmode="numeric" placeholder="0">
+    <div class="sumgrid" style="margin-top:10px">
+      <div class="c"><div class="l">راتب الحسابات (×80$)</div><div class="v n-green" id="qs_acc">$0</div></div>
+      <div class="c"><div class="l">راتب الوكيل (×30$)</div><div class="v n-vio" id="qs_agent">$0</div></div>
+    </div>
+    <div class="line" style="border:none;padding-bottom:0"><span class="l" style="font-weight:700;color:var(--ink)">المجموع</span><span class="v v-gold" style="font-size:20px" id="qs_total">$0</span></div>
+    <div class="line" style="border-top:1px solid var(--line)"><span class="l">لو رحنا فيه شحنة (×1950)</span><span class="v n-blue" id="qs_konz">0 كونز</span></div>
+  </div>
+  <div class="stage stg-log">
+    <h2>&#127922; ملخص اللعب</h2>
+    <div class="sumgrid">
+      <div class="c"><div class="l">إجمالي الدعم</div><div class="v n-blue" id="pl_tFed">0</div></div>
+      <div class="c"><div class="l">إجمالي الكسب</div><div class="v n-green" id="pl_tWon">0</div></div>
+      <div class="c"><div class="l">إجمالي الخسارة</div><div class="v" style="color:#FF8A80" id="pl_tLost">0</div></div>
+      <div class="c"><div class="l">حسابات قفلناها (لعب)</div><div class="v n-gold" id="pl_tClosed">0</div></div>
+    </div>
+    <div class="hero" id="pl_heroBox" style="margin-top:9px;padding:12px;background:rgba(255,255,255,.07);box-shadow:none">
+      <div class="l" id="pl_heroL">الصافي العام</div>
+      <div class="big2" id="pl_heroV" style="font-size:26px">0</div>
+      <div class="s">المكسب − الخسارة</div>
+    </div>
+  </div>
+  <div id="pl_list"></div>
+  <div class="stage">
+    <h2 style="color:var(--gold-soft)">&#10133; حساب لعب جديد</h2>
+    <div class="inrow"><input id="pl_name" type="text" placeholder="اسم الحساب"><button class="btn gold sm" onclick="addPlay()">أضف</button></div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="play" onclick="doReset('play',this)">تصفير حسابات اللعب</button></div>
+</div>
+
 <!-- شريط التبويبات -->
 <div class="tabbar">
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
@@ -465,12 +500,13 @@
   <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)"><span class="i">&#10067;</span>نسبة</div>
   <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)"><span class="i">&#127974;</span>بنوك</div>
   <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)"><span class="i">&#127919;</span>تارقت</div>
+  <div class="tb" data-p="pane9" onclick="switchTab('pane9',this)"><span class="i">&#127922;</span>لعب</div>
 </div>
 <script>
 function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
 function fmt1(n){ return (Math.round(n*10)/10).toLocaleString("en-US"); }
 function $(id){ return document.getElementById(id); }
-function num(id){ var e=$(id); return e?(+e.value||0):0; }
+function num(id){ var e=$(id); if(!e)return 0; var v=String(e.value).replace(/[،,\s]/g,""); return +v||0; }
 
 var BOX_TIERS=[{usd:5000,konz:80000},{usd:10000,konz:93730},{usd:20000,konz:192920},{usd:30000,konz:297570},{usd:50000,konz:514150},{usd:70000,konz:764400}];
 
@@ -479,7 +515,7 @@ var S={
   agencyBal:0,agencyIn:0,drawn:0,shipBal:0,shipIn:0,closedAccounts:0,
   accounts:[],active:null,openRooms:[],rooms:[],weeks:[],seq:1,selAcc:null,
   log:[],rebateTot:0,boxTot:0,prizeTot:0,fedTot:0,pumpKonzTot:0,
-  fak:[],cup:[],deductions:[],advances:0,accDebt:0,salGroups:null,banks:[],bankOpen:null
+  fak:[],cup:[],deductions:[],advances:0,accDebt:0,salGroups:null,banks:[],playAccs:[],bankOpen:null
 };
 function save(){ try{ localStorage.setItem("konz_all", JSON.stringify(S)); }catch(e){} }
 function load(){ try{ var r=localStorage.getItem("konz_all"); if(r){ var o=JSON.parse(r); for(var k in o){ S[k]=o[k]; } } }catch(e){} }
@@ -511,8 +547,8 @@ function takeAccLoan(){ var u=num("accLoanUsd"); if(u<=0)return; S.accDebt=(S.ac
 function pumpShip(){ var k=num("pumpKonz"); if(k<=0)return; S.shipBal+=k; S.shipIn+=k; S.pumpKonzTot=(S.pumpKonzTot||0)+k; logAct("\uD83D\uDCE5","ضخ "+fmt(k)+" كونز للشحن"); $("pumpKonz").value=""; render(); }
 function addAccount(){ var name=$("accName").value.trim()||("حساب "+S.seq); var a={id:S.seq++,name:name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:(S.accounts.length===0),isShip:false}; S.accounts.push(a); if(S.selAcc===null)S.selAcc=a.id; logAct("\uD83D\uDC64","حساب جديد: "+name); $("accName").value=""; render(); }
 function feedCore(a,k){ var c=cfg(); if(k<=0){ alert("اكتب كمية."); return false; } if(k>S.shipBal){ alert("رصيد وكيل الشحن أقل: "+fmt(S.shipBal)); return false; } S.shipBal-=k; a.bal+=k; a.fedKonz+=k; S.fedTot=(S.fedTot||0)+k; var rebate=a.isMain?Math.round(k*c.pct):0; if(rebate>0){ S.shipBal+=rebate; S.shipIn+=rebate; S.rebateTot=(S.rebateTot||0)+rebate; } a.fedUsdCum+=k/c.rateApp; var before=a.boxTier; applyBoxes(a,c); logAct("\u27A1\uFE0F","غذّينا «"+a.name+"» "+fmt(k)+(rebate>0?" · رجع 3%="+fmt(rebate):"")+(a.boxTier>before?" · "+(a.boxTier-before)+" صندوق":"")); return true; }
-function feedAccount(id){ var a=findAcc(id); if(!a)return; var inp=$("feed_"+id); var k=inp?(+inp.value||0):0; if(feedCore(a,k)){ if(inp)inp.value=""; render(); } }
-function feedAccountUsd(id){ var a=findAcc(id); if(!a)return; var c=cfg(); var inp=$("feedusd_"+id); var usd=inp?(+inp.value||0):0; if(usd<=0){ alert("اكتب المبلغ بالدولار."); return; } var k=Math.round(usd*c.rateApp); if(feedCore(a,k)){ logAct("\uD83D\uDCB5","(بالدولار) $"+fmt(usd)+" \u2190 "+fmt(k)+" كونز لـ«"+a.name+"»"); if(inp)inp.value=""; render(); } }
+function feedAccount(id){ var a=findAcc(id); if(!a)return; var inp=$("feed_"+id); var k=inp?num(inp.id):0; if(feedCore(a,k)){ if(inp)inp.value=""; render(); } }
+function feedAccountUsd(id){ var a=findAcc(id); if(!a)return; var c=cfg(); var inp=$("feedusd_"+id); var usd=inp?num(inp.id):0; if(usd<=0){ alert("اكتب المبلغ بالدولار."); return; } var k=Math.round(usd*c.rateApp); if(feedCore(a,k)){ logAct("\uD83D\uDCB5","(بالدولار) $"+fmt(usd)+" \u2190 "+fmt(k)+" كونز لـ«"+a.name+"»"); if(inp)inp.value=""; render(); } }
 function feedAll(id){ var a=findAcc(id); if(!a)return; if(feedCore(a,Math.round(S.shipBal))){ render(); } }
 function setMain(id){ for(var i=0;i<S.accounts.length;i++){ S.accounts[i].isMain=(S.accounts[i].id===id); } render(); }
 function setShip(id){ for(var i=0;i<S.accounts.length;i++){ S.accounts[i].isShip=(S.accounts[i].id===id); } render(); }
@@ -525,16 +561,16 @@ function delAccount(id){
   if(S.selAcc===id) S.selAcc=(S.accounts[0]?S.accounts[0].id:null); if(EDIT&&EDIT.t==="acc"&&EDIT.id===id)EDIT=null; render();
 }
 function editAccount(id){ EDIT={t:"acc",id:id}; render(); }
-function saveAccount(id){ var a=findAcc(id); if(!a)return; var nn=$("edn_"+id), nb=$("edb_"+id); if(nn&&nn.value.trim())a.name=nn.value.trim(); if(nb)a.bal=+nb.value||0; EDIT=null; render(); }
+function saveAccount(id){ var a=findAcc(id); if(!a)return; var nn=$("edn_"+id), nb=$("edb_"+id); if(nn&&nn.value.trim())a.name=nn.value.trim(); if(nb)a.bal=num(nb.id); EDIT=null; render(); }
 function cancelEdit(){ EDIT=null; render(); }
 function editAccBal(id){ EDIT={t:"accbal",id:id}; render(); }
-function saveAccBal(id){ var a=findAcc(id); if(!a)return; var inp=$("acb_"+id); if(inp)a.bal=+inp.value||0; EDIT=null; render(); }
+function saveAccBal(id){ var a=findAcc(id); if(!a)return; var inp=$("acb_"+id); if(inp)a.bal=num(inp.id); EDIT=null; render(); }
 function editBal(which){ EDIT={t:which}; render(); if(which==="agency"){ var e=$("editAgencyVal"); if(e)e.value=Math.round(S.agencyBal); } if(which==="ship"){ var e2=$("editShipVal"); if(e2)e2.value=Math.round(S.shipBal); } toggleBalEdit(which,true); }
 function toggleBalEdit(which,on){ var row=$(which==="agency"?"editAgencyRow":"editShipRow"); if(row)row.style.display=on?"flex":"none"; }
-function saveBal(which){ if(which==="agency"){ S.agencyBal=+($("editAgencyVal").value)||0; toggleBalEdit("agency",false); } else { S.shipBal=+($("editShipVal").value)||0; toggleBalEdit("ship",false); } EDIT=null; render(); }
+function saveBal(which){ if(which==="agency"){ S.agencyBal=num("editAgencyVal"); toggleBalEdit("agency",false); } else { S.shipBal=num("editShipVal"); toggleBalEdit("ship",false); } EDIT=null; render(); }
 function delRoom(id){ if(!confirm("حذف الروم من السجل؟ بينعكس على الإجماليات."))return; var c=cfg(); for(var i=0;i<S.rooms.length;i++){ if(S.rooms[i].id===id){ var rm=S.rooms[i]; if(!rm.manual){ S.closedAccounts=Math.max(S.closedAccounts-rm.accounts,0); S.prizeTot=Math.max((S.prizeTot||0)-(rm.prize||0),0); S.agencyBal=Math.max(S.agencyBal-rm.accounts*(c.salAcc+c.salAgent),0); if(rm.isCup){ S.shipBal=Math.max(S.shipBal-(rm.cupShip||0),0); S.shipIn=Math.max(S.shipIn-(rm.cupShip||0),0); } } S.rooms.splice(i,1); break; } } render(); }
 function editItem(type,i){ EDIT={t:type+"item",i:i}; render(); }
-function saveItem(type,i){ var inp=$("edit_"+type+"_"+i); if(inp){ var v=+inp.value||0; if(v>0){ (type==="fak"?S.fak:S.cup)[i]=v; } } EDIT=null; render(); }
+function saveItem(type,i){ var inp=$("edit_"+type+"_"+i); if(inp){ var v=num(inp.id); if(v>0){ (type==="fak"?S.fak:S.cup)[i]=v; } } EDIT=null; render(); }
 function applyBoxes(a,c){ var cum=a.fedUsdCum; while(true){ var idx=a.boxTier%BOX_TIERS.length; var cycle=Math.floor(a.boxTier/BOX_TIERS.length); var th=BOX_TIERS[idx].usd+cycle*70000; if(cum>=th){ a.bal+=BOX_TIERS[idx].konz; a.boxKonz=(a.boxKonz||0)+BOX_TIERS[idx].konz; S.boxTot=(S.boxTot||0)+BOX_TIERS[idx].konz; a.boxTier++; } else break; if(a.boxTier>60)break; } }
 function selectAcc(id){ S.selAcc=id; render(); }
 function openRoom(){ if(S.accounts.length===0){ alert("أضف حساب وغذّه أول."); return; } if(S.selAcc===null||!findAcc(S.selAcc)){ S.selAcc=S.accounts[0].id; } var name=$("roomName").value.trim()||("روم "+S.seq); var isCup=($("isCupRoom")?$("isCupRoom").checked:false); if(!S.openRooms)S.openRooms=[]; S.openRooms.push({rid:S.seq++,name:name,accounts:0,fromAcc:S.selAcc,isCup:isCup,thrownKonz:0,ourKonz:0,contrib:{}}); logAct("\uD83C\uDFDF\uFE0F","فتحنا "+(isCup?"كاس ":"")+"روم «"+name+"» من «"+findAcc(S.selAcc).name+"»"); if($("isCupRoom"))$("isCupRoom").checked=false; $("roomName").value=""; render(); }
@@ -544,7 +580,7 @@ function throwKonz(rid,konz){ var rm=findRoom(rid); if(!rm)return; var c=cfg(); 
 function throwAccounts(rid,count){ var c=cfg(); throwKonz(rid,count*c.thr); }
 function throwAll(rid){ var acc=findAcc(S.selAcc); if(!acc){ alert("اختر حساب الرمي أول."); return; } if(acc.bal<=0){ alert("رصيد الحساب صفر."); return; } throwKonz(rid,acc.bal); }
 function addExternalKonz(rid,konz){ var rm=findRoom(rid); if(!rm)return; var c=cfg(); if(rm.thrownKonz===undefined)rm.thrownKonz=(rm.accounts||0)*c.thr; var cap=c.perRoom*c.thr; konz=Math.floor(Math.min(konz,cap-rm.thrownKonz)); if(konz<=0){ alert("الروم ممتلئ أو الكمية غير صالحة."); return; } rm.thrownKonz+=konz; rm.external=(rm.external||0)+konz; rm.accounts=Math.floor(rm.thrownKonz/c.thr); logAct("\uD83D\uDC65","أضفنا "+fmt(konz)+" كونز خارجي (تكميل روم فقط، بدون حسابات) لروم «"+rm.name+"»"); if(rm.thrownKonz>=cap){ closeRoom(rid); } render(); }
-function addExtFromInput(rid){ var inp=$("ext_"+rid); var k=inp?(+inp.value||0):0; if(k<=0){ alert("اكتب كمية الكونز الخارجية."); return; } if(inp)inp.value=""; addExternalKonz(rid,k); }
+function addExtFromInput(rid){ var inp=$("ext_"+rid); var k=inp?num(inp.id):0; if(k<=0){ alert("اكتب كمية الكونز الخارجية."); return; } if(inp)inp.value=""; addExternalKonz(rid,k); }
 function cancelRoom(rid){
   var c=cfg();
   for(var i=0;i<S.openRooms.length;i++){ if(S.openRooms[i].rid===rid){ var rm=S.openRooms[i]; var ourK=(rm.ourKonz!==undefined)?rm.ourKonz:(roomKonz(rm,c)-(rm.external||0)); var refund=0; var refTxt="";
@@ -556,7 +592,7 @@ function cancelRoom(rid){
 }
 function closeRoom(rid){ var R=findRoom(rid); if(!R)return; var c=cfg(); var owner=null; if(R.isCup){ owner=findAcc(S.selAcc)||findAcc(R.fromAcc); } if(!owner){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].name===R.name){ owner=S.accounts[i]; break; } } } if(!owner){ owner={id:S.seq++,name:R.name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:false,isShip:false}; S.accounts.push(owner); } if(R.isCup){ S.shipBal+=c.cupShip; S.shipIn+=c.cupShip; var sa=findShipAcct(); if(!sa)sa=owner; sa.bal+=c.cupGift; sa._cupDest=sa.name; S.prizeTot=(S.prizeTot||0)+c.cupGift; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.cupGift,cupShip:c.cupShip,cupTo:sa.name,isCup:true}); } else { owner.bal+=c.roomPrize; S.prizeTot=(S.prizeTot||0)+c.roomPrize; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.roomPrize}); } if(R.isCup){ var sacc=findShipAcct(); logAct("\uD83C\uDFC6","أقفلنا كاس «"+R.name+"» ("+R.accounts+" حساب مكتمل) · "+fmt(c.cupShip)+" لرصيد الشحن + "+fmt(c.cupGift)+" لحساب وكيل الشحن «"+(sacc?sacc.name:owner.name)+"»"); } else { logAct("\uD83D\uDD12","أقفلنا «"+R.name+"» ("+R.accounts+" حساب مكتمل) · جائزة "+fmt(c.roomPrize)); } for(var j=0;j<S.openRooms.length;j++){ if(S.openRooms[j].rid===rid){ S.openRooms.splice(j,1); break; } } save(); }
 function endWeek(){ S.weeks.push({n:S.weeks.length+1,acc:S.closedAccounts}); render(); }
-var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب"};
+var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب"};
 function armBtn(el,on){ if(on){ el.textContent="اضغط مرة ثانية للتأكيد"; el.style.color="#fff"; el.style.background="var(--red)"; el.style.padding="9px 16px"; el.style.borderRadius="10px"; el.style.textDecoration="none"; } else { el.textContent=resetLabel[el.getAttribute("data-r")]||"تصفير"; el.style.background="none"; el.style.color="var(--red)"; el.style.padding="0"; el.style.textDecoration="underline"; } }
 function doReset(kind,el){
   if(!resetArm[kind]){
@@ -568,7 +604,7 @@ function doReset(kind,el){
   resetArm[kind]=false; if(resetTimer[kind])clearTimeout(resetTimer[kind]);
   if(kind==="taqfeel"){ S.agencyBal=0;S.agencyIn=0;S.drawn=0;S.shipBal=0;S.shipIn=0;S.closedAccounts=0;S.accounts=[];S.active=null;S.openRooms=[];S.rooms=[];S.weeks=[];S.selAcc=null;S.log=[];S.rebateTot=0;S.boxTot=0;S.prizeTot=0;S.fedTot=0;S.pumpKonzTot=0;S.advances=0;S.accDebt=0; }
   else if(kind==="fakcup"){ S.fak=[];S.cup=[]; }
-  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; }
+  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; }
   EDIT=null; armBtn(el,false); render();
 }
 
@@ -586,11 +622,12 @@ function findGrp(gid){ for(var i=0;i<S.salGroups.length;i++){ if(S.salGroups[i].
 function addSalGroup(){ seedSalary(); var n=$("sal_gname").value.trim(); if(!n){ alert("اكتب اسم المجموعة."); return; } S.salGroups.push({id:S.seq++,name:n,collapsed:false,subs:[]}); $("sal_gname").value=""; render(); }
 function delSalGroup(gid){ if(!S.salGroups)return; for(var i=0;i<S.salGroups.length;i++){ if(S.salGroups[i].id===gid){ S.salGroups.splice(i,1); break; } } render(); }
 function toggleSalGroup(gid){ var g=findGrp(gid); if(g){ g.collapsed=!g.collapsed; render(); } }
-function addSub(gid){ var g=findGrp(gid); if(!g)return; var nm=$("subn_"+gid); var name=nm?nm.value.trim():""; if(!name){ alert("اكتب اسم الحساب الفرعي."); return; } var o={id:S.seq++,name:name}; for(var i=0;i<SAL_COMP.length;i++){ o[SAL_COMP[i].k]=+($("sub_"+SAL_COMP[i].k+"_"+gid).value)||0; } g.subs.push(o); render(); }
+function addSub(gid){ var g=findGrp(gid); if(!g)return; var nm=$("subn_"+gid); var name=nm?nm.value.trim():""; if(!name){ alert("اكتب اسم الحساب الفرعي."); return; } var o={id:S.seq++,name:name}; for(var i=0;i<SAL_COMP.length;i++){ o[SAL_COMP[i].k]=num("sub_"+SAL_COMP[i].k+"_"+gid); } g.subs.push(o); render(); }
 function delSub(gid,sid){ var g=findGrp(gid); if(!g)return; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ g.subs.splice(i,1); break; } } if(EDIT&&EDIT.t==="sub"&&EDIT.sid===sid)EDIT=null; render(); }
 function editSub(gid,sid){ EDIT={t:"sub",gid:gid,sid:sid}; render(); }
-function saveSub(gid,sid){ var g=findGrp(gid); if(!g)return; var sub=null; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ sub=g.subs[i]; break; } } if(!sub)return; var nm=$("esn_"+sid); if(nm&&nm.value.trim())sub.name=nm.value.trim(); for(var i=0;i<SAL_COMP.length;i++){ sub[SAL_COMP[i].k]=+($("es_"+SAL_COMP[i].k+"_"+sid).value)||0; } EDIT=null; render(); }
+function saveSub(gid,sid){ var g=findGrp(gid); if(!g)return; var sub=null; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ sub=g.subs[i]; break; } } if(!sub)return; var nm=$("esn_"+sid); if(nm&&nm.value.trim())sub.name=nm.value.trim(); for(var i=0;i<SAL_COMP.length;i++){ sub[SAL_COMP[i].k]=num("es_"+SAL_COMP[i].k+"_"+sid); } EDIT=null; render(); }
 var SAL_COMP=[{k:"rateb",l:"راتب",cls:"rateb"},{k:"nisba",l:"نسبة",cls:"nisba"},{k:"fak",l:"فك",cls:"fak"},{k:"saat",l:"ساعات",cls:"saat"},{k:"wakeel",l:"وكيل",cls:"wakeel"},{k:"edafi",l:"إضافي",cls:"edafi"}];
+function toggleSubMin(gid,sid){ var g=findGrp(gid); if(!g)return; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ g.subs[i].min=!g.subs[i].min; break; } } render(); }
 function subTotal(x){ var t=0; for(var i=0;i<SAL_COMP.length;i++){ t+=(x[SAL_COMP[i].k]||0); } return t; }
 function grpTotal(g){ var t=0; for(var i=0;i<g.subs.length;i++){ t+=subTotal(g.subs[i]); } return t; }
 function renderSalary(){
@@ -608,9 +645,11 @@ function renderSalary(){
           var ein='<input id="esn_'+sub.id+'" type="text" value="'+sub.name+'" style="width:100%;background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:7px;color:var(--ink);font-size:13px;text-align:center;margin-bottom:6px">';
           var eg=''; for(var e1=0;e1<SAL_COMP.length;e1++){ var cp=SAL_COMP[e1]; eg+='<input id="es_'+cp.k+'_'+sub.id+'" type="number" value="'+(sub[cp.k]||0)+'" placeholder="'+cp.l+'">'; }
           h+='<div class="subitem">'+ein+'<div class="salsub6">'+eg+'</div><div class="abtns"><button class="btn grn sm" onclick="saveSub('+g.id+','+sub.id+')">حفظ</button><button class="btn dk sm" onclick="cancelEdit()">إلغاء</button></div></div>';
+        } else if(sub.min){
+          h+='<div class="subitem" style="padding:8px 11px"><div class="sh" onclick="toggleSubMin('+g.id+','+sub.id+')" style="cursor:pointer"><div class="sn">\u25B6 '+sub.name+'</div><div class="stt">$'+fmt(subTotal(sub))+'</div></div></div>';
         } else {
           var boxes=''; for(var d1=0;d1<SAL_COMP.length;d1++){ var cp2=SAL_COMP[d1]; boxes+='<div class="salc '+cp2.cls+'"><div class="cl">'+cp2.l+'</div><div class="cv">$'+fmt(sub[cp2.k]||0)+'</div></div>'; }
-          h+='<div class="subitem"><div class="sh"><div class="sn">'+sub.name+'</div><div class="stt">$'+fmt(subTotal(sub))+'</div></div><div class="salgrid6">'+boxes+'</div><div class="abtns"><button class="btn dk sm" onclick="editSub('+g.id+','+sub.id+')">تعديل</button><button class="btn dk sm" onclick="delSub('+g.id+','+sub.id+')" style="color:var(--red)">حذف</button></div></div>';
+          h+='<div class="subitem"><div class="sh" onclick="toggleSubMin('+g.id+','+sub.id+')" style="cursor:pointer"><div class="sn">\u25BC '+sub.name+'</div><div class="stt">$'+fmt(subTotal(sub))+'</div></div><div class="salgrid6">'+boxes+'</div><div class="abtns"><button class="btn dk sm" onclick="editSub('+g.id+','+sub.id+')">تعديل</button><button class="btn dk sm" onclick="delSub('+g.id+','+sub.id+')" style="color:var(--red)">حذف</button></div></div>';
         }
       }
       var ain=''; for(var a1=0;a1<SAL_COMP.length;a1++){ var cp3=SAL_COMP[a1]; ain+='<input id="sub_'+cp3.k+'_'+g.id+'" type="number" placeholder="'+cp3.l+'">'; }
@@ -745,6 +784,61 @@ function renderTarget(){
   d.innerHTML=rh;
 }
 
+/* ===== حسابات اللعب ===== */
+function findPlay(id){ if(!S.playAccs)S.playAccs=[]; for(var i=0;i<S.playAccs.length;i++){ if(S.playAccs[i].id===id)return S.playAccs[i]; } return null; }
+function addPlay(){ if(!S.playAccs)S.playAccs=[]; var n=$("pl_name").value.trim(); if(!n){ alert("اكتب اسم الحساب."); return; } S.playAccs.push({id:S.seq++,name:n,fed:0,won:0,lost:0,thrown:0}); $("pl_name").value=""; render(); }
+function delPlay(id){ for(var i=0;i<S.playAccs.length;i++){ if(S.playAccs[i].id===id){ S.playAccs.splice(i,1); break; } } render(); }
+function plAdd(id,kind){
+  var a=findPlay(id); if(!a)return;
+  var inp=$("pl_"+kind+"_"+id); var v=inp?num(inp.id):0;
+  if(v<=0){ alert("اكتب المبلغ."); return; }
+  a[kind]=(a[kind]||0)+v;
+  if(inp)inp.value="";
+  render();
+}
+function calcQuickSal(){
+  var c=cfg();
+  var n=num("qs_count");
+  var accSal=n*c.salAcc, agentSal=n*c.salAgent, tot=accSal+agentSal;
+  $("qs_acc").textContent="$"+fmt(accSal);
+  $("qs_agent").textContent="$"+fmt(agentSal);
+  $("qs_total").textContent="$"+fmt(tot);
+  $("qs_konz").textContent=fmt(tot*c.rateBuy)+" كونز";
+}
+function renderPlay(){
+  var el=$("pl_list"); if(!el)return; if(!S.playAccs)S.playAccs=[];
+  var c=cfg();
+  var PC=[["#123458","#0D2842","#7CBBFF"],["#0F3D2E","#0B2F24","#5EE3A6"],["#3D2E10","#2F230C","#FFD37E"],["#2B2354","#211A42","#BBAEFF"],["#3A1E2A","#2C1620","#F5A0BC"],["#123A3A","#0D2C2C","#7FE3DA"]];
+  var tFed=0,tWon=0,tLost=0,tClosed=0,tNet=0;
+  var h="";
+  for(var i=0;i<S.playAccs.length;i++){ var a=S.playAccs[i];
+    var col=PC[i%PC.length];
+    var closed=Math.floor((a.thrown||0)/c.thr);
+    var net=(a.won||0)-(a.lost||0);
+    tFed+=a.fed||0; tWon+=a.won||0; tLost+=a.lost||0; tClosed+=closed; tNet+=net;
+    h+='<div class="stage" style="background:linear-gradient(165deg,'+col[0]+','+col[1]+');margin-top:10px">'+
+       '<div class="grphead"><div class="gn" style="color:'+col[2]+'">\uD83C\uDFB2 '+a.name+'</div><div class="gt" style="color:'+(net>=0?"#5EE3A6":"#FF8A80")+'">'+(net>=0?"+":"-")+fmt(Math.abs(net))+'</div></div>'+
+       '<div class="inrow"><input id="pl_fed_'+a.id+'" type="number" inputmode="numeric" placeholder="تغذية"><button class="btn blu sm" onclick="plAdd('+a.id+',\'fed\')">سجّل</button></div>'+
+       '<div class="inrow"><input id="pl_won_'+a.id+'" type="number" inputmode="numeric" placeholder="مكسب"><button class="btn grn sm" onclick="plAdd('+a.id+',\'won\')">سجّل</button></div>'+
+       '<div class="inrow"><input id="pl_lost_'+a.id+'" type="number" inputmode="numeric" placeholder="خسارة"><button class="btn red sm" onclick="plAdd('+a.id+',\'lost\')">سجّل</button></div>'+
+       '<div class="inrow"><input id="pl_thrown_'+a.id+'" type="number" inputmode="numeric" placeholder="تقفيل (انسحب للتقفيل)"><button class="btn gold sm" onclick="plAdd('+a.id+',\'thrown\')">سجّل</button></div>'+
+       '<div class="sumgrid" style="margin-top:10px">'+
+       '<div class="c"><div class="l">قفل حسابات</div><div class="v" style="color:'+col[2]+'">'+closed+'</div></div>'+
+       '<div class="c"><div class="l">تغذّى</div><div class="v n-blue">'+fmt(a.fed||0)+'</div></div>'+
+       '<div class="c"><div class="l">مكسب</div><div class="v n-green">'+fmt(a.won||0)+'</div></div>'+
+       '<div class="c"><div class="l">خسارة</div><div class="v" style="color:#FF8A80">'+fmt(a.lost||0)+'</div></div>'+
+       '</div>'+
+       '<div class="line" style="border:none;padding-bottom:0"><span class="l" style="font-weight:700;color:var(--ink)">'+(net>=0?"ربحان":"خسران")+'</span><span class="v '+(net>=0?"v-grn":"v-red")+'">'+(net>=0?"+":"-")+fmt(Math.abs(net))+'</span></div>'+
+       '<div class="abtns"><button class="btn dk sm" onclick="delPlay('+a.id+')" style="color:var(--red);width:100%">حذف</button></div>'+
+       '</div>';
+  }
+  el.innerHTML=h||'<div class="stage"><div class="empty">ما فيه حسابات — أضف تحت</div></div>';
+  $("pl_tFed").textContent=fmt(tFed); $("pl_tWon").textContent=fmt(tWon);
+  $("pl_tLost").textContent=fmt(tLost); $("pl_tClosed").textContent=fmt(tClosed);
+  $("pl_heroV").textContent=(tNet>=0?"+":"-")+fmt(Math.abs(tNet));
+  $("pl_heroV").style.color=tNet>=0?"#5EE3A6":"#FF8A80";
+  $("pl_heroL").textContent=tNet>=0?"الربح الكلي (مكسب − خسارة)":"الخسارة الكلية";
+}
 /* ===== إدخال الأرقام بالصوت ===== */
 var MIC_ACTIVE=null;
 function ar2num(txt){
@@ -798,7 +892,7 @@ function startMic(inputId,btn){
     var num=ar2num(said);
     var inp=$(inputId);
     if(inp){
-      if(num!==null){ inp.value=num; inp.dispatchEvent(new Event("input")); }
+      if(num!==null){ inp.value=num.toLocaleString("en-US"); inp.dispatchEvent(new Event("input")); }
       else { alert("ما فهمت رقم من: «"+said+"» — جرّب مرة ثانية."); }
     }
   };
@@ -806,12 +900,49 @@ function startMic(inputId,btn){
   rec.onerror=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
   try{ rec.start(); }catch(e){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; }
 }
+function startMicText(inputId,btn){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert("المتصفح ما يدعم الإدخال الصوتي."); return; }
+  if(MIC_ACTIVE){ try{MIC_ACTIVE.stop();}catch(e){} MIC_ACTIVE=null; }
+  var rec=new SR();
+  rec.lang="ar-SA"; rec.interimResults=false; rec.maxAlternatives=1;
+  btn.classList.add("rec"); btn.textContent="\u23F9";
+  MIC_ACTIVE=rec;
+  rec.onresult=function(ev){ var said=ev.results[0][0].transcript.trim(); var inp=$(inputId); if(inp&&said){ inp.value=said; } };
+  rec.onend=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  rec.onerror=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  try{ rec.start(); }catch(e){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; }
+}
+function fmtInput(inp){
+  var raw=String(inp.value).replace(/[،,\s]/g,"");
+  if(raw===""||raw==="-"){ return; }
+  // اسمح بنقطة عشرية أثناء الكتابة
+  var m=raw.match(/^(-?\d*)(\.\d*)?$/);
+  if(!m) return;
+  var intPart=m[1]||"", decPart=m[2]||"";
+  var formatted=(intPart?(+intPart).toLocaleString("en-US"):"")+decPart;
+  if(inp.value!==formatted){
+    inp.value=formatted;
+  }
+}
 function attachMics(root){
-  var inputs=(root||document).querySelectorAll('input[type="number"]');
+  var inputs=(root||document).querySelectorAll('input[type="number"], input[type="text"], input.numfmt');
   for(var i=0;i<inputs.length;i++){
     var inp=inputs[i];
-    if(inp.dataset.mic) continue;
     if(!inp.id){ continue; }
+    var isNum=(inp.type==="number")||inp.classList.contains("numfmt");
+    // حوّل خانات الأرقام لنصية بفواصل (نبقي لوحة الأرقام)
+    if(inp.type==="number"){
+      inp.type="text";
+      inp.setAttribute("inputmode","decimal");
+      inp.classList.add("numfmt");
+    }
+    if(isNum && !inp.dataset.fmt){
+      inp.dataset.fmt="1";
+      inp.addEventListener("input",function(){ fmtInput(this); });
+      fmtInput(inp);
+    }
+    if(inp.dataset.mic) continue;
     inp.dataset.mic="1";
     var wrap=document.createElement("div");
     wrap.className="micwrap";
@@ -819,7 +950,7 @@ function attachMics(root){
     wrap.appendChild(inp);
     var b=document.createElement("button");
     b.type="button"; b.className="micbtn"; b.textContent="\uD83C\uDFA4";
-    (function(id,bb){ bb.addEventListener("click",function(ev){ ev.stopPropagation(); startMic(id,bb); }); })(inp.id,b);
+    (function(id,bb,isN){ bb.addEventListener("click",function(ev){ ev.stopPropagation(); (isN?startMic:startMicText)(id,bb); }); })(inp.id,b,isNum);
     wrap.appendChild(b);
   }
 }
@@ -940,11 +1071,13 @@ function render(){
   if($("pc_amount")) calcPct();
   if($("bankList")) renderBanks();
   if($("tgGrid")) renderTarget();
+  if($("pl_list")) renderPlay();
+  if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
