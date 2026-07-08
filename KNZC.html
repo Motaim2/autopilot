@@ -190,6 +190,13 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
   .micwrap{position:relative;flex:1;min-width:0;display:flex}
   .micwrap>input{width:100%;padding-left:40px!important}
+  .plgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+  .plcell{display:flex;flex-direction:column;gap:5px}
+  .plcell .btn{width:100%}
+  .histitem{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px}
+  .histitem:last-child{border-bottom:none}
+  .histitem .hk{color:var(--muted)} .histitem .hv{font-weight:800;font-variant-numeric:tabular-nums}
+  .histitem .hd{font-size:9.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -793,7 +800,16 @@ function plAdd(id,kind){
   var inp=$("pl_"+kind+"_"+id); var v=inp?num(inp.id):0;
   if(v<=0){ alert("اكتب المبلغ."); return; }
   a[kind]=(a[kind]||0)+v;
+  if(!a.hist)a.hist=[];
+  a.hist.unshift({k:kind,v:v,t:Date.now()});
+  if(a.hist.length>300)a.hist.pop();
   if(inp)inp.value="";
+  render();
+}
+function toggleHist(id,kind){
+  var a=findPlay(id); if(!a)return;
+  if(a.histOpen && a.histK===(kind||null)){ a.histOpen=false; }
+  else { a.histOpen=true; a.histK=kind||null; }
   render();
 }
 function calcQuickSal(){
@@ -816,18 +832,39 @@ function renderPlay(){
     var closed=Math.floor((a.thrown||0)/c.thr);
     var net=(a.won||0)-(a.lost||0);
     tFed+=a.fed||0; tWon+=a.won||0; tLost+=a.lost||0; tClosed+=closed; tNet+=net;
+    var prog=(a.thrown||0)%c.thr;
+    var histBtnTxt=a.histOpen?"إغلاق السجل":"\uD83D\uDCDC السجل التاريخي";
+    var LBL={fed:["تغذية","#7CBBFF"],won:["مكسب","#5EE3A6"],lost:["خسارة","#FF8A80"],thrown:["تقفيل","#FFD37E"]};
+    var histHtml="";
+    if(a.histOpen){
+      var hs=(a.hist||[]);
+      histHtml='<div style="background:rgba(0,0,0,.25);border-radius:11px;padding:9px 12px;margin-top:9px">';
+      var shown=0;
+      for(var hh=0;hh<hs.length&&shown<80;hh++){ var e=hs[hh]; if(a.histK&&e.k!==a.histK)continue; shown++;
+        var d=new Date(e.t); var ds=d.getDate()+"/"+(d.getMonth()+1)+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+        histHtml+='<div class="histitem"><span class="hk" style="color:'+LBL[e.k][1]+'">'+LBL[e.k][0]+'</span><span class="hv" style="color:'+LBL[e.k][1]+'">'+fmt(e.v)+'</span><span class="hd">'+ds+'</span></div>';
+      }
+      if(shown===0)histHtml+='<div class="empty">ما فيه تسجيلات'+(a.histK?" لـ«"+LBL[a.histK][0]+"»":"")+'</div>';
+      histHtml+='</div>';
+    }
     h+='<div class="stage" style="background:linear-gradient(165deg,'+col[0]+','+col[1]+');margin-top:10px">'+
        '<div class="grphead"><div class="gn" style="color:'+col[2]+'">\uD83C\uDFB2 '+a.name+'</div><div class="gt" style="color:'+(net>=0?"#5EE3A6":"#FF8A80")+'">'+(net>=0?"+":"-")+fmt(Math.abs(net))+'</div></div>'+
-       '<div class="inrow"><input id="pl_fed_'+a.id+'" type="number" inputmode="numeric" placeholder="تغذية"><button class="btn blu sm" onclick="plAdd('+a.id+',\'fed\')">سجّل</button></div>'+
-       '<div class="inrow"><input id="pl_won_'+a.id+'" type="number" inputmode="numeric" placeholder="مكسب"><button class="btn grn sm" onclick="plAdd('+a.id+',\'won\')">سجّل</button></div>'+
-       '<div class="inrow"><input id="pl_lost_'+a.id+'" type="number" inputmode="numeric" placeholder="خسارة"><button class="btn red sm" onclick="plAdd('+a.id+',\'lost\')">سجّل</button></div>'+
-       '<div class="inrow"><input id="pl_thrown_'+a.id+'" type="number" inputmode="numeric" placeholder="تقفيل (انسحب للتقفيل)"><button class="btn gold sm" onclick="plAdd('+a.id+',\'thrown\')">سجّل</button></div>'+
-       '<div class="sumgrid" style="margin-top:10px">'+
-       '<div class="c"><div class="l">قفل حسابات</div><div class="v" style="color:'+col[2]+'">'+closed+'</div></div>'+
-       '<div class="c"><div class="l">تغذّى</div><div class="v n-blue">'+fmt(a.fed||0)+'</div></div>'+
-       '<div class="c"><div class="l">مكسب</div><div class="v n-green">'+fmt(a.won||0)+'</div></div>'+
-       '<div class="c"><div class="l">خسارة</div><div class="v" style="color:#FF8A80">'+fmt(a.lost||0)+'</div></div>'+
+       '<div class="plgrid">'+
+       '<div class="plcell"><input id="pl_fed_'+a.id+'" type="number" inputmode="numeric" placeholder="تغذية"><button class="btn blu sm" onclick="plAdd('+a.id+',\'fed\')">سجّل</button></div>'+
+       '<div class="plcell"><input id="pl_won_'+a.id+'" type="number" inputmode="numeric" placeholder="مكسب"><button class="btn grn sm" onclick="plAdd('+a.id+',\'won\')">سجّل</button></div>'+
+       '<div class="plcell"><input id="pl_lost_'+a.id+'" type="number" inputmode="numeric" placeholder="خسارة"><button class="btn red sm" onclick="plAdd('+a.id+',\'lost\')">سجّل</button></div>'+
+       '<div class="plcell"><input id="pl_thrown_'+a.id+'" type="number" inputmode="numeric" placeholder="تقفيل"><button class="btn gold sm" onclick="plAdd('+a.id+',\'thrown\')">سجّل</button></div>'+
        '</div>'+
+       '<div class="prog" style="margin-top:10px"><i style="width:'+((prog/c.thr)*100)+'%"></i></div>'+
+       '<div class="progtxt">تقفيل جاري: '+fmt(prog)+' / '+fmt(c.thr)+' · <b style="color:#FF8A80">ناقصه '+fmt(c.thr-prog)+'</b> · <b style="color:'+col[2]+'">قفل '+closed+' حساب</b></div>'+
+       '<div class="sumgrid" style="margin-top:9px">'+
+       '<div class="c" onclick="toggleHist('+a.id+',\'thrown\')" style="cursor:pointer"><div class="l">قفل حسابات</div><div class="v" style="color:'+col[2]+'">'+closed+'</div></div>'+
+       '<div class="c" onclick="toggleHist('+a.id+',\'fed\')" style="cursor:pointer"><div class="l">تغذّى</div><div class="v n-blue">'+fmt(a.fed||0)+'</div></div>'+
+       '<div class="c" onclick="toggleHist('+a.id+',\'won\')" style="cursor:pointer"><div class="l">مكسب</div><div class="v n-green">'+fmt(a.won||0)+'</div></div>'+
+       '<div class="c" onclick="toggleHist('+a.id+',\'lost\')" style="cursor:pointer"><div class="l">خسارة</div><div class="v" style="color:#FF8A80">'+fmt(a.lost||0)+'</div></div>'+
+       '</div>'+
+       '<button class="btn dk sm" onclick="toggleHist('+a.id+')" style="width:100%;margin-top:8px">'+histBtnTxt+'</button>'+
+       histHtml+
        '<div class="line" style="border:none;padding-bottom:0"><span class="l" style="font-weight:700;color:var(--ink)">'+(net>=0?"ربحان":"خسران")+'</span><span class="v '+(net>=0?"v-grn":"v-red")+'">'+(net>=0?"+":"-")+fmt(Math.abs(net))+'</span></div>'+
        '<div class="abtns"><button class="btn dk sm" onclick="delPlay('+a.id+')" style="color:var(--red);width:100%">حذف</button></div>'+
        '</div>';
