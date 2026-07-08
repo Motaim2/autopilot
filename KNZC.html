@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>نظام كونز</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="كونز">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#EDF1F6">
+
+<style>
+  :root{
+    --bg:#EDF1F6; --pg-ink:#17202B; --pg-muted:#5C6B7E;
+    --ink:#F4F7FB; --muted:#A7B6C8; --line:rgba(255,255,255,.14);
+    --gold:#E3A63C; --gold-soft:#FFD37E; --green:#22B573; --green-soft:#5EE3A6;
+    --red:#FF8A80; --blue:#7CBBFF; --blue-soft:#9CCBFF; --violet:#BBAEFF; --vio:#BBAEFF; --amber:#FFC96B;
+    --shadow:0 10px 24px rgba(23,32,43,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--pg-ink);font-family:"Segoe UI",Tahoma,system-ui,-apple-system,sans-serif}
+  body{padding:0 0 84px;max-width:640px;margin:0 auto;-webkit-user-select:none;user-select:none;overflow-x:hidden}
+  input,select,textarea{-webkit-user-select:text;user-select:text}
+
+  .appbar{padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:rgba(237,241,246,.94);backdrop-filter:blur(10px);z-index:30;border-bottom:1px solid rgba(23,32,43,.07)}
+  .appbar .m{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#E3A63C,#C77F1B);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(227,166,60,.35)}
+  .appbar h1{font-size:16px;margin:0;color:var(--pg-ink);font-weight:800}
+  .appbar p{margin:1px 0 0;font-size:11px;color:var(--pg-muted)}
+
+  .tabbar{position:fixed;bottom:0;right:0;left:0;max-width:640px;margin:0 auto;display:flex;background:#fff;border-top:1px solid rgba(23,32,43,.07);z-index:40;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 18px rgba(23,32,43,.06)}
+  .tabbar .tb{flex:1;text-align:center;padding:9px 3px 10px;color:#8492A6;font-size:10.5px;font-weight:700;cursor:pointer}
+  .tabbar .tb .i{font-size:19px;display:block;margin-bottom:2px;filter:grayscale(.5);opacity:.7}
+  .tabbar .tb.on{color:var(--pg-ink)}
+  .tabbar .tb.on .i{filter:none;opacity:1}
+
+  .pane{display:none;padding:10px}
+  .pane.on{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+  .stage{border-radius:18px;padding:14px;margin-top:10px;box-shadow:var(--shadow);color:var(--ink);background:linear-gradient(165deg,#232B36,#1B222C);border:1px solid transparent;position:relative}
+  .stg-agency{background:linear-gradient(165deg,#0F3D2E,#0B2F24)}
+  .stg-ship{background:linear-gradient(165deg,#123458,#0D2842)}
+  .stg-acc{background:linear-gradient(165deg,#3D2E10,#2F230C)}
+  .stg-room{background:linear-gradient(165deg,#2B2354,#211A42)}
+  .stg-log{background:linear-gradient(165deg,#232B36,#1B222C)}
+  .stage h2{font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:7px;color:var(--ink);flex-wrap:wrap}
+  .stage .tag{font-size:9.5px;color:var(--muted);font-weight:600}
+  .flowdot{display:none}
+
+  .big{text-align:center;padding:4px 0 2px}
+  .big .num{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .big .u{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .n-green{color:#5EE3A6} .n-blue{color:#7CBBFF} .n-gold{color:#FFD37E} .n-vio{color:#BBAEFF} .n-amber{color:#FFC96B}
+
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  .mini .c{background:rgba(255,255,255,.07);border-radius:11px;padding:8px 9px;text-align:center}
+  .mini .c .l{font-size:9.5px;color:var(--muted)}
+  .mini .c .v{font-size:13.5px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  .inrow{display:flex;gap:7px;margin-top:9px}
+  .inrow input,.inrow select{flex:1;min-width:0;background:rgba(255,255,255,.1);border:none;border-radius:11px;padding:11px;color:var(--ink);font-size:13.5px;outline:none;text-align:center}
+  .inrow input::placeholder{color:var(--muted)}
+  .btn{border:none;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:transform .12s}
+  .btn:active{transform:scale(.95)}
+  .btn.gold{background:#E3A63C;color:#2A1E05}
+  .btn.grn{background:#22B573;color:#fff}
+  .btn.blu{background:#3D8BFD;color:#fff}
+  .btn.vio{background:#8B7BFF;color:#fff}
+  .btn.amber{background:#F0B850;color:#2A1E05}
+  .btn.red{background:#E5544B;color:#fff}
+  .btn.dk{background:rgba(255,255,255,.12);color:var(--ink)}
+  .btn.sm{padding:8px 10px;font-size:12px}
+  .note{font-size:10.5px;color:var(--muted);line-height:1.6;margin-top:7px}
+
+  .acc{background:rgba(255,255,255,.06);border:1px solid transparent;border-radius:13px;padding:11px;margin-top:8px}
+  .acc.on{border-color:rgba(255,211,126,.55)}
+  .acc .ah{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .acc .an{font-size:13px;font-weight:800}
+  .acc .abal{font-size:12px;color:#7CBBFF;font-variant-numeric:tabular-nums}
+  .acc .adet{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .acc .abtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .pill{font-size:9.5px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.1);color:var(--muted);border:none}
+  .pill.sel{background:rgba(255,211,126,.18);color:#FFD37E}
+
+  .room{background:rgba(255,255,255,.06);border-radius:13px;padding:11px;margin-top:8px}
+  .room .rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .room .rn{font-size:13px;font-weight:800;color:#FFD37E}
+  .room .rc{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .prog{height:10px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;border:none;margin-top:8px}
+  .prog>i{display:block;height:100%;background:linear-gradient(90deg,#22B573,#5EE3A6);width:0;transition:width .25s}
+  .rbtns{display:flex;gap:6px;margin-top:8px}
+  .rbtns .btn{flex:1}
+  .progtxt{text-align:center;font-size:10.5px;color:var(--muted);margin-top:6px}
+
+  .logitem{background:rgba(255,255,255,.06);border:1px solid transparent;border-radius:12px;padding:9px 11px;margin-top:7px}
+  .logitem .top{display:flex;justify-content:space-between;align-items:center}
+  .logitem .nm{font-size:12.5px;font-weight:700}
+  .logitem .st{font-size:9.5px;color:#5EE3A6;background:rgba(94,227,166,.14);border:none;border-radius:20px;padding:2px 8px}
+  .logitem .dt{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .weekitem{display:flex;justify-content:space-between;background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:8px 11px;margin-top:6px;font-size:12px}
+  .weekitem b{color:#FFD37E;font-variant-numeric:tabular-nums}
+  .empty{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0}
+  .next{background:rgba(255,255,255,.07);border:none;border-radius:12px;padding:12px;font-size:12px;line-height:1.7}
+  .next b{color:#FFD37E}
+  .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .sumgrid .c{background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:8px 9px}
+  .sumgrid .c .l{font-size:9.5px;color:var(--muted)}
+  .sumgrid .c .v{font-size:14px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .logline{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px;line-height:1.5}
+  .logline:last-child{border-bottom:none}
+  .logline .li{flex-shrink:0;font-size:13px}
+  .logline .lx{flex:1;color:var(--ink)}
+  .logmore{text-align:center;color:var(--muted);font-size:10.5px;margin-top:7px}
+
+  input.bigc{width:100%;font-size:24px;font-weight:800;background:rgba(255,255,255,.1);border:none;border-radius:12px;padding:13px;text-align:center;outline:none;color:var(--ink)}
+  .line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .line:last-child{border-bottom:none}
+  .line .l{font-size:12px;color:var(--muted)}
+  .line .v{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+  .v-red{color:#FF8A80} .v-grn{color:#5EE3A6} .v-amber{color:#FFC96B} .v-vio{color:#BBAEFF} .v-gold{color:#FFD37E}
+  .badge{margin-top:11px;border:none;border-radius:12px;padding:11px;text-align:center;font-size:12px;font-weight:700;line-height:1.6}
+  .badge.done{background:rgba(94,227,166,.15);color:#5EE3A6}
+  .badge.need{background:rgba(255,138,128,.13);color:#FF8A80}
+  .adder{display:flex;gap:7px}
+  .adder input{flex:1;min-width:0;background:rgba(255,255,255,.1);border:none;border-radius:11px;padding:12px;color:var(--ink);font-size:15px;outline:none;text-align:center}
+  .adder input::placeholder{color:var(--muted)}
+  .items .item{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:7px 11px;margin-top:5px;font-size:12.5px}
+  .items .item .x{color:#FF8A80;cursor:pointer;font-weight:800;font-size:15px;padding:0 4px}
+  .items .item .n{font-variant-numeric:tabular-nums;font-weight:700}
+  .totalfield{display:flex;justify-content:space-between;align-items:center;margin-top:10px;background:rgba(255,255,255,.08);border:none;border-radius:11px;padding:10px 12px}
+  .totalfield .l{font-size:11.5px;color:var(--muted)}
+  .totalfield .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  details{margin-top:12px}
+  summary{color:var(--pg-muted);font-size:11.5px;cursor:pointer;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"\2699 "}
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+  .setgrid .f{display:flex;flex-direction:column}
+  .setgrid label{font-size:10px;color:var(--pg-muted);margin-bottom:3px}
+  .setgrid input{background:#fff;border:1px solid rgba(23,32,43,.12);border-radius:9px;padding:8px;color:var(--pg-ink);font-size:12.5px;text-align:center;outline:none}
+  .resetbar{text-align:center;margin-top:14px}
+  .resetbar button{background:none;border:none;color:#E5544B;font-size:11.5px;cursor:pointer;text-decoration:underline}
+
+  .hero{border-radius:18px;padding:16px;text-align:center;margin-top:10px;background:linear-gradient(165deg,#232B36,#1B222C);color:var(--ink);box-shadow:var(--shadow);border:1px solid transparent}
+  .hero .l{font-size:11px;color:var(--muted);letter-spacing:.4px}
+  .hero .big2{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px;line-height:1;color:#5EE3A6}
+  .hero .s{font-size:10.5px;color:var(--muted);margin-top:5px}
+
+  .salgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+  .salgrid6,.salsub6{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+  .salsub6 input{background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:7px 3px;color:var(--ink);font-size:12px;text-align:center;outline:none;min-width:0}
+  .salsub6 input::placeholder{color:var(--muted)}
+  .salc{border:none;border-radius:10px;padding:7px 3px;text-align:center;background:rgba(255,255,255,.07)}
+  .salc .cl{font-size:9px;color:var(--muted)}
+  .salc .cv{font-size:12px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .salc.rateb{background:rgba(34,181,115,.18)} .salc.rateb .cv{color:#5EE3A6}
+  .salc.nisba{background:rgba(61,139,253,.18)} .salc.nisba .cv{color:#7CBBFF}
+  .salc.fak{background:rgba(227,166,60,.18)} .salc.fak .cv{color:#FFD37E}
+  .salc.saat{background:rgba(94,227,166,.13)} .salc.saat .cv{color:#8FEFC1}
+  .salc.wakeel{background:rgba(139,123,255,.18)} .salc.wakeel .cv{color:#BBAEFF}
+  .salc.edafi{background:rgba(224,112,143,.18)} .salc.edafi .cv{color:#F5A0BC}
+  .grphead{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:2px 0}
+  .grphead .gn{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .grphead .gt{font-size:15px;font-weight:800;color:#5EE3A6;font-variant-numeric:tabular-nums}
+  .subitem{background:rgba(255,255,255,.06);border:1px dashed transparent;border-radius:12px;padding:10px;margin-top:8px}
+  .subitem .sh{display:flex;justify-content:space-between;align-items:center}
+  .subitem .sn{font-size:13px;font-weight:700}
+  .subitem .stt{font-size:13px;font-weight:800;color:#5EE3A6}
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+  .tcell{background:rgba(255,255,255,.08);border:1px solid transparent;border-radius:11px;padding:10px 4px;text-align:center;cursor:pointer;transition:transform .1s}
+  .tcell:active{transform:scale(.95)}
+  .tcell .tl{font-size:9px;color:var(--muted)}
+  .tcell .tv{font-size:12.5px;font-weight:800;color:#FFD37E;font-variant-numeric:tabular-nums;margin-top:2px}
+  .tcell.on{border-color:#FFD37E;background:rgba(255,211,126,.14)}
+  .trow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .trow:last-child{border-bottom:none}
+  .trow .tn{font-size:12px;color:var(--muted)}
+  .trow .tval{display:flex;align-items:center;gap:8px}
+  .trow .tv2{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+  .trow .cpy{font-size:10px;color:#7CBBFF;cursor:pointer;background:rgba(124,187,255,.12);border-radius:8px;padding:3px 9px}
+  .trow-jz,.trow-al,.trow-as,.trow-wk{border-radius:10px;padding:8px 10px;margin:5px 0;border-bottom:none}
+  .trow-jz{background:rgba(227,166,60,.18)} .trow-jz .tn{color:#FFD37E} .trow-jz .tv2{color:#FFD37E}
+  .trow-al{background:rgba(61,139,253,.18)} .trow-al .tn{color:#9CCBFF} .trow-al .tv2{color:#7CBBFF}
+  .trow-as{background:rgba(34,181,115,.18)} .trow-as .tn{color:#8FEFC1} .trow-as .tv2{color:#5EE3A6}
+  .trow-wk{background:rgba(139,123,255,.18)} .trow-wk .tn{color:#CFC6FF} .trow-wk .tv2{color:#BBAEFF}
+</style>
+</head>
+<body>
+<div class="appbar">
+  <div class="m">&#8365;</div>
+  <div><h1>نظام كونز الكامل</h1><p>إدارة التقفيل والرواتب</p></div>
+</div>
+<!-- ============ تبويب 1: نظام التقفيل ============ -->
+<div class="pane on" id="pane1">
+  <div class="stage stg-agency">
+    <h2>&#127974; وكيل الوكالة <span class="tag">دولارات</span></h2>
+    <div class="big"><div class="num n-green" id="agencyBal">$0</div><div class="u">رصيد الدولارات المتبقي · <span onclick="editBal('agency')" style="color:var(--gold-soft);cursor:pointer">تعديل ✎</span></div><div class="inrow" id="editAgencyRow" style="display:none"><input id="editAgencyVal" type="number" inputmode="numeric" placeholder="رصيد جديد"><button class="btn grn sm" onclick="saveBal('agency')">حفظ</button></div></div>
+    <div class="mini">
+      <div class="c"><div class="l">رواتب الحسابات</div><div class="v n-green" id="mSalAcc">$0</div></div>
+      <div class="c"><div class="l">راتب الوكيل</div><div class="v n-vio" id="mSalAgent">$0</div></div>
+      <div class="c"><div class="l">المجموع (رواتب)</div><div class="v n-gold" id="mTotal">$0</div></div>
+      <div class="c"><div class="l">سحبنا للآن</div><div class="v" id="mDrawn">$0</div></div>
+    </div>
+    <div class="inrow"><input id="pumpUsd" type="number" inputmode="numeric" placeholder="ضخ دولارات (راتب الوكيل)"><button class="btn grn" onclick="pumpAgency()">ضخ للوكالة</button></div>
+    <div class="inrow"><input id="drawUsd" type="number" inputmode="numeric" placeholder="اسحب دولار للشحن"><button class="btn grn" onclick="drawToShip()">اسحب وحوّل</button></div>
+    <div class="inrow"><input id="loanUsd" type="number" inputmode="numeric" placeholder="سلفة (دولار → كونز للشحن)"><button class="btn dk" onclick="takeLoan()">سلفة</button></div>
+    <div class="inrow"><input id="accLoanUsd" type="number" inputmode="numeric" placeholder="سحب من رواتب الحسابات (دين)"><button class="btn dk" onclick="takeAccLoan()">سحب</button></div>
+    <div class="mini" style="margin-top:9px">
+      <div class="c"><div class="l">وكيل بعد السلفة</div><div class="v" id="mAgentNet" style="color:var(--vio)">$0</div></div>
+      <div class="c"><div class="l">حسابات بعد السحب</div><div class="v" id="mAccNet" style="color:var(--green-soft)">$0</div></div>
+      <div class="c"><div class="l">سلف (وكيل)</div><div class="v" id="mAdvances" style="color:#e0a94a">$0</div></div>
+      <div class="c"><div class="l">سحب (حسابات)</div><div class="v" id="mAccDebt" style="color:#e0a94a">$0</div></div>
+      <div class="c"><div class="l">رأس المال</div><div class="v" id="mCapital">$0</div></div>
+    </div>
+    <div class="hero" id="plBox" style="margin-top:9px;padding:12px">
+      <div class="l" id="plLabel">الربح / الخسارة</div>
+      <div class="big2" id="plValue" style="font-size:28px">$0</div>
+      <div class="s" id="plNote">الرواتب − (رأس المال + السلف)</div>
+    </div>
+    <div class="flowdot">&#8595;</div>
+  </div>
+  <div class="stage stg-ship">
+    <h2>&#128230; وكيل الشحن <span class="tag">كونز</span></h2>
+    <div class="big"><div class="num n-blue" id="shipBal">0</div><div class="u">كونز متاحة · <span onclick="editBal('ship')" style="color:var(--gold-soft);cursor:pointer">تعديل ✎</span></div><div class="inrow" id="editShipRow" style="display:none"><input id="editShipVal" type="number" inputmode="numeric" placeholder="رصيد جديد"><button class="btn grn sm" onclick="saveBal('ship')">حفظ</button></div></div>
+    <div class="mini">
+      <div class="c"><div class="l">دخل له للآن</div><div class="v n-blue" id="shipIn">0</div></div>
+      <div class="c"><div class="l">القيمة الكلية ($)</div><div class="v" id="shipVal">$0</div></div>
+    </div>
+    <div class="inrow"><input id="pumpKonz" type="number" inputmode="numeric" placeholder="ضخ كونز (جوايز التطبيق)"><button class="btn blu" onclick="pumpShip()">ضخ</button></div>
+    <div class="flowdot">&#8595;</div>
+  </div>
+  <div class="stage stg-acc">
+    <h2>&#128100; الحسابات <span class="tag">3% للأساسي فقط</span></h2>
+    <div id="accList"></div>
+    <div class="inrow" style="margin-top:11px"><input id="accName" type="text" placeholder="اسم حساب جديد"><button class="btn gold sm" onclick="addAccount()">أضف حساب</button></div>
+    <div class="flowdot">&#8595;</div>
+  </div>
+  <div class="stage stg-room">
+    <h2>&#127963; الرومات <span class="tag">تقفل عند 80</span></h2>
+    <div id="activeRoomWrap"></div>
+    <div class="inrow" style="margin-top:11px"><input id="roomName" type="text" placeholder="اسم الروم (صاحب الجائزة)"><button class="btn vio sm" onclick="openRoom()">افتح روم</button></div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin-top:9px;cursor:pointer"><input type="checkbox" id="isCupRoom" style="width:18px;height:18px;accent-color:var(--gold)"> روم وكيل الشحن (كاس)</label>
+    
+  </div>
+  <div class="stage"><h2 style="color:var(--muted)">&#128203; سجل الرومات</h2><div id="roomsLog"><div class="empty">ما أقفلنا روم بعد</div></div></div>
+  <div class="stage"><h2 style="color:var(--muted)">&#128197; الأسابيع</h2><button class="btn dk sm" onclick="endWeek()" style="width:100%">أنهِ الأسبوع الحالي</button><div id="weeksLog"></div></div>
+  <div class="stage"><h2 style="color:var(--muted)">&#127919; الخطوة التالية</h2><div class="next" id="nextStep"></div></div>
+  <div class="stage stg-log">
+    <h2>&#128202; التفاصيل — كل شي صار</h2>
+    <div class="sumgrid">
+      <div class="c"><div class="l">رومات مقفلة</div><div class="v n-vio" id="dRooms">0</div></div>
+      <div class="c"><div class="l">حسابات مقفلة</div><div class="v n-gold" id="dAcc">0</div></div>
+      <div class="c"><div class="l">جوايز رومات</div><div class="v n-vio" id="dPrize">0</div></div>
+      <div class="c"><div class="l">صناديق نزلت</div><div class="v n-gold" id="dBox">0</div></div>
+      <div class="c"><div class="l">نسبة 3% رجعت</div><div class="v n-blue" id="dRebate">0</div></div>
+      <div class="c"><div class="l">غذّينا حسابات</div><div class="v n-blue" id="dFed">0</div></div>
+      <div class="c"><div class="l">ضخ كونز للشحن</div><div class="v n-blue" id="dPump">0</div></div>
+      <div class="c"><div class="l">دخل الشحن كلي</div><div class="v n-blue" id="dShipIn">0</div></div>
+    </div>
+    <h2 style="margin:16px 0 4px;font-size:12px;color:var(--muted)">&#128220; سجل الحركات</h2>
+    <div id="logList"><div class="empty">ما فيه حركات</div></div>
+  </div>
+  <details><summary>إعدادات نظام التقفيل</summary>
+    <div class="setgrid">
+      <div class="f"><label>سعر الوكيل (كونز/$)</label><input id="s_rateBuy" type="number" value="1950"></div>
+      <div class="f"><label>رمي الحساب</label><input id="s_throw" type="number" value="245000"></div>
+      <div class="f"><label>حسابات الروم</label><input id="s_perRoom" type="number" value="80"></div>
+      <div class="f"><label>نسبة الوكيل (%)</label><input id="s_pct" type="number" value="3"></div>
+      <div class="f"><label>راتب الحساب ($)</label><input id="s_salAcc" type="number" value="80"></div>
+      <div class="f"><label>راتب الوكيل ($)</label><input id="s_salAgent" type="number" value="30"></div>
+      <div class="f"><label>سعر الشحن بالتطبيق</label><input id="s_rateApp" type="number" value="1600"></div>
+      <div class="f"><label>جائزة الروم (كاملة)</label><input id="s_roomPrize" type="number" value="1820000"></div>
+      <div class="f"><label>كاس → رصيد الشحن</label><input id="s_cupShip" type="number" value="1260000"></div>
+      <div class="f"><label>كاس → صناديق للحساب</label><input id="s_cupGift" type="number" value="560000"></div>
+    </div>
+  </details>
+  <div class="resetbar"><button class="resetBtn" data-r="taqfeel" onclick="doReset('taqfeel',this)">تصفير نظام التقفيل</button></div>
+</div>
+
+<!-- ============ تبويب 2: حاسبة الروم ============ -->
+<div class="pane" id="pane2">
+  <div class="stage stg-ship">
+    <h2>&#128176; كم كونز = كم حساب</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:6px 0">الكونز عندك</label>
+    <input class="bigc" id="rc_konz" type="number" inputmode="numeric" placeholder="0" value="0">
+    <div style="margin-top:12px">
+      <div class="line"><span class="l">حسابات تقفلها</span><span class="v n-blue" id="rc_acc">0</span></div>
+      <div class="line"><span class="l">قيمة القفل (نحو 28م)</span><span class="v v-amber" id="rc_lock">0</span></div>
+      <div class="line"><span class="l">رومات كاملة</span><span class="v v-grn" id="rc_rooms">0</span></div>
+      <div class="line"><span class="l">باقي كونز</span><span class="v" id="rc_rem">0</span></div>
+    </div>
+    <div class="prog"><i id="rc_bar"></i></div><div class="progtxt" id="rc_txt">0 / 80</div>
+  </div>
+  <div class="stage stg-room">
+    <h2>&#127963; كم ناقص للـ 28 مليون</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:6px 0">كم مقفل في الروم الآن (كونز)</label>
+    <input class="bigc" id="rc_cur" type="number" inputmode="numeric" placeholder="0" value="0">
+    <div style="margin-top:12px">
+      <div class="line"><span class="l">ناقص قيمة للـ 28 مليون</span><span class="v v-amber" id="rc_needLock">28,000,000</span></div>
+      <div class="line"><span class="l">حسابات ناقصة</span><span class="v v-vio" id="rc_needAcc">80</span></div>
+      <div class="line" style="border-top:1px solid var(--line);padding-top:13px"><span class="l" style="font-weight:700;color:var(--ink)">كونز نحتاج نجيبها</span><span class="v v-red" style="font-size:21px" id="rc_needThrow">19,600,000</span></div>
+    </div>
+    <div class="prog"><i id="rc_bar2"></i></div><div class="progtxt" id="rc_txt2">0 / 28,000,000</div>
+    <div class="badge need" id="rc_badge">ناقصك 80 حساب</div>
+  </div>
+</div>
+
+<!-- ============ تبويب 3: الفك والكاس ============ -->
+<div class="pane" id="pane3">
+  <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
+    <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
+    <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
+    <div class="adder"><input id="fak_in" type="number" inputmode="numeric" placeholder="كونز فك حساب"><button class="btn amber" onclick="addFak()">أضف</button></div>
+    <div class="items" id="fak_items"></div>
+    <div class="totalfield"><span class="l">المتوفر الكلي من الفك</span><span class="v n-amber" id="fak_total">0</span></div>
+    <div style="margin-top:12px">
+      <div class="line"><span class="l">حسابات نقفلها</span><span class="v v-amber" id="fak_acc">0</span></div>
+      <div class="line"><span class="l">الراتب الكلي</span><span class="v v-grn" id="fak_sal">$0</span></div>
+    </div>
+    <div class="prog"><i id="fak_bar"></i></div><div class="progtxt" id="fak_txt">0 / 80</div>
+  </div>
+  <div class="stage" style="background:linear-gradient(165deg,#2B2354,#211A42)">
+    <h2 style="color:#BBAEFF">&#127942; جوايز كاس الروم</h2>
+    <div class="note" style="margin-top:0">كونز جوايز الكاس نقفل فيها حسابات — أضف كل جائزة.</div>
+    <div class="adder"><input id="cup_in" type="number" inputmode="numeric" placeholder="كونز جائزة كاس"><button class="btn vio" onclick="addCup()">أضف</button></div>
+    <div class="items" id="cup_items"></div>
+    <div class="totalfield"><span class="l">المتوفر الكلي من الكاس</span><span class="v n-vio" id="cup_total">0</span></div>
+    <div style="margin-top:12px">
+      <div class="line"><span class="l">حسابات نقفلها</span><span class="v v-vio" id="cup_acc">0</span></div>
+      <div class="line"><span class="l">الراتب الكلي</span><span class="v v-grn" id="cup_sal">$0</span></div>
+    </div>
+    <div class="prog"><i id="cup_bar"></i></div><div class="progtxt" id="cup_txt">0 / 80</div>
+    <div class="resetbar"><button class="resetBtn" data-r="fakcup" onclick="doReset('fakcup',this)">تصفير الفك والكاس</button></div>
+</div>
+</div>
+
+<!-- ============ تبويب 4: الملخص والخصم ============ -->
+<div class="pane" id="pane4">
+  <div class="hero">
+    <div class="l">إجمالي الحسابات المقفلة (كل المصادر)</div>
+    <div class="big2" id="sm_totalAcc">0</div>
+    <div class="s">من نظام التقفيل + الفك + الكاس</div>
+  </div>
+  <div class="stage stg-log">
+    <h2>&#128202; تفصيل المصادر</h2>
+    <div class="sumgrid">
+      <div class="c"><div class="l">تقفيل — حسابات</div><div class="v n-gold" id="sm_tqAcc">0</div></div>
+      <div class="c"><div class="l">تقفيل — راتب</div><div class="v n-grn" id="sm_tqSal">$0</div></div>
+      <div class="c"><div class="l">فك — حسابات</div><div class="v n-amber" id="sm_fakAcc">0</div></div>
+      <div class="c"><div class="l">فك — راتب</div><div class="v n-grn" id="sm_fakSal">$0</div></div>
+      <div class="c"><div class="l">كاس — حسابات</div><div class="v n-vio" id="sm_cupAcc">0</div></div>
+      <div class="c"><div class="l">كاس — راتب</div><div class="v n-grn" id="sm_cupSal">$0</div></div>
+    </div>
+  </div>
+  <div class="hero" style="border-color:var(--green)">
+    <div class="l" style="color:var(--green-soft)">الراتب الكامل المجمّع</div>
+    <div class="big2" id="sm_grossSal">$0</div>
+    <div class="s">قبل الخصم</div>
+  </div>
+  <div class="stage">
+    <h2 style="color:var(--red)">&#9866;&#65039; خصم من الراتب</h2>
+    <div class="inrow"><input id="dedAmount" type="number" inputmode="numeric" placeholder="مبلغ الخصم ($)"><input id="dedReason" type="text" placeholder="السبب / وين راح"></div>
+    <button class="btn red sm" onclick="addDeduction()" style="width:100%;margin-top:8px">سجّل الخصم</button>
+    <div style="margin-top:14px">
+      <div class="line"><span class="l">إجمالي الخصومات</span><span class="v v-red" id="sm_dedTotal">$0</span></div>
+      <div class="line"><span class="l">سلف + سحب (ديون)</span><span class="v" style="color:#e0a94a" id="sm_advances">$0</span></div>
+      <div class="line"><span class="l" style="font-weight:700;color:var(--ink)">الباقي بعد الخصم والسلف</span><span class="v v-grn" style="font-size:20px" id="sm_net">$0</span></div>
+    </div>
+    <h2 style="margin:16px 0 4px;font-size:12px;color:var(--muted)">&#128220; سجل الخصومات (وين راحت)</h2>
+    <div id="dedList"><div class="empty">ما فيه خصومات</div></div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="summary" onclick="doReset('summary',this)">تصفير الخصومات</button></div>
+</div>
+
+<!-- ============ تبويب 5: توزيع الرواتب ============ -->
+<div class="pane" id="pane5">
+  <div class="hero" style="border-color:var(--violet)">
+    <div class="l" style="color:#c9beff">إجمالي الرواتب الموزّعة</div>
+    <div class="big2" id="sal_total" style="color:#c9beff">$0</div>
+    <div class="s" id="sal_breakdown">فك · نسبة · وكيل · ساعات</div>
+  </div>
+  <div class="stage stg-log">
+    <h2>&#128202; المجاميع العامة</h2>
+    <div class="salgrid6">
+      <div class="salc rateb"><div class="cl">راتب</div><div class="cv" id="st_rateb">$0</div></div>
+      <div class="salc nisba"><div class="cl">نسبة</div><div class="cv" id="st_nisba">$0</div></div>
+      <div class="salc fak"><div class="cl">فك</div><div class="cv" id="st_fak">$0</div></div>
+      <div class="salc saat"><div class="cl">ساعات</div><div class="cv" id="st_saat">$0</div></div>
+      <div class="salc wakeel"><div class="cl">وكيل</div><div class="cv" id="st_wakeel">$0</div></div>
+      <div class="salc edafi"><div class="cl">إضافي</div><div class="cv" id="st_edafi">$0</div></div>
+    </div>
+    <div class="mini" style="margin-top:8px">
+      <div class="c"><div class="l">سلفة (دين)</div><div class="v" style="color:#e0a94a" id="sal_adv">$0</div></div>
+      <div class="c"><div class="l">فك وكاس (حسابات)</div><div class="v n-amber" id="sal_fakcup">0</div></div>
+    </div>
+  </div>
+  <div id="sal_groups"></div>
+  <div class="stage">
+    <h2 style="color:var(--gold-soft)">&#10133; إضافة مجموعة / مستلم</h2>
+    <div class="inrow"><input id="sal_gname" type="text" placeholder="اسم المستلم (مثلاً منيرة)"><button class="btn gold sm" onclick="addSalGroup()">أضف مجموعة</button></div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="salary" onclick="doReset('salary',this)">تصفير الرواتب</button></div>
+</div>
+
+<!-- ============ تبويب 6: حاسبة النسبة ============ -->
+<div class="pane" id="pane6">
+  <div class="stage stg-ship">
+    <h2>&#37; حاسبة النسبة</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 6px">المبلغ (كونز أو دولار)</label>
+    <input class="bigc" id="pc_amount" type="number" inputmode="decimal" placeholder="0">
+    <label style="display:block;font-size:12px;color:var(--muted);margin:12px 0 6px">النسبة المطلوبة %</label>
+    <input class="bigc" id="pc_pct" type="number" inputmode="decimal" placeholder="3" style="color:#FFC96B">
+    <div class="hero" style="margin-top:14px;background:rgba(255,255,255,.07);box-shadow:none">
+      <div class="l">النسبة تكون</div>
+      <div class="big2" id="pc_result" style="color:#7CBBFF">0</div>
+      <div class="s" id="pc_note">اكتب المبلغ والنسبة</div>
+    </div>
+    <div class="mini" style="margin-top:10px">
+      <div class="c"><div class="l">الناتج يقفل حسابات</div><div class="v n-green" id="pc_acc">0</div></div>
+      <div class="c"><div class="l">قيمته شحنة ($ عند الوكيل)</div><div class="v n-gold" id="pc_usd">$0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ تبويب 7: بيانات بنكية ============ -->
+<div class="pane" id="pane7">
+  <div class="stage stg-agency">
+    <h2>&#127974; حسابات بنكية</h2>
+    <div id="bankList"><div class="empty">ما فيه أسماء محفوظة</div></div>
+  </div>
+  <div class="stage">
+    <h2 style="color:var(--gold-soft)">&#10133; إضافة اسم جديد</h2>
+    <div class="inrow"><input id="bk_name" type="text" placeholder="الاسم"></div>
+    <div class="inrow"><input id="bk_iban" type="text" placeholder="الآيبان IBAN" style="direction:ltr"></div>
+    <div class="inrow"><input id="bk_bank" type="text" placeholder="نوع البنك (الراجحي، الأهلي...)"></div>
+    <div class="inrow"><input id="bk_en" type="text" placeholder="الاسم بالإنجليزي" style="direction:ltr"></div>
+    <button class="btn grn" onclick="addBank()" style="width:100%;margin-top:9px">حفظ</button>
+  </div>
+</div>
+
+<!-- ============ تبويب 8: جدول التارقت ============ -->
+<div class="pane" id="pane8">
+  <div class="stage stg-acc">
+    <h2>&#127919; جدول التارقت</h2>
+    <div class="note" style="margin-top:0">اضغط على أي قيمة جاذبية تنفتح بياناتها كاملة.</div>
+    <div class="tgrid" id="tgGrid"></div>
+    <div id="tgDetail"></div>
+  </div>
+</div>
+
+<!-- شريط التبويبات -->
+<div class="tabbar">
+  <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
+  <div class="tb" data-p="pane2" onclick="switchTab('pane2',this)"><span class="i">&#129518;</span>حاسبة روم</div>
+  <div class="tb" data-p="pane3" onclick="switchTab('pane3',this)"><span class="i">&#128273;</span>فك وكاس</div>
+  <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)"><span class="i">&#128202;</span>ملخص</div>
+  <div class="tb" data-p="pane5" onclick="switchTab('pane5',this)"><span class="i">&#128176;</span>الرواتب</div>
+  <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)"><span class="i">&#10067;</span>نسبة</div>
+  <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)"><span class="i">&#127974;</span>بنوك</div>
+  <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)"><span class="i">&#127919;</span>تارقت</div>
+</div>
+<script>
+function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+function fmt1(n){ return (Math.round(n*10)/10).toLocaleString("en-US"); }
+function $(id){ return document.getElementById(id); }
+function num(id){ var e=$(id); return e?(+e.value||0):0; }
+
+var BOX_TIERS=[{usd:5000,konz:80000},{usd:10000,konz:93730},{usd:20000,konz:192920},{usd:30000,konz:297570},{usd:50000,konz:514150},{usd:70000,konz:764400}];
+
+var EDIT=null;
+var S={
+  agencyBal:0,agencyIn:0,drawn:0,shipBal:0,shipIn:0,closedAccounts:0,
+  accounts:[],active:null,openRooms:[],rooms:[],weeks:[],seq:1,selAcc:null,
+  log:[],rebateTot:0,boxTot:0,prizeTot:0,fedTot:0,pumpKonzTot:0,
+  fak:[],cup:[],deductions:[],advances:0,accDebt:0,salGroups:null,banks:[],bankOpen:null
+};
+function save(){ try{ localStorage.setItem("konz_all", JSON.stringify(S)); }catch(e){} }
+function load(){ try{ var r=localStorage.getItem("konz_all"); if(r){ var o=JSON.parse(r); for(var k in o){ S[k]=o[k]; } } }catch(e){} }
+
+function cfg(){
+  return { rateBuy:num("s_rateBuy")||1950, thr:num("s_throw")||245000, perRoom:num("s_perRoom")||80,
+    pct:(num("s_pct")||3)/100, salAcc:num("s_salAcc")||80, salAgent:num("s_salAgent")||30,
+    rateApp:num("s_rateApp")||1600, roomPrize:num("s_roomPrize")||1820000, cupShip:num("s_cupShip")||1260000, cupGift:num("s_cupGift")||560000 };
+}
+function findAcc(id){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].id===id) return S.accounts[i]; } return null; }
+function sumArr(a){ var t=0; for(var i=0;i<a.length;i++){ t+=a[i]; } return t; }
+function logAct(icon,txt){ if(!S.log)S.log=[]; S.log.unshift({t:icon,x:txt}); if(S.log.length>200)S.log.pop(); }
+
+/* ===== التبويبات ===== */
+function switchTab(pid,el){
+  var p=document.querySelectorAll(".pane"); for(var i=0;i<p.length;i++){ p[i].classList.remove("on"); }
+  $(pid).classList.add("on");
+  var t=document.querySelectorAll(".tabbar .tb"); for(var j=0;j<t.length;j++){ t[j].classList.remove("on"); }
+  el.classList.add("on");
+  window.scrollTo(0,0);
+  render();
+}
+
+/* ===== نظام التقفيل ===== */
+function pumpAgency(){ var u=num("pumpUsd"); if(u<=0)return; S.agencyBal+=u; S.agencyIn=(S.agencyIn||0)+u; logAct("\uD83C\uDFE6","ضخ للوكالة $"+fmt(u)); $("pumpUsd").value=""; render(); }
+function drawToShip(){ var usd=num("drawUsd"); if(usd<=0)return; if(usd>S.agencyBal){ alert("رصيد الوكالة: $"+fmt(S.agencyBal)); return; } var c=cfg(); S.agencyBal-=usd; S.drawn+=usd; var k=usd*c.rateBuy; S.shipBal+=k; S.shipIn+=k; logAct("\uD83D\uDCB8","سحب $"+fmt(usd)+" \u2190 "+fmt(k)+" كونز للشحن"); $("drawUsd").value=""; render(); }
+function takeLoan(){ var u=num("loanUsd"); if(u<=0)return; var c=cfg(); var k=Math.round(u*c.rateBuy); S.shipBal+=k; S.shipIn+=k; S.advances=(S.advances||0)+u; logAct("\uD83D\uDCB0","سلفة $"+fmt(u)+" \u2190 "+fmt(k)+" كونز لوكيل الشحن (دين على راتب الوكيل)"); $("loanUsd").value=""; render(); }
+function takeAccLoan(){ var u=num("accLoanUsd"); if(u<=0)return; S.accDebt=(S.accDebt||0)+u; logAct("\uD83D\uDCB5","سحب من رواتب الحسابات $"+fmt(u)+" (دين لحظي)"); $("accLoanUsd").value=""; render(); }
+function pumpShip(){ var k=num("pumpKonz"); if(k<=0)return; S.shipBal+=k; S.shipIn+=k; S.pumpKonzTot=(S.pumpKonzTot||0)+k; logAct("\uD83D\uDCE5","ضخ "+fmt(k)+" كونز للشحن"); $("pumpKonz").value=""; render(); }
+function addAccount(){ var name=$("accName").value.trim()||("حساب "+S.seq); var a={id:S.seq++,name:name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:(S.accounts.length===0),isShip:false}; S.accounts.push(a); if(S.selAcc===null)S.selAcc=a.id; logAct("\uD83D\uDC64","حساب جديد: "+name); $("accName").value=""; render(); }
+function feedCore(a,k){ var c=cfg(); if(k<=0){ alert("اكتب كمية."); return false; } if(k>S.shipBal){ alert("رصيد وكيل الشحن أقل: "+fmt(S.shipBal)); return false; } S.shipBal-=k; a.bal+=k; a.fedKonz+=k; S.fedTot=(S.fedTot||0)+k; var rebate=a.isMain?Math.round(k*c.pct):0; if(rebate>0){ S.shipBal+=rebate; S.shipIn+=rebate; S.rebateTot=(S.rebateTot||0)+rebate; } a.fedUsdCum+=k/c.rateApp; var before=a.boxTier; applyBoxes(a,c); logAct("\u27A1\uFE0F","غذّينا «"+a.name+"» "+fmt(k)+(rebate>0?" · رجع 3%="+fmt(rebate):"")+(a.boxTier>before?" · "+(a.boxTier-before)+" صندوق":"")); return true; }
+function feedAccount(id){ var a=findAcc(id); if(!a)return; var inp=$("feed_"+id); var k=inp?(+inp.value||0):0; if(feedCore(a,k)){ if(inp)inp.value=""; render(); } }
+function feedAccountUsd(id){ var a=findAcc(id); if(!a)return; var c=cfg(); var inp=$("feedusd_"+id); var usd=inp?(+inp.value||0):0; if(usd<=0){ alert("اكتب المبلغ بالدولار."); return; } var k=Math.round(usd*c.rateApp); if(feedCore(a,k)){ logAct("\uD83D\uDCB5","(بالدولار) $"+fmt(usd)+" \u2190 "+fmt(k)+" كونز لـ«"+a.name+"»"); if(inp)inp.value=""; render(); } }
+function feedAll(id){ var a=findAcc(id); if(!a)return; if(feedCore(a,Math.round(S.shipBal))){ render(); } }
+function setMain(id){ for(var i=0;i<S.accounts.length;i++){ S.accounts[i].isMain=(S.accounts[i].id===id); } render(); }
+function setShip(id){ for(var i=0;i<S.accounts.length;i++){ S.accounts[i].isShip=(S.accounts[i].id===id); } render(); }
+function findShipAcct(){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].isShip) return S.accounts[i]; } return null; }
+var delArm={};
+function delAccount(id){
+  if(!delArm["a"+id]){ delArm["a"+id]=true; var b=$("delacc_"+id); if(b){ b.textContent="متأكد؟"; b.style.background="var(--red)"; b.style.color="#fff"; } setTimeout(function(){ delArm["a"+id]=false; var b2=$("delacc_"+id); if(b2){ b2.textContent="حذف"; b2.style.background=""; b2.style.color="var(--red)"; } },3000); return; }
+  delArm["a"+id]=false;
+  for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].id===id){ logAct("\uD83D\uDDD1\uFE0F","حذفنا حساب «"+S.accounts[i].name+"»"); S.accounts.splice(i,1); break; } }
+  if(S.selAcc===id) S.selAcc=(S.accounts[0]?S.accounts[0].id:null); if(EDIT&&EDIT.t==="acc"&&EDIT.id===id)EDIT=null; render();
+}
+function editAccount(id){ EDIT={t:"acc",id:id}; render(); }
+function saveAccount(id){ var a=findAcc(id); if(!a)return; var nn=$("edn_"+id), nb=$("edb_"+id); if(nn&&nn.value.trim())a.name=nn.value.trim(); if(nb)a.bal=+nb.value||0; EDIT=null; render(); }
+function cancelEdit(){ EDIT=null; render(); }
+function editAccBal(id){ EDIT={t:"accbal",id:id}; render(); }
+function saveAccBal(id){ var a=findAcc(id); if(!a)return; var inp=$("acb_"+id); if(inp)a.bal=+inp.value||0; EDIT=null; render(); }
+function editBal(which){ EDIT={t:which}; render(); if(which==="agency"){ var e=$("editAgencyVal"); if(e)e.value=Math.round(S.agencyBal); } if(which==="ship"){ var e2=$("editShipVal"); if(e2)e2.value=Math.round(S.shipBal); } toggleBalEdit(which,true); }
+function toggleBalEdit(which,on){ var row=$(which==="agency"?"editAgencyRow":"editShipRow"); if(row)row.style.display=on?"flex":"none"; }
+function saveBal(which){ if(which==="agency"){ S.agencyBal=+($("editAgencyVal").value)||0; toggleBalEdit("agency",false); } else { S.shipBal=+($("editShipVal").value)||0; toggleBalEdit("ship",false); } EDIT=null; render(); }
+function delRoom(id){ if(!confirm("حذف الروم من السجل؟ بينعكس على الإجماليات."))return; var c=cfg(); for(var i=0;i<S.rooms.length;i++){ if(S.rooms[i].id===id){ var rm=S.rooms[i]; if(!rm.manual){ S.closedAccounts=Math.max(S.closedAccounts-rm.accounts,0); S.prizeTot=Math.max((S.prizeTot||0)-(rm.prize||0),0); S.agencyBal=Math.max(S.agencyBal-rm.accounts*(c.salAcc+c.salAgent),0); if(rm.isCup){ S.shipBal=Math.max(S.shipBal-(rm.cupShip||0),0); S.shipIn=Math.max(S.shipIn-(rm.cupShip||0),0); } } S.rooms.splice(i,1); break; } } render(); }
+function editItem(type,i){ EDIT={t:type+"item",i:i}; render(); }
+function saveItem(type,i){ var inp=$("edit_"+type+"_"+i); if(inp){ var v=+inp.value||0; if(v>0){ (type==="fak"?S.fak:S.cup)[i]=v; } } EDIT=null; render(); }
+function applyBoxes(a,c){ var cum=a.fedUsdCum; while(true){ var idx=a.boxTier%BOX_TIERS.length; var cycle=Math.floor(a.boxTier/BOX_TIERS.length); var th=BOX_TIERS[idx].usd+cycle*70000; if(cum>=th){ a.bal+=BOX_TIERS[idx].konz; a.boxKonz=(a.boxKonz||0)+BOX_TIERS[idx].konz; S.boxTot=(S.boxTot||0)+BOX_TIERS[idx].konz; a.boxTier++; } else break; if(a.boxTier>60)break; } }
+function selectAcc(id){ S.selAcc=id; render(); }
+function openRoom(){ if(S.accounts.length===0){ alert("أضف حساب وغذّه أول."); return; } if(S.selAcc===null||!findAcc(S.selAcc)){ S.selAcc=S.accounts[0].id; } var name=$("roomName").value.trim()||("روم "+S.seq); var isCup=($("isCupRoom")?$("isCupRoom").checked:false); if(!S.openRooms)S.openRooms=[]; S.openRooms.push({rid:S.seq++,name:name,accounts:0,fromAcc:S.selAcc,isCup:isCup,thrownKonz:0,ourKonz:0,contrib:{}}); logAct("\uD83C\uDFDF\uFE0F","فتحنا "+(isCup?"كاس ":"")+"روم «"+name+"» من «"+findAcc(S.selAcc).name+"»"); if($("isCupRoom"))$("isCupRoom").checked=false; $("roomName").value=""; render(); }
+function findRoom(rid){ for(var i=0;i<S.openRooms.length;i++){ if(S.openRooms[i].rid===rid) return S.openRooms[i]; } return null; }
+function roomKonz(rm,c){ return (rm.thrownKonz!==undefined)?rm.thrownKonz:(rm.accounts||0)*c.thr; }
+function throwKonz(rid,konz){ var rm=findRoom(rid); if(!rm)return; var c=cfg(); var acc=findAcc(S.selAcc); if(!acc){ alert("اختر حساب الرمي أول (زر «للرمي»)."); return; } if(rm.thrownKonz===undefined)rm.thrownKonz=(rm.accounts||0)*c.thr; var cap=c.perRoom*c.thr; konz=Math.floor(Math.min(konz,acc.bal,cap-rm.thrownKonz)); if(konz<=0){ alert("ما فيه كونز كافية أو الروم ممتلئ."); return; } if(rm.ourKonz===undefined)rm.ourKonz=(rm.thrownKonz||0)-(rm.external||0); var prev=Math.floor(rm.ourKonz/c.thr); acc.bal-=konz; acc.thrown=(acc.thrown||0)+konz; if(!rm.contrib)rm.contrib={}; rm.contrib[acc.id]=(rm.contrib[acc.id]||0)+konz; rm.thrownKonz+=konz; rm.ourKonz+=konz; var now=Math.floor(rm.ourKonz/c.thr); var delta=now-prev; if(delta>0){ S.closedAccounts+=delta; S.agencyBal+=delta*(c.salAcc+c.salAgent); logAct("\u2705","قفلنا "+delta+" حساب من روم «"+rm.name+"» · رواتب $"+fmt(delta*(c.salAcc+c.salAgent))); } rm.accounts=Math.floor(rm.thrownKonz/c.thr); if(rm.thrownKonz>=cap){ closeRoom(rid); } render(); }
+function throwAccounts(rid,count){ var c=cfg(); throwKonz(rid,count*c.thr); }
+function throwAll(rid){ var acc=findAcc(S.selAcc); if(!acc){ alert("اختر حساب الرمي أول."); return; } if(acc.bal<=0){ alert("رصيد الحساب صفر."); return; } throwKonz(rid,acc.bal); }
+function addExternalKonz(rid,konz){ var rm=findRoom(rid); if(!rm)return; var c=cfg(); if(rm.thrownKonz===undefined)rm.thrownKonz=(rm.accounts||0)*c.thr; var cap=c.perRoom*c.thr; konz=Math.floor(Math.min(konz,cap-rm.thrownKonz)); if(konz<=0){ alert("الروم ممتلئ أو الكمية غير صالحة."); return; } rm.thrownKonz+=konz; rm.external=(rm.external||0)+konz; rm.accounts=Math.floor(rm.thrownKonz/c.thr); logAct("\uD83D\uDC65","أضفنا "+fmt(konz)+" كونز خارجي (تكميل روم فقط، بدون حسابات) لروم «"+rm.name+"»"); if(rm.thrownKonz>=cap){ closeRoom(rid); } render(); }
+function addExtFromInput(rid){ var inp=$("ext_"+rid); var k=inp?(+inp.value||0):0; if(k<=0){ alert("اكتب كمية الكونز الخارجية."); return; } if(inp)inp.value=""; addExternalKonz(rid,k); }
+function cancelRoom(rid){
+  var c=cfg();
+  for(var i=0;i<S.openRooms.length;i++){ if(S.openRooms[i].rid===rid){ var rm=S.openRooms[i]; var ourK=(rm.ourKonz!==undefined)?rm.ourKonz:(roomKonz(rm,c)-(rm.external||0)); var refund=0; var refTxt="";
+        if(rm.contrib && Object.keys(rm.contrib).length>0){ for(var accId in rm.contrib){ var ac=findAcc(+accId); if(ac){ ac.bal+=rm.contrib[accId]; ac.thrown=Math.max((ac.thrown||0)-rm.contrib[accId],0); } refund+=rm.contrib[accId]; } refTxt="لكل حساب حسب رميه"; }
+        else { refund=ourK; var acc=findAcc(S.selAcc)||findAcc(rm.fromAcc); if(acc){ acc.bal+=refund; } refTxt="لـ«"+(acc?acc.name:"—")+"»"; }
+        var accts=Math.floor(ourK/c.thr); if(accts>0){ S.closedAccounts=Math.max(S.closedAccounts-accts,0); S.agencyBal=Math.max(S.agencyBal-accts*(c.salAcc+c.salAgent),0); }
+        logAct("\uD83D\uDDD1\uFE0F","حذفنا روم «"+rm.name+"»"+(refund>0?" · رجّعنا "+fmt(refund)+" كونز "+refTxt+(accts>0?" · تراجعنا عن "+accts+" حساب":""):"")); S.openRooms.splice(i,1); break; } }
+  render();
+}
+function closeRoom(rid){ var R=findRoom(rid); if(!R)return; var c=cfg(); var owner=null; if(R.isCup){ owner=findAcc(S.selAcc)||findAcc(R.fromAcc); } if(!owner){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].name===R.name){ owner=S.accounts[i]; break; } } } if(!owner){ owner={id:S.seq++,name:R.name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:false,isShip:false}; S.accounts.push(owner); } if(R.isCup){ S.shipBal+=c.cupShip; S.shipIn+=c.cupShip; var sa=findShipAcct(); if(!sa)sa=owner; sa.bal+=c.cupGift; sa._cupDest=sa.name; S.prizeTot=(S.prizeTot||0)+c.cupGift; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.cupGift,cupShip:c.cupShip,cupTo:sa.name,isCup:true}); } else { owner.bal+=c.roomPrize; S.prizeTot=(S.prizeTot||0)+c.roomPrize; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.roomPrize}); } if(R.isCup){ var sacc=findShipAcct(); logAct("\uD83C\uDFC6","أقفلنا كاس «"+R.name+"» ("+R.accounts+" حساب مكتمل) · "+fmt(c.cupShip)+" لرصيد الشحن + "+fmt(c.cupGift)+" لحساب وكيل الشحن «"+(sacc?sacc.name:owner.name)+"»"); } else { logAct("\uD83D\uDD12","أقفلنا «"+R.name+"» ("+R.accounts+" حساب مكتمل) · جائزة "+fmt(c.roomPrize)); } for(var j=0;j<S.openRooms.length;j++){ if(S.openRooms[j].rid===rid){ S.openRooms.splice(j,1); break; } } save(); }
+function endWeek(){ S.weeks.push({n:S.weeks.length+1,acc:S.closedAccounts}); render(); }
+var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب"};
+function armBtn(el,on){ if(on){ el.textContent="اضغط مرة ثانية للتأكيد"; el.style.color="#fff"; el.style.background="var(--red)"; el.style.padding="9px 16px"; el.style.borderRadius="10px"; el.style.textDecoration="none"; } else { el.textContent=resetLabel[el.getAttribute("data-r")]||"تصفير"; el.style.background="none"; el.style.color="var(--red)"; el.style.padding="0"; el.style.textDecoration="underline"; } }
+function doReset(kind,el){
+  if(!resetArm[kind]){
+    resetArm[kind]=true; armBtn(el,true);
+    if(resetTimer[kind])clearTimeout(resetTimer[kind]);
+    resetTimer[kind]=setTimeout(function(){ resetArm[kind]=false; armBtn(el,false); },3500);
+    return;
+  }
+  resetArm[kind]=false; if(resetTimer[kind])clearTimeout(resetTimer[kind]);
+  if(kind==="taqfeel"){ S.agencyBal=0;S.agencyIn=0;S.drawn=0;S.shipBal=0;S.shipIn=0;S.closedAccounts=0;S.accounts=[];S.active=null;S.openRooms=[];S.rooms=[];S.weeks=[];S.selAcc=null;S.log=[];S.rebateTot=0;S.boxTot=0;S.prizeTot=0;S.fedTot=0;S.pumpKonzTot=0;S.advances=0;S.accDebt=0; }
+  else if(kind==="fakcup"){ S.fak=[];S.cup=[]; }
+  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; }
+  EDIT=null; armBtn(el,false); render();
+}
+
+/* ===== الفك والكاس ===== */
+function addFak(){ var v=num("fak_in"); if(v<=0)return; S.fak.push(v); $("fak_in").value=""; render(); }
+function addCup(){ var v=num("cup_in"); if(v<=0)return; S.cup.push(v); $("cup_in").value=""; render(); }
+function delFak(i){ S.fak.splice(i,1); render(); }
+function delCup(i){ S.cup.splice(i,1); render(); }
+
+/* ===== الخصم ===== */
+function addDeduction(){ var amt=num("dedAmount"); var reason=$("dedReason").value.trim()||"بدون سبب"; if(amt<=0){ alert("اكتب مبلغ الخصم."); return; } S.deductions.unshift({amt:amt,reason:reason}); $("dedAmount").value=""; $("dedReason").value=""; render(); }
+function delDeduction(i){ S.deductions.splice(i,1); render(); }
+function seedSalary(){ if(!S.salGroups){ S.salGroups=[{id:S.seq++,name:"منيرة",collapsed:false,subs:[]},{id:S.seq++,name:"سعود",collapsed:false,subs:[]}]; } }
+function findGrp(gid){ for(var i=0;i<S.salGroups.length;i++){ if(S.salGroups[i].id===gid)return S.salGroups[i]; } return null; }
+function addSalGroup(){ seedSalary(); var n=$("sal_gname").value.trim(); if(!n){ alert("اكتب اسم المجموعة."); return; } S.salGroups.push({id:S.seq++,name:n,collapsed:false,subs:[]}); $("sal_gname").value=""; render(); }
+function delSalGroup(gid){ if(!S.salGroups)return; for(var i=0;i<S.salGroups.length;i++){ if(S.salGroups[i].id===gid){ S.salGroups.splice(i,1); break; } } render(); }
+function toggleSalGroup(gid){ var g=findGrp(gid); if(g){ g.collapsed=!g.collapsed; render(); } }
+function addSub(gid){ var g=findGrp(gid); if(!g)return; var nm=$("subn_"+gid); var name=nm?nm.value.trim():""; if(!name){ alert("اكتب اسم الحساب الفرعي."); return; } var o={id:S.seq++,name:name}; for(var i=0;i<SAL_COMP.length;i++){ o[SAL_COMP[i].k]=+($("sub_"+SAL_COMP[i].k+"_"+gid).value)||0; } g.subs.push(o); render(); }
+function delSub(gid,sid){ var g=findGrp(gid); if(!g)return; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ g.subs.splice(i,1); break; } } if(EDIT&&EDIT.t==="sub"&&EDIT.sid===sid)EDIT=null; render(); }
+function editSub(gid,sid){ EDIT={t:"sub",gid:gid,sid:sid}; render(); }
+function saveSub(gid,sid){ var g=findGrp(gid); if(!g)return; var sub=null; for(var i=0;i<g.subs.length;i++){ if(g.subs[i].id===sid){ sub=g.subs[i]; break; } } if(!sub)return; var nm=$("esn_"+sid); if(nm&&nm.value.trim())sub.name=nm.value.trim(); for(var i=0;i<SAL_COMP.length;i++){ sub[SAL_COMP[i].k]=+($("es_"+SAL_COMP[i].k+"_"+sid).value)||0; } EDIT=null; render(); }
+var SAL_COMP=[{k:"rateb",l:"راتب",cls:"rateb"},{k:"nisba",l:"نسبة",cls:"nisba"},{k:"fak",l:"فك",cls:"fak"},{k:"saat",l:"ساعات",cls:"saat"},{k:"wakeel",l:"وكيل",cls:"wakeel"},{k:"edafi",l:"إضافي",cls:"edafi"}];
+function subTotal(x){ var t=0; for(var i=0;i<SAL_COMP.length;i++){ t+=(x[SAL_COMP[i].k]||0); } return t; }
+function grpTotal(g){ var t=0; for(var i=0;i<g.subs.length;i++){ t+=subTotal(g.subs[i]); } return t; }
+function renderSalary(){
+  seedSalary(); var c=cfg();
+  var tot={}; for(var t0=0;t0<SAL_COMP.length;t0++){ tot[SAL_COMP[t0].k]=0; } var grand=0;
+  var GC=["#c9beff","#e6c877","#7ed3a2","#8fc7ec","#e0a94a","#e08aa0"];
+  var h="";
+  for(var gi=0;gi<S.salGroups.length;gi++){ var g=S.salGroups[gi]; var col=GC[gi%GC.length]; var gt=grpTotal(g);
+    for(var s2=0;s2<g.subs.length;s2++){ var sx=g.subs[s2]; for(var t1=0;t1<SAL_COMP.length;t1++){ tot[SAL_COMP[t1].k]+=(sx[SAL_COMP[t1].k]||0); } }
+    grand+=gt;
+    h+='<div class="stage" style="border-color:'+col+'"><div class="grphead" onclick="toggleSalGroup('+g.id+')"><div class="gn" style="color:'+col+'"><span>'+(g.collapsed?"\u25B6":"\u25BC")+'</span> '+g.name+'</div><div class="gt">$'+fmt(gt)+'</div></div>';
+    if(!g.collapsed){
+      for(var si=0;si<g.subs.length;si++){ var sub=g.subs[si]; var editing=(EDIT&&EDIT.t==="sub"&&EDIT.sid===sub.id);
+        if(editing){
+          var ein='<input id="esn_'+sub.id+'" type="text" value="'+sub.name+'" style="width:100%;background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:7px;color:var(--ink);font-size:13px;text-align:center;margin-bottom:6px">';
+          var eg=''; for(var e1=0;e1<SAL_COMP.length;e1++){ var cp=SAL_COMP[e1]; eg+='<input id="es_'+cp.k+'_'+sub.id+'" type="number" value="'+(sub[cp.k]||0)+'" placeholder="'+cp.l+'">'; }
+          h+='<div class="subitem">'+ein+'<div class="salsub6">'+eg+'</div><div class="abtns"><button class="btn grn sm" onclick="saveSub('+g.id+','+sub.id+')">حفظ</button><button class="btn dk sm" onclick="cancelEdit()">إلغاء</button></div></div>';
+        } else {
+          var boxes=''; for(var d1=0;d1<SAL_COMP.length;d1++){ var cp2=SAL_COMP[d1]; boxes+='<div class="salc '+cp2.cls+'"><div class="cl">'+cp2.l+'</div><div class="cv">$'+fmt(sub[cp2.k]||0)+'</div></div>'; }
+          h+='<div class="subitem"><div class="sh"><div class="sn">'+sub.name+'</div><div class="stt">$'+fmt(subTotal(sub))+'</div></div><div class="salgrid6">'+boxes+'</div><div class="abtns"><button class="btn dk sm" onclick="editSub('+g.id+','+sub.id+')">تعديل</button><button class="btn dk sm" onclick="delSub('+g.id+','+sub.id+')" style="color:var(--red)">حذف</button></div></div>';
+        }
+      }
+      var ain=''; for(var a1=0;a1<SAL_COMP.length;a1++){ var cp3=SAL_COMP[a1]; ain+='<input id="sub_'+cp3.k+'_'+g.id+'" type="number" placeholder="'+cp3.l+'">'; }
+      h+='<div class="subitem" style="border-style:dashed"><input id="subn_'+g.id+'" type="text" placeholder="اسم حساب فرعي جديد" style="width:100%;background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:7px;color:var(--ink);font-size:13px;text-align:center;margin-bottom:6px"><div class="salsub6">'+ain+'</div><div class="abtns"><button class="btn gold sm" onclick="addSub('+g.id+')" style="flex:1">أضف حساب فرعي</button><button class="btn dk sm" onclick="delSalGroup('+g.id+')" style="color:var(--red)">حذف المجموعة</button></div></div>';
+    }
+    h+='</div>';
+  }
+  $("sal_groups").innerHTML=h;
+  $("sal_total").textContent="$"+fmt(grand);
+  var bd=""; for(var b1=0;b1<SAL_COMP.length;b1++){ var cp4=SAL_COMP[b1]; var el=$("st_"+cp4.k); if(el)el.textContent="$"+fmt(tot[cp4.k]); bd+=(b1>0?" · ":"")+cp4.l+" $"+fmt(tot[cp4.k]); }
+  $("sal_breakdown").textContent=bd;
+  $("sal_adv").textContent="$"+fmt(S.advances||0);
+  var fc=Math.floor((sumArr(S.fak)+sumArr(S.cup))/c.thr); $("sal_fakcup").textContent=fmt(fc);
+}
+
+/* ===== حاسبة الروم ===== */
+function calcRoomCalc(){
+  var c=cfg();
+  var k=num("rc_konz"); var acc=Math.floor(k/c.thr); var lock=acc*c.lock2; 
+  var lockPer=num("s_lock2")||350000;
+  acc=Math.floor(k/c.thr); lock=acc*lockPer; var rooms=acc/c.perRoom; var rem=k-acc*c.thr;
+  $("rc_acc").textContent=fmt(acc); $("rc_lock").textContent=fmt(lock); $("rc_rooms").textContent=fmt1(rooms); $("rc_rem").textContent=fmt(rem);
+  var inR=acc%c.perRoom; var p1=(inR/c.perRoom)*100; if(acc>0&&inR===0)p1=100;
+  $("rc_bar").style.width=Math.min(p1,100)+"%"; $("rc_txt").textContent=(acc>=c.perRoom?fmt(Math.floor(rooms))+" روم + ":"")+inR+" / "+c.perRoom;
+  var target=lockPer*c.perRoom; var cur=num("rc_cur"); if(cur>target)cur=target;
+  var needLock=Math.max(target-cur,0); var needAcc=Math.ceil(needLock/lockPer); var needThrow=needAcc*c.thr;
+  $("rc_needLock").textContent=fmt(needLock); $("rc_needAcc").textContent=fmt(needAcc); $("rc_needThrow").textContent=fmt(needThrow);
+  var p2=Math.min(cur/target*100,100); $("rc_bar2").style.width=p2+"%"; $("rc_txt2").textContent=fmt(cur)+" / "+fmt(target);
+  var b=$("rc_badge"); if(needLock<=0){ b.className="badge done"; b.textContent="الروم كامل \u2713 وصل "+fmt(target); } else { b.className="badge need"; b.textContent="جيب "+fmt(needThrow)+" كونز · "+fmt(needAcc)+" حساب"; }
+}
+
+function calcPct(){
+  var c=cfg();
+  var amt=num("pc_amount"), pct=num("pc_pct");
+  var res=amt*pct/100;
+  $("pc_result").textContent=fmt1(res);
+  $("pc_acc").textContent=fmt(Math.floor(res/c.thr));
+  $("pc_usd").textContent="$"+fmt1(res/c.rateBuy);
+  $("pc_note").textContent = (amt>0&&pct>0) ? (pct+"% من "+fmt(amt)) : "اكتب المبلغ والنسبة";
+}
+function addBank(){
+  var name=$("bk_name").value.trim(); if(!name){ alert("اكتب الاسم."); return; }
+  if(!S.banks)S.banks=[];
+  S.banks.push({id:S.seq++,name:name,iban:$("bk_iban").value.trim(),bank:$("bk_bank").value.trim(),en:$("bk_en").value.trim()});
+  $("bk_name").value="";$("bk_iban").value="";$("bk_bank").value="";$("bk_en").value="";
+  render();
+}
+function toggleBank(id){ S.bankOpen=(S.bankOpen===id)?null:id; render(); }
+function delBank(id){ if(!S.banks)return; for(var i=0;i<S.banks.length;i++){ if(S.banks[i].id===id){ S.banks.splice(i,1); break; } } if(S.bankOpen===id)S.bankOpen=null; render(); }
+function copyIban(id){
+  var b=null; for(var i=0;i<S.banks.length;i++){ if(S.banks[i].id===id){ b=S.banks[i]; break; } }
+  if(!b||!b.iban)return;
+  var done=function(){ var btn=$("cpy_"+id); if(btn){ btn.textContent="\u2713 انتسخ"; setTimeout(function(){ var b2=$("cpy_"+id); if(b2)b2.textContent="نسخ الآيبان"; },1500); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(b.iban).then(done).catch(function(){ fallbackCopy(b.iban); done(); }); }
+  else { fallbackCopy(b.iban); done(); }
+}
+function fallbackCopy(txt){ var ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(e){} document.body.removeChild(ta); }
+function renderBanks(){
+  var el=$("bankList"); if(!el)return; if(!S.banks)S.banks=[];
+  if(S.banks.length===0){ el.innerHTML='<div class="empty">ما فيه أسماء محفوظة — أضف تحت</div>'; return; }
+  var h="";
+  for(var i=0;i<S.banks.length;i++){ var b=S.banks[i]; var open=(S.bankOpen===b.id);
+    h+='<div class="logitem" style="cursor:pointer">'+
+       '<div class="top" onclick="toggleBank('+b.id+')"><div class="nm">'+(open?"\u25BC":"\u25B6")+' '+b.name+'</div><span class="st">'+(b.bank||"")+'</span></div>';
+    if(open){
+      h+='<div class="dt" style="margin-top:8px;line-height:2">'+
+         (b.iban?'<div style="direction:ltr;text-align:left;background:rgba(0,0,0,.3);border-radius:8px;padding:8px;font-size:12px;font-variant-numeric:tabular-nums;word-break:break-all">'+b.iban+'</div>':'')+
+         (b.en?'<div style="margin-top:5px">الاسم بالإنجليزي: <b style="direction:ltr;unicode-bidi:embed">'+b.en+'</b></div>':'')+
+         (b.bank?'<div>البنك: <b>'+b.bank+'</b></div>':'')+
+         '</div>'+
+         '<div class="abtns" style="margin-top:8px">'+
+         (b.iban?'<button class="btn blu sm" id="cpy_'+b.id+'" onclick="copyIban('+b.id+')" style="flex:1">نسخ الآيبان</button>':'')+
+         '<button class="btn dk sm" onclick="delBank('+b.id+')" style="color:var(--red)">حذف</button>'+
+         '</div>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+var TARGET_TABLE=[
+  {lv:1,  jaz:30000,    alm:9000,     wakala:13,   modeef:11,   jazSal:6,     almSal:3,     cash:2,   wakeel:2},
+  {lv:2,  jaz:50000,    alm:15000,    wakala:22,   modeef:18,   jazSal:11,    almSal:4,     cash:3,   wakeel:4},
+  {lv:3,  jaz:100000,   alm:30000,    wakala:44,   modeef:35,   jazSal:21,    almSal:11,    cash:3,   wakeel:9},
+  {lv:4,  jaz:200000,   alm:60000,    wakala:87,   modeef:67,   jazSal:42,    almSal:21,    cash:4,   wakeel:20},
+  {lv:5,  jaz:350000,   alm:105000,   wakala:149,  modeef:119,  jazSal:80,    almSal:34,    cash:5,   wakeel:30},
+  {lv:6,  jaz:520000,   alm:156000,   wakala:214,  modeef:170,  jazSal:114,   almSal:49,    cash:7,   wakeel:44},
+  {lv:7,  jaz:750000,   alm:225000,   wakala:302,  modeef:240,  jazSal:155,   almSal:70,    cash:15,  wakeel:62},
+  {lv:8,  jaz:1300000,  alm:390000,   wakala:525,  modeef:435,  jazSal:255,   almSal:150,   cash:30,  wakeel:90},
+  {lv:9,  jaz:2100000,  alm:630000,   wakala:875,  modeef:735,  jazSal:417,   almSal:278,   cash:40,  wakeel:140},
+  {lv:10, jaz:3500000,  alm:1050000,  wakala:1400, modeef:1170, jazSal:624,   almSal:496,   cash:50,  wakeel:230},
+  {lv:11, jaz:5800000,  alm:1740000,  wakala:2312, modeef:1932, jazSal:1155,  almSal:697,   cash:80,  wakeel:380},
+  {lv:12, jaz:8800000,  alm:2640000,  wakala:3530, modeef:2980, jazSal:1645,  almSal:1195,  cash:140, wakeel:550},
+  {lv:13, jaz:13000000, alm:3900000,  wakala:5190, modeef:4305, jazSal:2161,  almSal:1964,  cash:180, wakeel:885},
+  {lv:14, jaz:18000000, alm:5400000,  wakala:6890, modeef:5740, jazSal:2800,  almSal:2720,  cash:220, wakeel:1150},
+  {lv:15, jaz:24000000, alm:7200000,  wakala:9100, modeef:7700, jazSal:3800,  almSal:3600,  cash:300, wakeel:1400},
+  {lv:16, jaz:32000000, alm:9600000,  wakala:12230,modeef:10330,jazSal:5500,  almSal:4480,  cash:350, wakeel:1900},
+  {lv:17, jaz:44000000, alm:13200000, wakala:16880,modeef:14880,jazSal:8000,  almSal:6480,  cash:400, wakeel:2000},
+  {lv:18, jaz:65000000, alm:19500000, wakala:24105,modeef:21305,jazSal:11480, almSal:9325,  cash:500, wakeel:2800},
+  {lv:19, jaz:85000000, alm:25500000, wakala:30700,modeef:27050,jazSal:14600, almSal:11850, cash:600, wakeel:3650}
+];
+var TG_OPEN=null;
+function tgToggle(lv){ TG_OPEN=(TG_OPEN===lv)?null:lv; render(); }
+function tgCopy(val,btnId){
+  var txt=String(val);
+  var done=function(){ var b=$(btnId); if(b){ b.textContent="\u2713"; setTimeout(function(){ var b2=$(btnId); if(b2)b2.textContent="نسخ"; },1200); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); }); }
+  else { fallbackCopy(txt); done(); }
+}
+function renderTarget(){
+  var g=$("tgGrid"); if(!g)return;
+  var h="";
+  for(var i=0;i<TARGET_TABLE.length;i++){ var t=TARGET_TABLE[i];
+    h+='<div class="tcell'+(TG_OPEN===t.lv?" on":"")+'" onclick="tgToggle('+t.lv+')"><div class="tl">مستوى '+t.lv+'</div><div class="tv">'+fmt(t.jaz)+'</div></div>';
+  }
+  g.innerHTML=h;
+  var d=$("tgDetail"); var sel=null;
+  for(var j=0;j<TARGET_TABLE.length;j++){ if(TARGET_TABLE[j].lv===TG_OPEN){ sel=TARGET_TABLE[j]; break; } }
+  if(!sel){ d.innerHTML=""; return; }
+  var rows=[
+    ["قيمة الجاذبية",sel.jaz,"jz"],["قيمة الألماس",sel.alm,"al"],
+    ["راتب الوكالة",sel.wakala,""],["راتب المضيف",sel.modeef,""],
+    ["راتب الجاذبية",sel.jazSal,""],["راتب الألماس",sel.almSal,"as"],
+    ["مكافأة نقدية",sel.cash,""],["راتب الوكيل",sel.wakeel,"wk"]
+  ];
+  var rh='<div class="logitem" style="margin-top:12px;border-color:#FFD37E"><div class="top"><div class="nm">مستوى '+sel.lv+' — '+fmt(sel.jaz)+'</div></div><div style="margin-top:6px">';
+  for(var r=0;r<rows.length;r++){
+    var bid="tgc_"+sel.lv+"_"+r;
+    var cls=rows[r][2]?(' trow-'+rows[r][2]):'';
+    rh+='<div class="trow'+cls+'"><span class="tn">'+rows[r][0]+'</span><span class="tval"><span class="tv2">'+fmt(rows[r][1])+'</span><span class="cpy" id="'+bid+'" onclick="tgCopy('+rows[r][1]+',\''+bid+'\')">نسخ</span></span></div>';
+  }
+  rh+='</div></div>';
+  d.innerHTML=rh;
+}
+/* ===== الرسم الكامل ===== */
+function renderItems(arr,boxId,delName,type){ var el=$(boxId); if(!el)return; if(arr.length===0){ el.innerHTML=""; return; } var h=""; for(var i=0;i<arr.length;i++){ var ed=(EDIT&&EDIT.t===type+"item"&&EDIT.i===i); if(ed){ h+='<div class="item"><input id="edit_'+type+'_'+i+'" type="number" value="'+Math.round(arr[i])+'" style="flex:1;background:#0b0f14;border:1px solid var(--line);border-radius:8px;padding:6px;color:var(--ink);text-align:center;font-size:13px"><button class="btn grn sm" onclick="saveItem(\''+type+'\','+i+')" style="margin-right:6px">حفظ</button></div>'; } else { h+='<div class="item"><span><span class="x" onclick="'+delName+'('+i+')">&times;</span> <span onclick="editItem(\''+type+'\','+i+')" style="color:var(--muted);cursor:pointer;font-size:12px">تعديل</span></span><span class="n">'+fmt(arr[i])+' كونز</span></div>'; } } el.innerHTML=h; }
+function blockCalc(total,c){ var acc=Math.floor(total/c.thr); return { acc:acc, sal:acc*(c.salAcc+c.salAgent), rooms:acc/c.perRoom, inRoom:acc%c.perRoom }; }
+
+function render(){
+  var c=cfg(); c.lock2=num("s_lock2")||350000;
+  /* تقفيل */
+  var salAcc=S.closedAccounts*c.salAcc, salAgent=S.closedAccounts*c.salAgent;
+  if($("agencyBal")){
+    $("agencyBal").textContent="$"+fmt(S.agencyBal); $("mSalAcc").textContent="$"+fmt(salAcc); $("mSalAgent").textContent="$"+fmt(salAgent);
+    $("mTotal").textContent="$"+fmt(salAcc+salAgent); $("mDrawn").textContent="$"+fmt(S.drawn);
+    if($("mPumped"))$("mPumped").textContent="$"+fmt(S.agencyIn||0);
+    if($("mAdvances")){ var salT=S.closedAccounts*(c.salAcc+c.salAgent); var capital=(S.agencyIn||0); var adv=(S.advances||0); var accD=(S.accDebt||0); var pl=salT-capital-adv-accD;
+      var agentGross=S.closedAccounts*c.salAgent; var accGross=S.closedAccounts*c.salAcc;
+      var agentNet=agentGross-adv; var accNet=accGross-accD;
+      if($("mAgentNet")){ $("mAgentNet").textContent=(agentNet>=0?"":"-")+"$"+fmt(Math.abs(agentNet)); $("mAgentNet").style.color=agentNet>=0?"#c9beff":"var(--red)"; }
+      if($("mAccNet")){ $("mAccNet").textContent=(accNet>=0?"":"-")+"$"+fmt(Math.abs(accNet)); $("mAccNet").style.color=accNet>=0?"var(--green-soft)":"var(--red)"; }
+      if($("mAccDebt"))$("mAccDebt").textContent="$"+fmt(accD);
+      $("mAdvances").textContent="$"+fmt(adv);
+      $("mCapital").textContent="$"+fmt(capital);
+      $("plValue").textContent=(pl>=0?"+":"-")+"$"+fmt(Math.abs(pl));
+      $("plValue").style.color=pl>=0?"var(--green-soft)":"var(--red)";
+      $("plLabel").textContent=pl>=0?"الربح (غطّينا رأس المال والديون)":"لسه نسترد";
+      var plb=$("plBox"); if(plb)plb.style.borderColor=pl>=0?"var(--green)":"var(--red)";
+      $("plNote").textContent="رواتب $"+fmt(salT)+" − رأس مال $"+fmt(capital)+" − سلف $"+fmt(adv)+" − سحب $"+fmt(accD);
+    }
+    $("shipBal").textContent=fmt(S.shipBal); $("shipIn").textContent=fmt(S.shipIn); $("shipVal").textContent="$"+fmt(S.shipIn/c.rateBuy);
+    var al=$("accList");
+    if(S.accounts.length===0){ al.innerHTML='<div class="empty">ما فيه حساب</div>'; }
+    else{ var ah=""; for(var i=0;i<S.accounts.length;i++){ var a=S.accounts[i]; var sel=(a.id===S.selAcc); var can=Math.floor(a.bal/c.thr);
+      var editing=(EDIT&&EDIT.t==="acc"&&EDIT.id===a.id);
+      if(editing){
+        ah+='<div class="acc on"><div class="inrow"><input id="edn_'+a.id+'" type="text" value="'+a.name+'" placeholder="الاسم"><input id="edb_'+a.id+'" type="number" value="'+Math.round(a.bal)+'" placeholder="الرصيد"></div>'+
+        '<div class="abtns"><button class="btn grn sm" onclick="saveAccount('+a.id+')">حفظ</button><button class="btn dk sm" onclick="cancelEdit()">إلغاء</button></div></div>';
+      } else {
+        var badges=(sel?'<span class="pill sel">حساب الرمي</span> ':'')+(a.isMain?'<span class="pill" style="border-color:var(--amber);color:var(--amber)">أساسي · 3%</span> ':'')+(a.isShip?'<span class="pill" style="border-color:var(--blue);color:var(--blue-soft)">وكيل الشحن</span>':'');
+        var balCell=(EDIT&&EDIT.t==="accbal"&&EDIT.id===a.id)? ('<div class="inrow" style="margin:0;flex:0 0 auto"><input id="acb_'+a.id+'" type="number" value="'+Math.round(a.bal)+'" style="width:130px;padding:6px;font-size:13px"><button class="btn grn sm" onclick="saveAccBal('+a.id+')">حفظ</button></div>') : ('<div class="abal" onclick="editAccBal('+a.id+')" style="cursor:pointer">'+fmt(a.bal)+' كونز ✎</div>');
+        ah+='<div class="acc'+(sel?' on':'')+'"><div class="ah"><div class="an">'+a.name+' '+badges+'</div>'+balCell+'</div>'+
+        '<div class="adet">شحنة $'+fmt(a.fedUsdCum)+' · صناديق '+fmt(a.boxKonz||0)+' · رمى '+fmt(a.thrown||0)+' · يكفي '+can+' رمي</div>'+
+        '<div class="inrow" style="margin-top:9px"><input id="feed_'+a.id+'" type="number" inputmode="numeric" placeholder="كونز من وكيل الشحن"><button class="btn blu sm" onclick="feedAccount('+a.id+')">غذِّ</button><button class="btn dk sm" onclick="feedAll('+a.id+')">كل الرصيد</button></div>'+
+        '<div class="inrow" style="margin-top:7px"><input id="feedusd_'+a.id+'" type="number" inputmode="numeric" placeholder="دولار → كونز (×'+c.rateApp+')"><button class="btn grn sm" onclick="feedAccountUsd('+a.id+')">غذِّ بالدولار</button></div>'+
+        '<div class="abtns">'+
+          (sel?'':'<button class="btn dk sm" onclick="selectAcc('+a.id+')">للرمي</button>')+
+          (a.isMain?'':'<button class="btn dk sm" onclick="setMain('+a.id+')">أساسي</button>')+(a.isShip?'':'<button class="btn dk sm" onclick="setShip('+a.id+')">وكيل الشحن</button>')+
+          '<button class="btn dk sm" onclick="editAccount('+a.id+')">تعديل</button>'+
+          '<button class="btn dk sm" id="delacc_'+a.id+'" onclick="delAccount('+a.id+')" style="color:var(--red)">حذف</button>'+
+        '</div></div>'; }
+      }
+      al.innerHTML=ah; }
+    var arw=$("activeRoomWrap");
+    if(!S.openRooms)S.openRooms=[];
+    if(S.openRooms.length===0){ arw.innerHTML='<div class="empty">ما فيه روم مفتوح — افتح روم تحت</div>'; }
+    else{ var rh2="";
+      for(var ri=0;ri<S.openRooms.length;ri++){ var R=S.openRooms[ri]; var acc2=findAcc(S.selAcc); var tk=roomKonz(R,c); var accts=Math.floor(tk/c.thr); var partial=tk%c.thr; var cap=c.perRoom*c.thr; var pf=(tk/cap)*100; var rem=c.perRoom-accts; var ab=acc2?acc2.bal:0;
+        var partialTxt = partial>0 ? ('الجاري '+fmt(partial)+' / '+fmt(c.thr)) : '';
+        rh2+='<div class="room"><div class="rh"><div class="rn">\uD83C\uDFC6 '+R.name+(R.isCup?' <span class="pill" style="border-color:var(--gold);color:var(--gold-soft)">كاس</span>':'')+'</div><div class="rc">'+accts+' / '+c.perRoom+' <span onclick="cancelRoom('+R.rid+')" style="color:var(--red);cursor:pointer;font-weight:800;margin-right:6px">&times;</span></div></div><div class="prog"><i style="width:'+pf+'%"></i></div><div class="note">من '+(acc2?acc2.name:"اختر حساب")+' ('+fmt(ab)+')'+(partialTxt?' · '+partialTxt:'')+'<br><b style="color:var(--gold-soft)">ناقص '+rem+' حساب = '+fmt(cap-tk)+' كونز</b>'+((R.external||0)>0?' · خارجي '+fmt(R.external):'')+'</div><div class="rbtns"><button class="btn gold sm" onclick="throwAccounts('+R.rid+',1)">ارمِ 1</button><button class="btn gold sm" onclick="throwAccounts('+R.rid+',10)">ارمِ 10</button><button class="btn vio sm" onclick="throwKonz('+R.rid+','+(cap-tk)+')">املأ الباقي</button></div><div class="rbtns" style="margin-top:6px"><button class="btn dk sm" onclick="throwAll('+R.rid+')" style="width:100%;color:var(--amber)">صفّر حساب الرمي هنا</button></div><div class="inrow" style="margin-top:6px"><input id="ext_'+R.rid+'" type="number" inputmode="numeric" placeholder="كونز خارجي (من ناس)"><button class="btn grn sm" onclick="addExtFromInput('+R.rid+')">أضف للروم</button></div></div>'; }
+      arw.innerHTML=rh2; }
+    var rl=$("roomsLog");
+    var inProg=[]; if(S.openRooms){ for(var op=0;op<S.openRooms.length;op++){ var orm=S.openRooms[op]; var oacc=Math.floor(roomKonz(orm,c)/c.thr); if(oacc>=1) inProg.push({rm:orm,acc:oacc}); } }
+    if(S.rooms.length===0 && inProg.length===0){ rl.innerHTML='<div class="empty">ما أقفلنا روم بعد</div>'; }
+    else{ var h="";
+      for(var ip=0;ip<inProg.length;ip++){ var pr=inProg[ip]; h+='<div class="logitem" style="border-color:var(--gold)"><div class="top"><div class="nm">'+(pr.rm.isCup?'\uD83C\uDFC6 ':'')+pr.rm.name+'</div><span class="st" style="color:var(--gold-soft);background:rgba(200,162,74,.12);border-color:rgba(200,162,74,.35)">قيد التقفيل '+pr.acc+'/'+c.perRoom+'</span></div><div class="dt">قفلنا '+pr.acc+' حساب للآن · رواتبهم $'+fmt(pr.acc*(c.salAcc+c.salAgent))+'</div></div>'; }
+      for(var r=0;r<S.rooms.length;r++){ var rm=S.rooms[r]; h+='<div class="logitem"><div class="top"><div class="nm">'+(rm.isCup?'\uD83C\uDFC6 ':'')+rm.name+'</div><span class="st">'+rm.accounts+' حساب</span></div><div class="dt">'+rm.accounts+' حساب · '+(rm.isCup?fmt(rm.cupShip)+' للرصيد + '+fmt(rm.prize)+' للحساب':'جائزة '+fmt(rm.prize)+' لـ«'+rm.name+'»')+'</div></div>'; } rl.innerHTML=h; }
+    var wl=$("weeksLog");
+    if(S.weeks.length===0){ wl.innerHTML=""; } else { var wh=""; for(var w=0;w<S.weeks.length;w++){ var pv=w>0?S.weeks[w-1].acc:0; wh+='<div class="weekitem"><span>الأسبوع '+S.weeks[w].n+'</span><span><b>'+fmt(S.weeks[w].acc)+'</b> حساب (+'+fmt(S.weeks[w].acc-pv)+')</span></div>'; } wl.innerHTML=wh; }
+    var _prog=0; if(S.openRooms){ for(var _i=0;_i<S.openRooms.length;_i++){ if(Math.floor(roomKonz(S.openRooms[_i],c)/c.thr)>=1)_prog++; } } var _closed=S.rooms.filter(function(x){return !x.manual;}).length; $("dRooms").textContent=fmt(_closed)+(_prog>0?" +"+_prog:""); $("dAcc").textContent=fmt(S.closedAccounts);
+    $("dPrize").textContent=fmt(S.prizeTot||0); $("dBox").textContent=fmt(S.boxTot||0); $("dRebate").textContent=fmt(S.rebateTot||0);
+    $("dFed").textContent=fmt(S.fedTot||0); $("dPump").textContent=fmt(S.pumpKonzTot||0); $("dShipIn").textContent=fmt(S.shipIn);
+    var ll=$("logList");
+    if(!S.log||S.log.length===0){ ll.innerHTML='<div class="empty">ما فيه حركات</div>'; }
+    else{ var lh=""; var lim=Math.min(S.log.length,40); for(var li=0;li<lim;li++){ lh+='<div class="logline"><span class="li">'+S.log[li].t+'</span><span class="lx">'+S.log[li].x+'</span></div>'; } if(S.log.length>40){ lh+='<div class="logmore">... و '+(S.log.length-40)+' حركة أقدم</div>'; } ll.innerHTML=lh; }
+    var ns; var selA=S.selAcc!==null?findAcc(S.selAcc):null;
+    if(S.agencyBal<=0&&S.shipBal<c.thr&&(!selA||selA.bal<c.thr)){ ns='ابدأ: ضخ رصيد وكالة أو كونز للشحن.'; }
+    else if(S.openRooms&&S.openRooms.length>0){ var R0=S.openRooms[0]; var a3=findAcc(R0.fromAcc); var rm3=c.perRoom-R0.accounts; var nd=rm3*c.thr; var hv=a3?a3.bal:0; ns=(S.openRooms.length>1?"<b>"+S.openRooms.length+"</b> رومات مفتوحة. ":"")+"روم «<b>"+R0.name+"</b>» ناقصه <b>"+rm3+"</b> حساب = <b>"+fmt(nd)+"</b> كونز. "+(hv>=nd?"الرصيد يكفي.":"ناقصك <b>"+fmt(nd-hv)+"</b>."); }
+    else if(selA&&selA.bal>=c.thr){ ns='حساب «<b>'+selA.name+'</b>» فيه <b>'+fmt(selA.bal)+'</b> = <b>'+Math.floor(selA.bal/c.thr)+'</b> رمي. افتح روم.'; }
+    else if(S.shipBal>=c.thr){ ns='وكيل الشحن فيه <b>'+fmt(S.shipBal)+'</b> كونز. غذّ حساب.'; }
+    else{ ns='اسحب دولارات من الوكالة للشحن.'; }
+    $("nextStep").innerHTML=ns;
+  }
+
+  /* حاسبة الروم */
+  if($("rc_konz")) calcRoomCalc();
+
+  /* الفك والكاس */
+  if($("fak_total")){
+    renderItems(S.fak,"fak_items","delFak","fak"); renderItems(S.cup,"cup_items","delCup","cup");
+    var fakTotal=sumArr(S.fak), cupTotal=sumArr(S.cup);
+    $("fak_total").textContent=fmt(fakTotal); $("cup_total").textContent=fmt(cupTotal);
+    var fb=blockCalc(fakTotal,c), ub=blockCalc(cupTotal,c);
+    $("fak_acc").textContent=fmt(fb.acc); $("fak_sal").textContent="$"+fmt(fb.sal);
+    $("fak_bar").style.width=Math.min((fb.inRoom/c.perRoom)*100,100)+"%"; $("fak_txt").textContent=(fb.acc>=c.perRoom?fmt(Math.floor(fb.rooms))+" روم + ":"")+fb.inRoom+" / "+c.perRoom;
+    $("cup_acc").textContent=fmt(ub.acc); $("cup_sal").textContent="$"+fmt(ub.sal);
+    $("cup_bar").style.width=Math.min((ub.inRoom/c.perRoom)*100,100)+"%"; $("cup_txt").textContent=(ub.acc>=c.perRoom?fmt(Math.floor(ub.rooms))+" روم + ":"")+ub.inRoom+" / "+c.perRoom;
+  }
+
+  /* الملخص والخصم */
+  if($("sm_totalAcc")){
+    var fakTotal2=sumArr(S.fak), cupTotal2=sumArr(S.cup);
+    var fb2=blockCalc(fakTotal2,c), ub2=blockCalc(cupTotal2,c);
+    var tqAcc=S.closedAccounts, tqSal=S.closedAccounts*(c.salAcc+c.salAgent);
+    var totalAcc=tqAcc+fb2.acc+ub2.acc;
+    var grossSal=tqSal+fb2.sal+ub2.sal;
+    $("sm_tqAcc").textContent=fmt(tqAcc); $("sm_tqSal").textContent="$"+fmt(tqSal);
+    $("sm_fakAcc").textContent=fmt(fb2.acc); $("sm_fakSal").textContent="$"+fmt(fb2.sal);
+    $("sm_cupAcc").textContent=fmt(ub2.acc); $("sm_cupSal").textContent="$"+fmt(ub2.sal);
+    $("sm_totalAcc").textContent=fmt(totalAcc); $("sm_grossSal").textContent="$"+fmt(grossSal);
+    var dedTotal=0; for(var d=0;d<S.deductions.length;d++){ dedTotal+=S.deductions[d].amt; }
+    var advTot=(S.advances||0)+(S.accDebt||0); $("sm_dedTotal").textContent="$"+fmt(dedTotal); if($("sm_advances"))$("sm_advances").textContent="$"+fmt(advTot); $("sm_net").textContent="$"+fmt(grossSal-dedTotal-advTot);
+    var dl=$("dedList");
+    if(S.deductions.length===0){ dl.innerHTML='<div class="empty">ما فيه خصومات</div>'; }
+    else{ var dh=""; for(var e=0;e<S.deductions.length;e++){ var dd=S.deductions[e]; dh+='<div class="logitem"><div class="top"><div class="nm">$'+fmt(dd.amt)+'</div><span class="x" onclick="delDeduction('+e+')" style="color:var(--red);cursor:pointer;font-weight:800">&times;</span></div><div class="dt">راح إلى: '+dd.reason+'</div></div>'; } dl.innerHTML=dh; }
+  }
+  if($("sal_groups")) renderSalary();
+  if($("pc_amount")) calcPct();
+  if($("bankList")) renderBanks();
+  if($("tgGrid")) renderTarget();
+  save();
+}
+
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct"];
+for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
+
+load(); render();
+</script>
+</body>
+</html>
