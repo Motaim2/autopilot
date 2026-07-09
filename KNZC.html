@@ -1353,6 +1353,8 @@ function flSec(){ FL.secOpen=!FL.secOpen; flRenderResults(); }
 function flNameF(n){ FL.nameF=(FL.nameF===n)?null:n; FL.page=0; flRenderResults(); }
 function flSort(k){ if(!FL.sort)FL.sort={k:"jaz",d:-1}; if(FL.sort.k===k)FL.sort.d=-FL.sort.d; else FL.sort={k:k,d:-1}; flRenderResults(); }
 function flPage(pg){ FL.page=pg; flRenderResults(); }
+function flSelRow(id){ if(!FL.selIds)FL.selIds={}; if(FL.selIds[id])delete FL.selIds[id]; else FL.selIds[id]=1; flRenderResults(); }
+function flSelAll(on){ if(!FL.selIds)FL.selIds={}; if(on){ var ids=FL._fIds||[]; for(var i=0;i<ids.length;i++)FL.selIds[ids[i]]=1; } else FL.selIds={}; flRenderResults(); }
 function flFilt(f){ FL.filter=f; FL.page=0; if(f==="partial")FL.sort={k:"need",d:1}; else if(f==="alm")FL.sort={k:"alm",d:-1}; else FL.sort={k:"jaz",d:-1}; flRenderResults(); }
 function flAnalyze(){
   if(!FL.master||!FL.upd){ alert("حمّل الملفين أول."); return; }
@@ -1496,6 +1498,14 @@ function flRenderResults(){
     else {va=a[sk]||0;vb=b[sk]||0;}
     return (va<vb?-1:va>vb?1:0)*(-sd);
   });
+  FL._fIds=[]; for(var fi=0;fi<frows.length;fi++)FL._fIds.push(frows[fi].id);
+  if(!FL.selIds)FL.selIds={};
+  var selCount=0; for(var sk2 in FL.selIds)selCount++;
+  h+='<div class="chips" style="margin-top:7px">'+
+     '<span class="chip" onclick="flSelAll(1)">\u2611 تحديد الكل ('+frows.length+')</span>'+
+     '<span class="chip" onclick="flSelAll(0)">\u2716 إزالة التحديد</span>'+
+     (selCount?'<span class="chip f on">محدد: '+selCount+'</span>':'')+
+     '</div>';
   // الصفحات
   var PSZ=25;
   var pages=Math.max(Math.ceil(frows.length/PSZ),1);
@@ -1503,13 +1513,16 @@ function flRenderResults(){
   var pStart=FL.page*PSZ;
   var pageRows=frows.slice(pStart,pStart+PSZ);
   h+='<div class="fltwrap"><table class="fltab"><tr>';
+  h+='<th style="cursor:pointer" onclick="flSelAll('+(selCount<frows.length?1:0)+')">\u2611</th>';
   for(var hc=0;hc<COLS.length;hc++){ if(FL.cols[COLS[hc][0]]){
     var ck=COLS[hc][0];
     h+='<th'+(SORTK[ck]?' style="cursor:pointer" onclick="flSort(\''+ck+'\')"':'')+'>'+COLS[hc][1]+(FL.sort.k===ck?(FL.sort.d<0?" \u2193":" \u2191"):"")+'</th>'; } }
   for(var hu=0;hu<UCOLS.length;hu++){ if(FL.cols["u"+UCOLS[hu][0]])h+='<th style="color:#7CBBFF">'+UCOLS[hu][1]+'</th>'; }
   h+='</tr>';
   for(var tr=0;tr<pageRows.length;tr++){ var q=pageRows[tr];
-    h+='<tr>';
+    var isSel=!!FL.selIds[q.id];
+    h+='<tr'+(isSel?' style="background:rgba(94,227,166,.08)"':'')+'>';
+    h+='<td onclick="flSelRow(\''+q.id+'\')" style="cursor:pointer;font-size:12px;color:'+(isSel?"#5EE3A6":"var(--muted)")+'">'+(isSel?"\u2611":"\u2610")+'</td>';
     if(FL.cols.id)h+='<td class="flid" onclick="copyId(\''+q.id+'\')">'+q.id+'</td>';
     if(FL.cols.name)h+='<td style="color:var(--muted)">'+q.name+'</td>';
     if(FL.cols.jaz)h+='<td style="color:'+(q.closed?"#5EE3A6":"#FFC96B")+';font-weight:800">'+fmt(q.jaz)+'</td>';
@@ -1522,7 +1535,29 @@ function flRenderResults(){
     for(var cu=0;cu<UCOLS.length;cu++){ if(FL.cols["u"+UCOLS[cu][0]]){ var rv=q.raw?String(q.raw[UCOLS[cu][0]]==null?"":q.raw[UCOLS[cu][0]]).trim():""; var rvn=rv.replace(/[،,\s]/g,""); if(/^-?\d+(\.\d+)?$/.test(rvn)&&Math.abs(+rvn)>=1000)rv=fmt(+rvn); h+='<td style="color:#9fc7ee">'+(rv||"\u2014")+'</td>'; } }
     h+='</tr>';
   }
-  if(!pageRows.length)h+='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px">ما فيه نتائج بهالفلترة</td></tr>';
+  if(!pageRows.length)h+='<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:14px">ما فيه نتائج بهالفلترة</td></tr>';
+  if(selCount>0){
+    var sm={jaz:0,tgSal:0,alm:0,days:0,need:0,u:{}};
+    for(var sr=0;sr<rows.length;sr++){ var z=rows[sr]; if(!FL.selIds[z.id])continue;
+      sm.jaz+=z.jaz||0; sm.tgSal+=z.tgSal||0; sm.alm+=z.alm||0; sm.days+=(+z.days||0); sm.need+=(z.closed?0:z.need)||0;
+      for(var su=0;su<UCOLS.length;su++){ var ui=UCOLS[su][0];
+        var rv2=z.raw?String(z.raw[ui]==null?"":z.raw[ui]).replace(/[،,\s]/g,""):"";
+        if(/^-?\d+(\.\d+)?$/.test(rv2)){ sm.u[ui]=(sm.u[ui]||0)+(+rv2); } }
+    }
+    h+='<tr style="background:rgba(124,187,255,.12);font-weight:800;border-top:2px solid rgba(124,187,255,.35)">';
+    h+='<td style="color:#7CBBFF">\u03A3</td>';
+    if(FL.cols.id)h+='<td style="color:#7CBBFF">'+selCount+' محدد</td>';
+    if(FL.cols.name)h+='<td style="color:#7CBBFF">المجموع</td>';
+    if(FL.cols.jaz)h+='<td style="color:#5EE3A6">'+fmt(sm.jaz)+'</td>';
+    if(FL.cols.tg)h+='<td>\u2014</td>';
+    if(FL.cols.tgSal)h+='<td style="color:#FFD37E">$'+fmt(sm.tgSal)+'</td>';
+    if(FL.cols.next)h+='<td style="color:#FF8A80">'+fmt(sm.need)+'</td>';
+    if(FL.cols.alm)h+='<td style="color:#7CBBFF">'+fmt(sm.alm)+'</td>';
+    if(FL.cols.days)h+='<td style="color:var(--muted)">'+fmt(sm.days)+'</td>';
+    if(FL.cols.st)h+='<td>\u2014</td>';
+    for(var cu2=0;cu2<UCOLS.length;cu2++){ if(FL.cols["u"+UCOLS[cu2][0]]){ var uv=sm.u[UCOLS[cu2][0]]; h+='<td style="color:#9fc7ee">'+(uv!==undefined?fmt(Math.round(uv*100)/100):"\u2014")+'</td>'; } }
+    h+='</tr>';
+  }
   h+='</table></div>';
   // أزرار الصفحات
   if(pages>1){
