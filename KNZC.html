@@ -1266,7 +1266,7 @@ function flLoadSheet(slot){
     o.rows=rows; }
   o.idCol=flDetect(o,/ايدي|أيدي|\bid\b|معرف|uid|رقم/i,function(v){return /^\d{4,}$/.test(flClean(v));});
   if(slot==="master"){ o.nameCol=flDetect(o,/اسم|numa|name|صاحب|مالك|توزيع/i,function(v){return v!==""&&!/^[\d.,]+$/.test(String(v));}); }
-  else { o.jazCol=flDetect(o,/جاذبي|سحر/i,function(v){return flNum(v)>=10000;}); o.almCol=flDetectOpt(o,/ألماس|الماس|ماس/i); o.daysCol=flDetectOpt(o,/يوم|أيام|ايام|day/i); }
+  else { o.jazCol=flDetect(o,/جاذبي|سحر/i,function(v){return flNum(v)>=10000;}); o.almCol=flDetectOpt(o,/ألماس|الماس|ماس/i); o.daysCol=flDetectOpt(o,/يوم|أيام|ايام|day/i); o.salCol=flDetectOpt(o,/مجموع الراتب/i); if(o.salCol<0)o.salCol=flDetectOpt(o,/الراتب الأساسي/i); }
   flRenderOpts(slot);
 }
 function flClean(v){ var t=String(v).trim(); if(/^\d+\.0$/.test(t))t=t.slice(0,-2); return t.replace(/[،,\s]/g,""); }
@@ -1301,6 +1301,7 @@ function flOpt(sel){
   if(id==="fls_ujaz")FL.upd.jazCol=v;
   if(id==="fls_ualm")FL.upd.almCol=v;
   if(id==="fls_udays")FL.upd.daysCol=v;
+  if(id==="fls_usal")FL.upd.salCol=v;
 }
 function flRenderOpts(slot){
   var o=FL[slot];
@@ -1325,6 +1326,7 @@ function flRenderOpts(slot){
     h+='<div class="f"><label>عمود الجاذبية</label>'+flSel("fls_ujaz",o.header,o.jazCol)+'</div>';
     h+='<div class="f"><label>عمود الألماس (اختياري)</label>'+flSel("fls_ualm",o.header,o.almCol===undefined?-1:o.almCol,true)+'</div>';
     h+='<div class="f"><label>عمود الأيام (اختياري)</label>'+flSel("fls_udays",o.header,o.daysCol===undefined?-1:o.daysCol,true)+'</div>';
+    h+='<div class="f"><label>عمود الراتب (من الملف)</label>'+flSel("fls_usal",o.header,o.salCol===undefined?-1:o.salCol,true)+'</div>';
   }
   h+='</div>';
   el.innerHTML=h;
@@ -1366,6 +1368,7 @@ function flAnalyze(){
     map[id]=nm;
   }
   var almC=(FL.upd.almCol!==undefined&&FL.upd.almCol>=0)?FL.upd.almCol:-1;
+  var salC=(FL.upd.salCol!==undefined&&FL.upd.salCol>=0)?FL.upd.salCol:-1;
   var dayC=(FL.upd.daysCol!==undefined&&FL.upd.daysCol>=0)?FL.upd.daysCol:-1;
   var closed=[],partial=[],diamonds=[],byName={},foundIds={};
   for(var r=0;r<FL.upd.rows.length;r++){
@@ -1373,12 +1376,13 @@ function flAnalyze(){
     var jaz=flNum(FL.upd.rows[r][FL.upd.jazCol]);
     var alm=almC>=0?flNum(FL.upd.rows[r][almC]):0;
     var days=dayC>=0?String(FL.upd.rows[r][dayC]).trim():"";
+    var fsal=salC>=0?flNum(FL.upd.rows[r][salC]):null;
     foundIds[uid]=1;
     var nm2=map[uid];
     if(!byName[nm2])byName[nm2]={closed:0,partial:0,zero:0};
     if(alm>0)diamonds.push({id:uid,alm:alm,jaz:jaz,name:nm2});
-    if(jaz>=lock){ closed.push({id:uid,jaz:jaz,name:nm2,alm:alm,days:days,raw:FL.upd.rows[r]}); byName[nm2].closed++; }
-    else if(jaz>0){ partial.push({id:uid,jaz:jaz,need:lock-jaz,name:nm2,days:days,raw:FL.upd.rows[r]}); byName[nm2].partial++; }
+    if(jaz>=lock){ closed.push({id:uid,jaz:jaz,name:nm2,alm:alm,days:days,raw:FL.upd.rows[r],fsal:fsal}); byName[nm2].closed++; }
+    else if(jaz>0){ partial.push({id:uid,jaz:jaz,need:lock-jaz,name:nm2,days:days,raw:FL.upd.rows[r],fsal:fsal}); byName[nm2].partial++; }
     else { byName[nm2].zero++; }
   }
   partial.sort(function(a,b){return a.need-b.need;});
@@ -1386,22 +1390,24 @@ function flAnalyze(){
   var missing=0; for(var k in map){ if(!(k in foundIds))missing++; }
   if(!FL.salOv)FL.salOv={};
   var rows=[];
-  for(var r2=0;r2<closed.length;r2++){ var x2=closed[r2]; rows.push({id:x2.id,name:x2.name,jaz:x2.jaz,alm:x2.alm||0,days:x2.days||"",closed:true,need:0,raw:x2.raw}); }
-  for(var r3=0;r3<partial.length;r3++){ var y3=partial[r3]; rows.push({id:y3.id,name:y3.name,jaz:y3.jaz,alm:0,days:y3.days||"",closed:false,need:y3.need,raw:y3.raw}); }
-  for(var r4=0;r4<rows.length;r4++){ var tg=tgOf(rows[r4].jaz); rows[r4].tg=tg.cur?tg.cur.lv:0; rows[r4].tgSal=tg.cur?tg.cur.wakala:0; rows[r4].tgNext=tg.next?tg.next.lv:0; rows[r4].tgNeed=tg.need; }
+  for(var r2=0;r2<closed.length;r2++){ var x2=closed[r2]; rows.push({id:x2.id,name:x2.name,jaz:x2.jaz,alm:x2.alm||0,days:x2.days||"",closed:true,need:0,raw:x2.raw,fsal:x2.fsal}); }
+  for(var r3=0;r3<partial.length;r3++){ var y3=partial[r3]; rows.push({id:y3.id,name:y3.name,jaz:y3.jaz,alm:0,days:y3.days||"",closed:false,need:y3.need,raw:y3.raw,fsal:y3.fsal}); }
+  var salMap={};
+  for(var r4=0;r4<rows.length;r4++){ var tg=tgOf(rows[r4].jaz); rows[r4].tg=tg.cur?tg.cur.lv:0; rows[r4].tgSal=tg.cur?tg.cur.wakala:0; rows[r4].wkSal=tg.cur?(tg.cur.wakeel||0):0; rows[r4].tgNext=tg.next?tg.next.lv:0; rows[r4].tgNeed=tg.need;
+    salMap[rows[r4].id]=(rows[r4].fsal!=null?rows[r4].fsal:0)+rows[r4].wkSal||sal; }
   // أضف الألماس للصفوف الجزئية من قائمة الألماس
   for(var r5=0;r5<rows.length;r5++){ if(!rows[r5].alm){ for(var d5=0;d5<diamonds.length;d5++){ if(diamonds[d5].id===rows[r5].id){ rows[r5].alm=diamonds[d5].alm; break; } } } }
   rows.sort(function(a,b){return b.jaz-a.jaz;});
-  if(!FL.cols)FL.cols={id:1,name:1,jaz:1,tg:1,tgSal:1,next:1,alm:1,days:(dayC>=0?1:0),st:1};
+  if(!FL.cols)FL.cols={id:1,name:1,jaz:1,tg:1,fsal:1,wk:1,next:1,alm:1,days:(dayC>=0?1:0),st:1};
   if(!FL.filter)FL.filter="all";
-  FL.res={closed:closed,partial:partial,diamonds:diamonds,byName:byName,missing:missing,lock:lock,sal:sal,hasDays:dayC>=0,totalMaster:Object.keys(map).length,rows:rows};
+  FL.res={closed:closed,partial:partial,diamonds:diamonds,byName:byName,missing:missing,lock:lock,sal:sal,salMap:salMap,hasDays:dayC>=0,totalMaster:Object.keys(map).length,rows:rows};
   FL.view=null;
   flRenderResults();
 }
 function flView(v){ FL.view=(FL.view===v)?null:v; flRenderResults(); }
 function flSalEdit(id,el){ if(!FL.salOv)FL.salOv={}; var v=num(el.id); FL.salOv[id]=v; flRenderResults(); }
 function flHide(id){ if(!FL.hidden)FL.hidden={}; FL.hidden[id]=!FL.hidden[id]; flRenderResults(); }
-function flSalOf(id){ return (FL.salOv&&FL.salOv[id]!==undefined)?FL.salOv[id]:FL.res.sal; }
+function flSalOf(id){ if(FL.salOv&&FL.salOv[id]!==undefined)return FL.salOv[id]; if(FL.res.salMap&&FL.res.salMap[id]!==undefined)return FL.res.salMap[id]; return FL.res.sal; }
 function flRenderResults(){
   var el=$("fl_results"); if(!el||!FL.res){ if(el)el.innerHTML=""; return; }
   var R=FL.res; if(!FL.hidden)FL.hidden={}; if(!FL.salOv)FL.salOv={};
@@ -1452,8 +1458,8 @@ function flRenderResults(){
   if(FL.secOpen===undefined)FL.secOpen=true;
   if(!FL.sort)FL.sort={k:"jaz",d:-1};
   if(!FL.page)FL.page=0;
-  var COLS=[["id","الأيدي"],["name","الاسم"],["jaz","الجاذبية"],["tg","تارقته"],["tgSal","راتبه $"],["next","الجاي · ناقصه"],["alm","ألماس"],["days","أيام"],["st","الحالة"]];
-  var SORTK={id:1,jaz:1,tgSal:1,next:1,alm:1,st:1};
+  var COLS=[["id","الأيدي"],["name","الاسم"],["jaz","الجاذبية"],["tg","تارقته"],["fsal","راتب الملف $"],["wk","راتب الوكيل $"],["next","الجاي · ناقصه"],["alm","ألماس"],["days","أيام"],["st","الحالة"]];
+  var SORTK={id:1,jaz:1,fsal:1,wk:1,next:1,alm:1,st:1};
   var UCOLS=[];
   if(FL.upd&&FL.upd.header){ for(var uc=0;uc<FL.upd.header.length;uc++){ if(uc===FL.upd.idCol||uc===FL.upd.jazCol)continue; var hn=String(FL.upd.header[uc]||"").trim(); if(!hn)continue; UCOLS.push([uc,hn]); } }
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;cursor:pointer" onclick="flSec()">'+
@@ -1493,6 +1499,8 @@ function flRenderResults(){
     var va,vb;
     if(sk==="id"){va=+a.id;vb=+b.id;}
     else if(sk==="next"){va=a.tgNeed;vb=b.tgNeed;}
+    else if(sk==="fsal"){va=a.fsal||0;vb=b.fsal||0;}
+    else if(sk==="wk"){va=a.wkSal||0;vb=b.wkSal||0;}
     else if(sk==="st"){va=a.closed?0:a.need;vb=b.closed?0:b.need;}
     else if(sk==="days"){va=+a.days||0;vb=+b.days||0;}
     else {va=a[sk]||0;vb=b[sk]||0;}
@@ -1527,7 +1535,8 @@ function flRenderResults(){
     if(FL.cols.name)h+='<td style="color:var(--muted)">'+q.name+'</td>';
     if(FL.cols.jaz)h+='<td style="color:'+(q.closed?"#5EE3A6":"#FFC96B")+';font-weight:800">'+fmt(q.jaz)+'</td>';
     if(FL.cols.tg)h+='<td style="color:#BBAEFF;font-weight:800">'+(q.tg||"\u2014")+'</td>';
-    if(FL.cols.tgSal)h+='<td style="color:#FFD37E;font-weight:800">'+(q.tgSal?"$"+fmt(q.tgSal):"\u2014")+'</td>';
+    if(FL.cols.fsal)h+='<td style="color:#FFD37E;font-weight:800">'+(q.fsal!=null?"$"+fmt(q.fsal):"\u2014")+'</td>';
+    if(FL.cols.wk)h+='<td style="color:#BBAEFF;font-weight:800">'+(q.wkSal?"$"+fmt(q.wkSal):"\u2014")+'</td>';
     if(FL.cols.next)h+='<td style="color:#FF8A80">'+(q.tgNext?(q.tgNext+" · "+fmt(q.tgNeed)):"\u2713 أعلى")+'</td>';
     if(FL.cols.alm)h+='<td style="color:#7CBBFF">'+(q.alm?fmt(q.alm):"\u2014")+'</td>';
     if(FL.cols.days)h+='<td style="color:var(--muted)">'+(q.days||"\u2014")+'</td>';
@@ -1537,9 +1546,9 @@ function flRenderResults(){
   }
   if(!pageRows.length)h+='<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:14px">ما فيه نتائج بهالفلترة</td></tr>';
   if(selCount>0){
-    var sm={jaz:0,tgSal:0,alm:0,days:0,need:0,u:{}};
+    var sm={jaz:0,fsal:0,wk:0,alm:0,days:0,need:0,u:{}};
     for(var sr=0;sr<rows.length;sr++){ var z=rows[sr]; if(!FL.selIds[z.id])continue;
-      sm.jaz+=z.jaz||0; sm.tgSal+=z.tgSal||0; sm.alm+=z.alm||0; sm.days+=(+z.days||0); sm.need+=(z.closed?0:z.need)||0;
+      sm.jaz+=z.jaz||0; sm.fsal+=z.fsal||0; sm.wk+=z.wkSal||0; sm.alm+=z.alm||0; sm.days+=(+z.days||0); sm.need+=(z.closed?0:z.need)||0;
       for(var su=0;su<UCOLS.length;su++){ var ui=UCOLS[su][0];
         var rv2=z.raw?String(z.raw[ui]==null?"":z.raw[ui]).replace(/[،,\s]/g,""):"";
         if(/^-?\d+(\.\d+)?$/.test(rv2)){ sm.u[ui]=(sm.u[ui]||0)+(+rv2); } }
@@ -1550,7 +1559,8 @@ function flRenderResults(){
     if(FL.cols.name)h+='<td style="color:#7CBBFF">المجموع</td>';
     if(FL.cols.jaz)h+='<td style="color:#5EE3A6">'+fmt(sm.jaz)+'</td>';
     if(FL.cols.tg)h+='<td>\u2014</td>';
-    if(FL.cols.tgSal)h+='<td style="color:#FFD37E">$'+fmt(sm.tgSal)+'</td>';
+    if(FL.cols.fsal)h+='<td style="color:#FFD37E">$'+fmt(sm.fsal)+'</td>';
+    if(FL.cols.wk)h+='<td style="color:#BBAEFF">$'+fmt(sm.wk)+'</td>';
     if(FL.cols.next)h+='<td style="color:#FF8A80">'+fmt(sm.need)+'</td>';
     if(FL.cols.alm)h+='<td style="color:#7CBBFF">'+fmt(sm.alm)+'</td>';
     if(FL.cols.days)h+='<td style="color:var(--muted)">'+fmt(sm.days)+'</td>';
