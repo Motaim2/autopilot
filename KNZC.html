@@ -1357,9 +1357,50 @@ function fallbackCopy(txt){
 }
 function flCol(k){ if(!FL.cols)FL.cols={}; FL.cols[k]=!FL.cols[k]; flRenderResults(); }
 function flSec(){ FL.secOpen=!FL.secOpen; flRenderResults(); }
-function flNameF(n){ FL.nameF=(FL.nameF===n)?null:n; FL.page=0; flRenderResults(); }
+function flNameF(n){ if(!FL.nameFs)FL.nameFs={}; if(FL.nameFs[n])delete FL.nameFs[n]; else FL.nameFs[n]=1; FL.page=0; flRenderResults(); }
 function flSort(k){ if(!FL.sort)FL.sort={k:"jaz",d:-1}; if(FL.sort.k===k)FL.sort.d=-FL.sort.d; else FL.sort={k:k,d:-1}; flRenderResults(); }
 function flPage(pg){ FL.page=pg; flRenderResults(); }
+function flExport(){
+  if(typeof XLSX==="undefined"){ alert("تصدير Excel يحتاج إنترنت لتحميل المكتبة — أعد فتح الصفحة مع اتصال."); return; }
+  var R=FL.res; if(!R||!R.rows){ alert("حلّل الملفات أول."); return; }
+  var selCount=0; if(FL.selIds)for(var k in FL.selIds)selCount++;
+  var src=[];
+  for(var i=0;i<R.rows.length;i++){ var rw=R.rows[i];
+    if(FL.hidden[rw.id])continue;
+    if(selCount){ if(FL.selIds[rw.id])src.push(rw); }
+    else if(FL._fIds&&FL._fIds.indexOf(rw.id)>=0)src.push(rw);
+  }
+  if(!src.length){ alert("ما فيه صفوف — حدد صفوف أو عدّل الفلترة."); return; }
+  var cols=[];
+  if(FL.cols.id)cols.push(["الأيدي",function(q){return q.id;}]);
+  if(FL.cols.name)cols.push(["الاسم",function(q){return q.name;}]);
+  if(FL.cols.jaz)cols.push(["الجاذبية",function(q){return q.jaz;}]);
+  if(FL.cols.tg)cols.push(["تارقته",function(q){return q.tg||"";}]);
+  if(FL.cols.fsal)cols.push(["راتب الملف $",function(q){return q.fsal!=null?q.fsal:"";}]);
+  if(FL.cols.tsal)cols.push(["راتب التارقت $",function(q){return q.tsal||0;}]);
+  if(FL.cols.next){ cols.push(["التارقت الجاي",function(q){return q.tgNext||"";}]); cols.push(["ناقصه للتارقت",function(q){return q.tgNext?q.tgNeed:"";}]); }
+  if(FL.cols.alm)cols.push(["ألماس",function(q){return q.alm||0;}]);
+  if(FL.cols.days)cols.push(["أيام",function(q){return q.days!==""?(+q.days||q.days):"";}]);
+  if(FL.cols.st){ cols.push(["الحالة",function(q){return q.closed?"مقفل":"ناقصه";}]); cols.push(["ناقصه للتقفيل",function(q){return q.closed?0:q.need;}]); }
+  if(FL.upd&&FL.upd.header){ for(var uc=0;uc<FL.upd.header.length;uc++){ if(!FL.cols["u"+uc])continue;
+    (function(ci){ cols.push([String(FL.upd.header[ci]||("عمود "+(ci+1))),function(q){ if(!q.raw)return "";
+      var v=String(q.raw[ci]==null?"":q.raw[ci]).trim(); var vn=v.replace(/[،,\s]/g,"");
+      return /^-?\d+(\.\d+)?$/.test(vn)?+vn:v; }]); })(uc); } }
+  if(!cols.length){ alert("فعّل أعمدة من خيارات الجدول أول."); return; }
+  var aoa=[cols.map(function(c){return c[0];})];
+  for(var r2=0;r2<src.length;r2++){ var row=[]; for(var c2=0;c2<cols.length;c2++)row.push(cols[c2][1](src[r2])); aoa.push(row); }
+  // صف المجموع
+  var tot=["المجموع"];
+  for(var c3=1;c3<cols.length;c3++){ var sum=0,any=false;
+    for(var r3=0;r3<src.length;r3++){ var v3=cols[c3][1](src[r3]); if(typeof v3==="number"){sum+=v3;any=true;} }
+    tot.push(any?Math.round(sum*100)/100:""); }
+  aoa.push(tot);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=cols.map(function(c){return {wch:Math.max(10,String(c[0]).length+4)};});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"البيانات");
+  XLSX.writeFile(wb,"بيانات_كونز.xlsx");
+}
 function flSelRow(id){ if(!FL.selIds)FL.selIds={}; if(FL.selIds[id])delete FL.selIds[id]; else FL.selIds[id]=1; flRenderResults(); }
 function flSelAll(on){ if(!FL.selIds)FL.selIds={}; if(on){ var ids=FL._fIds||[]; for(var i=0;i<ids.length;i++)FL.selIds[ids[i]]=1; } else FL.selIds={}; flRenderResults(); }
 function flFilt(f){ FL.filter=f; FL.page=0; if(f==="partial")FL.sort={k:"need",d:1}; else if(f==="alm")FL.sort={k:"alm",d:-1}; else FL.sort={k:"jaz",d:-1}; flRenderResults(); }
@@ -1487,17 +1528,19 @@ function flRenderResults(){
     h+='</div>';
     var nmKeys=Object.keys(R.byName);
     if(nmKeys.length){ h+='<div class="chips">';
-      for(var nk=0;nk<nmKeys.length;nk++){ h+='<span class="chip f'+(FL.nameF===nmKeys[nk]?" on":"")+'" onclick="flNameF(\''+nmKeys[nk].replace(/'/g,"")+'\')">'+nmKeys[nk]+'</span>'; }
+      for(var nk=0;nk<nmKeys.length;nk++){ h+='<span class="chip f'+((FL.nameFs&&FL.nameFs[nmKeys[nk]])?" on":"")+'" onclick="flNameF(\''+nmKeys[nk].replace(/'/g,"")+'\')">'+nmKeys[nk]+'</span>'; }
       h+='</div>'; }
   }
-  if(FL.nameF||FL.filter!=="all"){
-    h+='<div class="note" style="margin:6px 0 0">عرض: '+(FL.nameF?("«"+FL.nameF+"» "):"")+({all:"الكل",closed:"المقفلة",partial:"اللي ما قفلت",alm:"فيها ألماس"}[FL.filter])+'</div>';
+  var nfList=FL.nameFs?Object.keys(FL.nameFs):[];
+  if(nfList.length||FL.filter!=="all"){
+    h+='<div class="note" style="margin:6px 0 0">عرض: '+(nfList.length?("\u00AB"+nfList.join("\u060C ")+"\u00BB "):"")+({all:"الكل",closed:"المقفلة",partial:"اللي ما قفلت",alm:"فيها ألماس"}[FL.filter])+'</div>';
   }
   var rows=R.rows||[];
   var frows=[];
   for(var fr=0;fr<rows.length;fr++){ var rw=rows[fr];
     if(FL.hidden[rw.id])continue;
-    if(FL.nameF&&rw.name!==FL.nameF)continue;
+    var nfA=FL.nameFs?Object.keys(FL.nameFs).length:0;
+    if(nfA&&!FL.nameFs[rw.name])continue;
     if(FL.filter==="closed"&&!rw.closed)continue;
     if(FL.filter==="partial"&&rw.closed)continue;
     if(FL.filter==="alm"&&!(rw.alm>0))continue;
@@ -1521,6 +1564,7 @@ function flRenderResults(){
   h+='<div class="chips" style="margin-top:7px">'+
      '<span class="chip" onclick="flSelAll(1)">\u2611 تحديد الكل ('+frows.length+')</span>'+
      '<span class="chip" onclick="flSelAll(0)">\u2716 إزالة التحديد</span>'+
+     '<span class="chip" onclick="flExport()" style="color:#5EE3A6;border-color:rgba(94,227,166,.4)">\u2B07 تحميل Excel</span>'+
      (selCount?'<span class="chip f on">محدد: '+selCount+'</span>':'')+
      '</div>';
   if(selCount>0){
@@ -1607,12 +1651,25 @@ function flRenderResults(){
   } else {
     h+='<div class="note" style="margin-top:4px">'+frows.length+' حساب · اضغط الأيدي ينسخ \u2713 · اضغط رأس العمود للترتيب</div>';
   }
-  h+='<h2 style="margin:14px 0 4px;font-size:12px;color:var(--muted)">&#128101; التوزيعة (لكل اسم)</h2>';
+  h+='<h2 style="margin:14px 0 4px;font-size:12px;color:var(--muted)">&#128101; التوزيعة (لكل اسم) <span class="tag">\u2611 حدد أكثر من اسم</span></h2>';
+  if(nfList.length){
+    var ns={acc:0,cl:0,pa:0,sal:0,alm:0};
+    for(var n5=0;n5<rows.length;n5++){ var z6=rows[n5]; if(!FL.nameFs[z6.name]||FL.hidden[z6.id])continue;
+      ns.acc++; if(z6.closed){ns.cl++; ns.sal+=flSalOf(z6.id);} else ns.pa++;
+      ns.alm+=z6.alm||0; }
+    h+='<div class="sumgrid" style="border:1px solid rgba(94,227,166,.4);border-radius:12px;padding:7px;margin-bottom:7px">'+
+       '<div class="c"><div class="l">أسماء محددة ('+nfList.length+')</div><div class="v n-green" style="font-size:10.5px">'+nfList.join(" \u00B7 ")+'</div></div>'+
+       '<div class="c"><div class="l">حسابات (مقفل \u00B7 ناقص)</div><div class="v n-blue">'+ns.acc+' <span style="font-size:9px;color:var(--muted)">('+ns.cl+' \u00B7 '+ns.pa+')</span></div></div>'+
+       '<div class="c"><div class="l">\u03A3 رواتب المقفلة</div><div class="v n-gold">$'+fmt(ns.sal)+'</div></div>'+
+       '<div class="c"><div class="l">\u03A3 الألماس</div><div class="v n-blue">'+fmt(ns.alm)+'</div></div>'+
+       '</div>';
+  }
   var perName={};
   for(var v1=0;v1<vis.length;v1++){ var cn=vis[v1].name; if(!perName[cn])perName[cn]={closed:0,sal:0}; perName[cn].closed++; perName[cn].sal+=flSalOf(vis[v1].id); }
   var names=Object.keys(R.byName);
   for(var n=0;n<names.length;n++){ var nm=names[n], d=R.byName[nm]; var pn=perName[nm]||{closed:0,sal:0};
-    h+='<div class="logitem" onclick="flNameF(\''+nm.replace(/'/g,"")+'\')" style="cursor:pointer'+(FL.nameF===nm?';border:1px solid rgba(124,187,255,.5)':'')+'"><div class="top"><div class="nm">'+nm+'</div><span class="st">$'+fmt(pn.sal)+' · عرض \uD83D\uDCC3</span></div><div class="dt">مقفل: '+pn.closed+' · ما قفل: '+d.partial+' · صفر: '+d.zero+(d.closed-pn.closed>0?' · مخفي: '+(d.closed-pn.closed):'')+'</div></div>';
+    var nmSel=FL.nameFs&&FL.nameFs[nm];
+    h+='<div class="logitem" onclick="flNameF(\''+nm.replace(/'/g,"")+'\')" style="cursor:pointer'+(nmSel?';border:1px solid rgba(94,227,166,.55)':'')+'"><div class="top"><div class="nm">'+(nmSel?'\u2611 ':'\u2610 ')+nm+'</div><span class="st">$'+fmt(pn.sal)+' · عرض \uD83D\uDCC3</span></div><div class="dt">مقفل: '+pn.closed+' · ما قفل: '+d.partial+' · صفر: '+d.zero+(d.closed-pn.closed>0?' · مخفي: '+(d.closed-pn.closed):'')+'</div></div>';
   }
   h+='<div class="line" style="margin-top:8px"><span class="l" style="font-weight:700;color:var(--ink)">المجموع الكلي للرواتب</span><span class="v v-grn" style="font-size:19px">$'+fmt(totalSal)+'</span></div>';
   h+='</div>';
