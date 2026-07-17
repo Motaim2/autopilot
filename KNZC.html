@@ -233,6 +233,20 @@
   .custh input{width:66px;background:rgba(255,211,126,.12);border:none;border-radius:6px;color:#FFD37E;font-size:9px;font-weight:800;padding:3px 4px;text-align:center;outline:none}
   .custx{color:#FF8A80;cursor:pointer;margin-inline-start:3px;font-weight:900}
   .custi{width:60px;background:rgba(255,255,255,.07);border:none;border-radius:6px;color:var(--ink);font-size:9.5px;padding:3px 4px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+  @keyframes alsh{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+  .alring{display:inline-block;animation:alsh .5s infinite}
+  .pcard{border-radius:14px;padding:10px;margin-bottom:10px;border:1.5px solid transparent;background:rgba(255,255,255,.05)}
+  .prow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .pnm{font-size:13.5px;font-weight:800;background:transparent;border:none;color:inherit;outline:none;width:40%}
+  .psal{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums}
+  .pmeta input{background:rgba(255,255,255,.08);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:6px 8px;outline:none;width:100%}
+  .pmeta{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
+  .ptab{width:100%;border-collapse:collapse;font-size:10px;margin-top:7px}
+  .ptab th{font-size:9px;color:var(--muted);padding:4px 3px;text-align:center;cursor:pointer}
+  .ptab td{padding:3px 2px;text-align:center}
+  .ptab input{width:100%;background:rgba(255,255,255,.07);border:none;border-radius:6px;color:var(--ink);font-size:10.5px;padding:5px 3px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+  .pcell.on{outline:2px solid #5EE3A6;border-radius:6px}
+  .pdot{width:16px;height:16px;border-radius:50%;cursor:pointer;flex:none;border:2px solid rgba(255,255,255,.3)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -396,42 +410,23 @@
 </div>
 </div>
 
-<!-- ============ تبويب 4: الملخص والخصم ============ -->
+<!-- ============ تبويب 4: التنبيهات ============ -->
 <div class="pane" id="pane4">
-  <div class="hero">
-    <div class="l">إجمالي الحسابات المقفلة (كل المصادر)</div>
-    <div class="big2" id="sm_totalAcc">0</div>
-    <div class="s">من نظام التقفيل + الفك + الكاس</div>
+  <div class="stage stg-agency">
+    <h2>&#128276; منبه جديد</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px">نص التنبيه</label>
+    <input id="al_text" type="text" placeholder="اكتب التنبيه… مثال: ارمِ روم وكيل الشحن">
+    <label style="display:block;font-size:12px;color:var(--muted);margin:10px 0 4px">وقت التنبيه</label>
+    <input id="al_time" type="datetime-local" style="width:100%;background:rgba(255,255,255,.1);border:none;border-radius:11px;padding:11px;color:var(--ink);font-size:14px;outline:none">
+    <button class="btn grn" onclick="alAdd()" style="width:100%;margin-top:10px">+ أضف المنبه</button>
+    <button class="btn dk sm" onclick="alNotifPerm()" style="width:100%;margin-top:6px">&#128227; تفعيل إشعارات النظام (اختياري)</button>
+    <div class="note" style="margin-top:6px">المنبه يصدح ويطلع رسالة وسط الشاشة — خلّ الصفحة مفتوحة وقت التنبيه.</div>
   </div>
   <div class="stage stg-log">
-    <h2>&#128202; تفصيل المصادر</h2>
-    <div class="sumgrid">
-      <div class="c"><div class="l">تقفيل — حسابات</div><div class="v n-gold" id="sm_tqAcc">0</div></div>
-      <div class="c"><div class="l">تقفيل — راتب</div><div class="v n-grn" id="sm_tqSal">$0</div></div>
-      <div class="c"><div class="l">فك — حسابات</div><div class="v n-amber" id="sm_fakAcc">0</div></div>
-      <div class="c"><div class="l">فك — راتب</div><div class="v n-grn" id="sm_fakSal">$0</div></div>
-      <div class="c"><div class="l">كاس — حسابات</div><div class="v n-vio" id="sm_cupAcc">0</div></div>
-      <div class="c"><div class="l">كاس — راتب</div><div class="v n-grn" id="sm_cupSal">$0</div></div>
-    </div>
+    <h2>&#9200; المنبهات القادمة</h2>
+    <div id="al_list"><div class="empty">ما فيه منبهات</div></div>
   </div>
-  <div class="hero" style="border-color:var(--green)">
-    <div class="l" style="color:var(--green-soft)">الراتب الكامل المجمّع</div>
-    <div class="big2" id="sm_grossSal">$0</div>
-    <div class="s">قبل الخصم</div>
-  </div>
-  <div class="stage">
-    <h2 style="color:var(--red)">&#9866;&#65039; خصم من الراتب</h2>
-    <div class="inrow"><input id="dedAmount" type="number" inputmode="numeric" placeholder="مبلغ الخصم ($)"><input id="dedReason" type="text" placeholder="السبب / وين راح"></div>
-    <button class="btn red sm" onclick="addDeduction()" style="width:100%;margin-top:8px">سجّل الخصم</button>
-    <div style="margin-top:14px">
-      <div class="line"><span class="l">إجمالي الخصومات</span><span class="v v-red" id="sm_dedTotal">$0</span></div>
-      <div class="line"><span class="l">سلف + سحب (ديون)</span><span class="v" style="color:#e0a94a" id="sm_advances">$0</span></div>
-      <div class="line"><span class="l" style="font-weight:700;color:var(--ink)">الباقي بعد الخصم والسلف</span><span class="v v-grn" style="font-size:20px" id="sm_net">$0</span></div>
-    </div>
-    <h2 style="margin:16px 0 4px;font-size:12px;color:var(--muted)">&#128220; سجل الخصومات (وين راحت)</h2>
-    <div id="dedList"><div class="empty">ما فيه خصومات</div></div>
-  </div>
-  <div class="resetbar"><button class="resetBtn" data-r="summary" onclick="doReset('summary',this)">تصفير الخصومات</button></div>
+  <div class="resetbar"><button class="resetBtn" data-r="alerts" onclick="doReset('alerts',this)">مسح كل التنبيهات</button></div>
 </div>
 
 <!-- ============ تبويب 5: توزيع الرواتب ============ -->
@@ -484,20 +479,23 @@
   </div>
 </div>
 
-<!-- ============ تبويب 7: بيانات بنكية ============ -->
+<!-- ============ تبويب 7: أشخاص ورواتب ============ -->
 <div class="pane" id="pane7">
-  <div class="stage stg-agency">
-    <h2>&#127974; حسابات بنكية</h2>
-    <div id="bankList"><div class="empty">ما فيه أسماء محفوظة</div></div>
+  <div class="hero">
+    <div class="l">مجموع الرواتب — كل الأشخاص وحساباتهم</div>
+    <div class="big2" id="pp_total">$0</div>
+    <div class="s" id="pp_totalSub">0 شخص · 0 حساب</div>
   </div>
-  <div class="stage">
-    <h2 style="color:var(--gold-soft)">&#10133; إضافة اسم جديد</h2>
-    <div class="inrow"><input id="bk_name" type="text" placeholder="الاسم"></div>
-    <div class="inrow"><input id="bk_iban" type="text" placeholder="الآيبان IBAN" style="direction:ltr"></div>
-    <div class="inrow"><input id="bk_bank" type="text" placeholder="نوع البنك (الراجحي، الأهلي...)"></div>
-    <div class="inrow"><input id="bk_en" type="text" placeholder="الاسم بالإنجليزي" style="direction:ltr"></div>
-    <button class="btn grn" onclick="addBank()" style="width:100%;margin-top:9px">حفظ</button>
+  <div class="stage stg-log" style="padding:11px">
+    <div class="inrow"><input id="pp_name" type="text" placeholder="اسم الشخص الجديد"><button class="btn grn sm" onclick="pplAdd()">+ أضف</button></div>
+    <div class="inrow" style="margin-top:6px"><input id="pp_newgroup" type="text" placeholder="اسم مجموعة جديدة"><button class="btn blu sm" onclick="pplGroupAdd()">+ مجموعة</button></div>
+    <div class="chips" id="pp_groups"></div>
+    <div class="inrow" style="margin-top:7px"><input id="pp_bulk" type="number" inputmode="numeric" placeholder="الرقم"><button class="btn gold sm" onclick="pplApply(1)">+ أضف</button><button class="btn amber sm" onclick="pplApply(-1)">− اخصم</button></div>
+    <div class="rbtns" style="margin-top:6px"><button class="btn dk sm" onclick="pplZero()">تصفير المحدد (=0)</button><button class="btn dk sm" onclick="pplSelClear()">إزالة التحديد</button></div>
+    <div class="note" id="pp_selinfo" style="margin-top:4px">حدد خلايا: اضغط ☐ الصف أو رأس العمود ($) ثم اكتب الرقم</div>
   </div>
+  <div id="pp_list"></div>
+  <div class="resetbar"><button class="resetBtn" data-r="ppl" onclick="doReset('ppl',this)">تصفير الأشخاص</button></div>
 </div>
 
 <!-- ============ تبويب 8: جدول التارقت ============ -->
@@ -616,22 +614,213 @@
 </div>
 
 <div class="toast" id="copyToast">✓</div>
+<div id="alOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:#1B222B;border:2px solid #FFC96B;border-radius:22px;padding:26px 22px;max-width:82%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.6)">
+    <div style="font-size:40px" class="alring">&#9200;</div>
+    <div id="alOvText" style="font-size:17px;font-weight:800;margin:12px 0 4px;color:#FFC96B"></div>
+    <div id="alOvTime" style="font-size:11px;color:rgba(255,255,255,.55)"></div>
+    <button class="btn gold" onclick="alDismiss()" style="width:100%;margin-top:14px">أوقف المنبه ✓</button>
+  </div>
+</div>
 
 <!-- شريط التبويبات -->
 <div class="tabbar">
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
   <div class="tb" data-p="pane2" onclick="switchTab('pane2',this)"><span class="i">&#129518;</span>حاسبة روم</div>
   <div class="tb" data-p="pane3" onclick="switchTab('pane3',this)"><span class="i">&#128273;</span>فك وكاس</div>
-  <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)"><span class="i">&#128202;</span>ملخص</div>
+  <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)"><span class="i">&#128276;</span>تنبيهات</div>
   <div class="tb" data-p="pane5" onclick="switchTab('pane5',this)"><span class="i">&#128176;</span>الرواتب</div>
   <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)"><span class="i">&#10067;</span>نسبة</div>
-  <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)"><span class="i">&#127974;</span>بنوك</div>
+  <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)"><span class="i">&#128101;</span>أشخاص</div>
   <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)"><span class="i">&#127919;</span>تارقت</div>
   <div class="tb" data-p="pane9" onclick="switchTab('pane9',this)"><span class="i">&#127922;</span>لعب</div>
   <div class="tb" data-p="pane10" onclick="switchTab('pane10',this)"><span class="i">&#128193;</span>ملفات</div>
   <div class="tb" data-p="pane11" onclick="switchTab('pane11',this)"><span class="i">&#129517;</span>خطة</div>
 </div>
 <script>
+var PP_COLORS=["#7CBBFF","#5EE3A6","#FFD37E","#BBAEFF","#F5A0BC","#7FE3DA","#FFA76B","#C9E36B"];
+var PP_SEL={}; var PP_GF=null;
+function pplInit(){ if(!S.ppl)S.ppl=[]; if(!S.pplSeq)S.pplSeq=Date.now(); if(!S.pplGroups)S.pplGroups=[];
+  for(var mg=0;mg<S.ppl.length;mg++){ var gg=S.ppl[mg].group; if(gg&&S.pplGroups.indexOf(gg)<0)S.pplGroups.push(gg); }
+  return S.ppl; }
+function pplNextId(){ pplInit(); return ++S.pplSeq; }
+function pplAdd(){ var nm=$("pp_name").value.trim(); if(!nm){ alert("اكتب الاسم."); return; }
+  pplInit(); S.ppl.push({id:pplNextId(),name:nm,bank:"",group:"",color:S.ppl.length%PP_COLORS.length,accs:[],open:true});
+  $("pp_name").value=""; save(); renderPpl(); }
+function pplOf(pid){ pplInit(); for(var i=0;i<S.ppl.length;i++){ if(S.ppl[i].id===pid)return S.ppl[i]; } return null; }
+function pplDel(pid){ pplInit(); var n=[]; for(var i=0;i<S.ppl.length;i++){ if(S.ppl[i].id!==pid)n.push(S.ppl[i]); } S.ppl=n; save(); renderPpl(); }
+function pplName(pid,v){ var p=pplOf(pid); if(p){p.name=v.trim()||p.name; save();} pplTotals(); }
+function pplBank(pid,v){ var p=pplOf(pid); if(p){p.bank=v; save();} }
+function pplGroup(pid,v){ var p=pplOf(pid); if(p){p.group=v; save(); renderPpl();} }
+function pplIban(pid,v){ var p=pplOf(pid); if(p){p.iban=v.trim(); save();} }
+var PP_SPEAKT=null;
+function pplSpeakIban(pid){
+  if(!("speechSynthesis" in window)){ alert("جهازك ما يدعم النطق."); return; }
+  var ss=window.speechSynthesis;
+  if(ss.speaking||ss.pending){ ss.cancel(); return; } // ضغطة ثانية = إيقاف
+  var inp=$("ppi_"+pid); var p=pplOf(pid);
+  var v=(inp&&inp.value?inp.value:(p&&p.iban)||"").trim();
+  if(!v){ alert("ما فيه آيبان مكتوب."); return; }
+  var t=$("copyToast"); if(t){ t.textContent="\uD83D\uDD0A عد تنازلي ثم النطق رقم رقم…"; t.classList.add("show"); setTimeout(function(){t.classList.remove("show");},2500); }
+  // كل النطق يتصف بطابور النظام مرة وحدة — يكمل حتى لو الصفحة بالخلفية
+  function q(txt,lang,rate){ var u=new SpeechSynthesisUtterance(txt); u.lang=lang; u.rate=rate; u.pitch=1; ss.speak(u); }
+  q("ثلاثة","ar-SA",0.8); q("اثنان","ar-SA",0.8); q("واحد","ar-SA",0.8);
+  var chars=v.replace(/\s+/g,"").split("");
+  for(var i=0;i<chars.length;i++){ var ch=chars[i];
+    if(/[0-9\u0660-\u0669]/.test(ch)){ q(ch+"\u060C","ar-SA",0.6); }        // فاصلة بعد الرقم = سكتة
+    else if(/[A-Za-z]/.test(ch)){ q(ch+",","en-US",0.6); }
+  }
+}
+function pplGroupAdd(){ var g=$("pp_newgroup").value.trim(); if(!g){ alert("اكتب اسم المجموعة."); return; }
+  pplInit(); if(!S.pplGroups)S.pplGroups=[];
+  if(S.pplGroups.indexOf(g)<0)S.pplGroups.push(g);
+  $("pp_newgroup").value=""; save(); renderPpl(); }
+function pplColor(pid){ var p=pplOf(pid); if(p){p.color=(p.color+1)%PP_COLORS.length; save(); renderPpl();} }
+function pplAccAdd(pid){ var p=pplOf(pid); if(!p)return; p.accs.push({id:pplNextId(),lbl:"",jz:0,al:0,wk:0}); save(); renderPpl(); }
+function pplAccDel(pid,aid){ var p=pplOf(pid); if(!p)return; var n=[]; for(var i=0;i<p.accs.length;i++){ if(p.accs[i].id!==aid)n.push(p.accs[i]); } p.accs=n;
+  delete PP_SEL[aid+":jz"]; delete PP_SEL[aid+":al"]; delete PP_SEL[aid+":wk"];
+  save(); renderPpl(); }
+function pplCell(pid,aid,f,v){ var p=pplOf(pid); if(!p)return; for(var i=0;i<p.accs.length;i++){ if(p.accs[i].id===aid){ if(f==="lbl")p.accs[i].lbl=v; else p.accs[i][f]=num2(v); } } save(); pplTotals(); }
+function num2(v){ var n=parseFloat(String(v).replace(/[،,\s]/g,"")); return isNaN(n)?0:n; }
+function pplSelRow(aid){ var on=PP_SEL[aid+":jz"]&&PP_SEL[aid+":al"]&&PP_SEL[aid+":wk"];
+  ["jz","al","wk"].forEach(function(f){ if(on)delete PP_SEL[aid+":"+f]; else PP_SEL[aid+":"+f]=1; }); renderPpl(); }
+function pplSelCol(pid,f){ var p=pplOf(pid); if(!p)return;
+  var all=true; for(var i=0;i<p.accs.length;i++){ if(!PP_SEL[p.accs[i].id+":"+f])all=false; }
+  for(var i2=0;i2<p.accs.length;i2++){ if(all)delete PP_SEL[p.accs[i2].id+":"+f]; else PP_SEL[p.accs[i2].id+":"+f]=1; }
+  renderPpl(); }
+function pplSelClear(){ PP_SEL={}; renderPpl(); }
+function pplApply(sign){ var v=num2($("pp_bulk").value); if(!v){ alert("اكتب الرقم."); return; }
+  v=v*(sign||1);
+  var cnt=0; pplInit();
+  for(var i=0;i<S.ppl.length;i++){ var p=S.ppl[i];
+    for(var a=0;a<p.accs.length;a++){ var ac=p.accs[a];
+      ["jz","al","wk"].forEach(function(f){ if(PP_SEL[ac.id+":"+f]){ ac[f]=(ac[f]||0)+v; cnt++; } }); } }
+  if(!cnt){ alert("حدد خلايا أول (\u2610 الصف أو رأس العمود)."); return; }
+  $("pp_bulk").value=""; save(); renderPpl(); }
+function pplZero(){ var cnt=0; pplInit();
+  for(var i=0;i<S.ppl.length;i++){ var p=S.ppl[i];
+    for(var a=0;a<p.accs.length;a++){ var ac=p.accs[a];
+      ["jz","al","wk"].forEach(function(f){ if(PP_SEL[ac.id+":"+f]){ ac[f]=0; cnt++; } }); } }
+  if(!cnt){ alert("حدد خلايا أول."); return; }
+  save(); renderPpl(); }
+function pplToggle(pid){ var p=pplOf(pid); if(p){ p.open=!p.open; save(); renderPpl(); } }
+function pplGF(g){ PP_GF=(PP_GF===g)?null:g; renderPpl(); }
+function pplAccSum(a){ return (a.jz||0)+(a.al||0)+(a.wk||0); }
+function pplSum(p){ var t=0; for(var i=0;i<p.accs.length;i++)t+=pplAccSum(p.accs[i]); return t; }
+function pplTotals(){ pplInit(); var t=0,na=0;
+  for(var i=0;i<S.ppl.length;i++){ t+=pplSum(S.ppl[i]); na+=S.ppl[i].accs.length; }
+  if($("pp_total"))$("pp_total").textContent="$"+fmt(t);
+  if($("pp_totalSub"))$("pp_totalSub").textContent=S.ppl.length+" شخص \u00B7 "+na+" حساب"; }
+function renderPpl(){ var el=$("pp_list"); if(!el)return; pplInit();
+  pplTotals();
+  // مجموعات
+  var groups={}; for(var gd=0;gd<(S.pplGroups||[]).length;gd++)groups[S.pplGroups[gd]]=0;
+  for(var g0=0;g0<S.ppl.length;g0++){ var gg=S.ppl[g0].group; if(gg){ if(groups[gg]===undefined)groups[gg]=0; groups[gg]+=pplSum(S.ppl[g0]); } }
+  var gh=""; for(var gk in groups){ gh+='<span class="chip f'+(PP_GF===gk?" on":"")+'" onclick="pplGF(\''+gk.replace(/'/g,"")+'\')">'+gk+' \u00B7 $'+fmt(groups[gk])+'</span>'; }
+  if($("pp_groups"))$("pp_groups").innerHTML=gh;
+  var selN=0; for(var sk in PP_SEL)selN++;
+  if($("pp_selinfo"))$("pp_selinfo").textContent=selN?("محدد: "+selN+" خلية — اكتب الرقم واضغط أضف"):"حدد خلايا: اضغط \u2610 الصف أو رأس العمود ثم اكتب الرقم";
+  var h="";
+  for(var i=0;i<S.ppl.length;i++){ var p=S.ppl[i];
+    if(PP_GF&&p.group!==PP_GF)continue;
+    var col=PP_COLORS[p.color%PP_COLORS.length];
+    h+='<div class="pcard" style="border-color:'+col+'66;background:'+col+'14">'+
+       '<div class="prow">'+
+       '<span onclick="pplToggle('+p.id+')" style="cursor:pointer;color:'+col+';font-size:12px;font-weight:900">'+(p.open?"\u25BC":"\u25B6")+'</span>'+
+       '<div class="pdot" style="background:'+col+'" onclick="pplColor('+p.id+')"></div>'+
+       (p.open?('<input class="pnm" id="ppn_'+p.id+'" style="color:'+col+'" value="'+String(p.name).replace(/"/g,"&quot;")+'" onchange="pplName('+p.id+',this.value)">')
+              :('<span class="pnm" style="color:'+col+';cursor:pointer" onclick="pplToggle('+p.id+')">'+p.name+'</span>'))+
+       '<span class="psal" style="color:'+col+';cursor:pointer" onclick="pplToggle('+p.id+')">$'+fmt(pplSum(p))+(p.open?'':' \u00B7 '+p.accs.length+' حساب')+'</span>'+
+       '<span class="x" onclick="pplDel('+p.id+')" style="color:var(--red);font-weight:900;cursor:pointer">\u00D7</span></div>';
+    if(p.open){
+    var gopts='<option value="">بدون مجموعة</option>';
+    for(var go=0;go<(S.pplGroups||[]).length;go++){ var gv=S.pplGroups[go];
+      gopts+='<option value="'+gv.replace(/"/g,"&quot;")+'"'+(p.group===gv?" selected":"")+'>'+gv+'</option>'; }
+    h+='<div class="pmeta">'+
+       '<div style="display:flex;gap:4px"><input placeholder="الآيبان IBAN" id="ppi_'+p.id+'" style="direction:ltr;text-align:right;flex:1;min-width:0" value="'+String(p.iban||"").replace(/"/g,"&quot;")+'" onchange="pplIban('+p.id+',this.value)">'+
+       '<button onclick="pplSpeakIban('+p.id+')" style="flex:none;background:rgba(124,187,255,.18);border:none;border-radius:8px;color:#7CBBFF;font-size:13px;padding:0 10px;cursor:pointer">\uD83D\uDD0A</button></div>'+
+       '<input placeholder="اسم البنك" id="ppb_'+p.id+'" value="'+String(p.bank||"").replace(/"/g,"&quot;")+'" onchange="pplBank('+p.id+',this.value)">'+
+       '<select onchange="pplGroup('+p.id+',this.value)" style="grid-column:span 2;background:rgba(255,255,255,.08);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:7px 8px;outline:none">'+gopts+'</select>'+
+       '</div>';
+    if(p.accs.length){
+      h+='<table class="ptab"><tr><th></th><th style="cursor:default">الحساب</th>'+
+         '<th onclick="pplSelCol('+p.id+',\'jz\')">جاذبية $ \u2611</th>'+
+         '<th onclick="pplSelCol('+p.id+',\'al\')">ألماس $ \u2611</th>'+
+         '<th onclick="pplSelCol('+p.id+',\'wk\')">وكيل $ \u2611</th>'+
+         '<th style="cursor:default">المجموع</th><th></th></tr>';
+      for(var a=0;a<p.accs.length;a++){ var ac=p.accs[a];
+        var rOn=PP_SEL[ac.id+":jz"]&&PP_SEL[ac.id+":al"]&&PP_SEL[ac.id+":wk"];
+        h+='<tr>'+
+           '<td onclick="pplSelRow('+ac.id+')" style="cursor:pointer;color:'+(rOn?"#5EE3A6":"var(--muted)")+';font-size:12px">'+(rOn?"\u2611":"\u2610")+'</td>'+
+           '<td><input id="ppl_'+ac.id+'" value="'+String(ac.lbl||"").replace(/"/g,"&quot;")+'" placeholder="أيدي/وصف" onchange="pplCell('+p.id+','+ac.id+',\'lbl\',this.value)"></td>'+
+           '<td><input class="pcell'+(PP_SEL[ac.id+":jz"]?" on":"")+'" value="'+(ac.jz||0)+'" inputmode="numeric" onfocus="if(this.value===\'0\')this.value=\'\';this.select()" onchange="pplCell('+p.id+','+ac.id+',\'jz\',this.value)"></td>'+
+           '<td><input class="pcell'+(PP_SEL[ac.id+":al"]?" on":"")+'" value="'+(ac.al||0)+'" inputmode="numeric" onfocus="if(this.value===\'0\')this.value=\'\';this.select()" onchange="pplCell('+p.id+','+ac.id+',\'al\',this.value)"></td>'+
+           '<td><input class="pcell'+(PP_SEL[ac.id+":wk"]?" on":"")+'" value="'+(ac.wk||0)+'" inputmode="numeric" onfocus="if(this.value===\'0\')this.value=\'\';this.select()" onchange="pplCell('+p.id+','+ac.id+',\'wk\',this.value)"></td>'+
+           '<td style="font-weight:800;color:'+col+'">$'+fmt(pplAccSum(ac))+'</td>'+
+           '<td onclick="pplAccDel('+p.id+','+ac.id+')" style="color:var(--red);cursor:pointer;font-weight:900">\u00D7</td></tr>';
+      }
+      h+='</table>';
+    }
+    h+='<button class="btn dk sm" onclick="pplAccAdd('+p.id+')" style="width:100%;margin-top:7px">+ حساب لـ'+p.name+'</button>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h||'<div class="stage"><div class="empty">أضف أول شخص فوق</div></div>';
+  try{ attachMics(); }catch(e){}
+}
+var alCtx=null,alBeepInt=null,alActive=null;
+function alUnlock(){ try{ if(!alCtx)alCtx=new (window.AudioContext||window.webkitAudioContext)(); if(alCtx.state==="suspended")alCtx.resume(); }catch(e){} }
+function alBeep(){ try{ if(!alCtx)return; var t=alCtx.currentTime;
+  [880,1100].forEach(function(f,ix){ var o=alCtx.createOscillator(),g=alCtx.createGain();
+    o.connect(g); g.connect(alCtx.destination); o.type="square"; o.frequency.value=f;
+    g.gain.setValueAtTime(0.001,t+ix*0.28); g.gain.exponentialRampToValueAtTime(0.35,t+ix*0.28+0.03);
+    g.gain.exponentialRampToValueAtTime(0.001,t+ix*0.28+0.26);
+    o.start(t+ix*0.28); o.stop(t+ix*0.28+0.27); }); }catch(e){} }
+function alAdd(){ var tx=$("al_text").value.trim(); var tv=$("al_time").value;
+  if(!tx){ alert("اكتب نص التنبيه."); return; }
+  if(!tv){ alert("حدد وقت التنبيه."); return; }
+  var at=new Date(tv).getTime();
+  if(!(at>Date.now())){ alert("الوقت لازم يكون بالمستقبل."); return; }
+  if(!S.alerts)S.alerts=[];
+  S.alerts.push({id:Date.now(),txt:tx,at:at});
+  alUnlock(); $("al_text").value=""; $("al_time").value="";
+  save(); renderAlerts(); }
+function alDel(id){ if(!S.alerts)return; var n=[]; for(var i=0;i<S.alerts.length;i++){ if(S.alerts[i].id!==id)n.push(S.alerts[i]); } S.alerts=n; save(); renderAlerts(); }
+function alNotifPerm(){ if(!("Notification" in window)){ alert("جهازك ما يدعم إشعارات النظام من المتصفح — الرسالة داخل الصفحة بتشتغل عادي. (بالآيفون: أضف الصفحة للشاشة الرئيسية)"); return; }
+  Notification.requestPermission().then(function(p){ alert(p==="granted"?"تم تفعيل إشعارات النظام \u2713":"ما انفعّلت — الرسالة داخل الصفحة بتشتغل عادي."); }); }
+function alFmtLeft(ms){ if(ms<0)ms=0; var s2=Math.floor(ms/1000); var d=Math.floor(s2/86400); s2-=d*86400; var h=Math.floor(s2/3600); s2-=h*3600; var m=Math.floor(s2/60); s2-=m*60;
+  return (d?d+"ي ":"")+(h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s2<10?"0":"")+s2; }
+function renderAlerts(){ var el=$("al_list"); if(!el)return;
+  var list=(S.alerts||[]).slice().sort(function(a,b){return a.at-b.at;});
+  if(!list.length){ el.innerHTML='<div class="empty">ما فيه منبهات</div>'; return; }
+  var h="";
+  for(var i=0;i<list.length;i++){ var a=list[i]; var left=a.at-Date.now();
+    var dt=new Date(a.at);
+    var ds=dt.toLocaleDateString("ar-SA")+" "+dt.toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"});
+    h+='<div class="logitem"><div class="top"><div class="nm">\u23F0 '+a.txt+'</div><span class="x" onclick="alDel('+a.id+')" style="color:var(--red);cursor:pointer;font-weight:900">\u00D7</span></div>'+
+       '<div class="dt">'+ds+' \u00B7 باقي <b style="color:#FFC96B">'+alFmtLeft(left)+'</b></div></div>';
+  }
+  el.innerHTML=h; }
+function alTick(){
+  if(!alActive&&S.alerts&&S.alerts.length){
+    var now=Date.now();
+    for(var i=0;i<S.alerts.length;i++){ if(S.alerts[i].at<=now){ alFire(S.alerts[i]); break; } }
+  }
+  if($("al_list")&&!alActive)renderAlerts();
+}
+function alFire(a){ alActive=a;
+  $("alOvText").textContent=a.txt;
+  $("alOvTime").textContent=new Date(a.at).toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"});
+  $("alOverlay").style.display="flex";
+  alBeep(); if(alBeepInt)clearInterval(alBeepInt); alBeepInt=setInterval(alBeep,900);
+  try{ if(navigator.vibrate)navigator.vibrate([300,150,300]); }catch(e){}
+  try{ if(("Notification" in window)&&Notification.permission==="granted")new Notification("\u23F0 تنبيه كونز",{body:a.txt}); }catch(e){}
+}
+function alDismiss(){ if(alBeepInt){clearInterval(alBeepInt);alBeepInt=null;}
+  $("alOverlay").style.display="none";
+  if(alActive){ alDel(alActive.id); alActive=null; }
+}
+setInterval(alTick,1000);
 function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
 function fmt1(n){ return (Math.round(n*10)/10).toLocaleString("en-US"); }
 function $(id){ return document.getElementById(id); }
@@ -721,7 +910,7 @@ function cancelRoom(rid){
 }
 function closeRoom(rid){ var R=findRoom(rid); if(!R)return; var c=cfg(); var owner=null; if(R.isCup){ owner=findAcc(S.selAcc)||findAcc(R.fromAcc); } if(!owner){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].name===R.name){ owner=S.accounts[i]; break; } } } if(!owner){ owner={id:S.seq++,name:R.name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:false,isShip:false}; S.accounts.push(owner); } if(R.isCup){ S.shipBal+=c.cupShip; S.shipIn+=c.cupShip; var sa=findShipAcct(); if(!sa)sa=owner; sa.bal+=c.cupGift; sa._cupDest=sa.name; S.prizeTot=(S.prizeTot||0)+c.cupGift; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.cupGift,cupShip:c.cupShip,cupTo:sa.name,isCup:true}); } else { owner.bal+=c.roomPrize; S.prizeTot=(S.prizeTot||0)+c.roomPrize; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.roomPrize}); } if(R.isCup){ var sacc=findShipAcct(); logAct("\uD83C\uDFC6","أقفلنا كاس «"+R.name+"» ("+R.accounts+" حساب مكتمل) · "+fmt(c.cupShip)+" لرصيد الشحن + "+fmt(c.cupGift)+" لحساب وكيل الشحن «"+(sacc?sacc.name:owner.name)+"»"); } else { logAct("\uD83D\uDD12","أقفلنا «"+R.name+"» ("+R.accounts+" حساب مكتمل) · جائزة "+fmt(c.roomPrize)); } for(var j=0;j<S.openRooms.length;j++){ if(S.openRooms[j].rid===rid){ S.openRooms.splice(j,1); break; } } save(); }
 function endWeek(){ S.weeks.push({n:S.weeks.length+1,acc:S.closedAccounts}); render(); }
-var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة"};
+var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة",alerts:"مسح كل التنبيهات",ppl:"تصفير الأشخاص"};
 function armBtn(el,on){ if(on){ el.textContent="اضغط مرة ثانية للتأكيد"; el.style.color="#fff"; el.style.background="var(--red)"; el.style.padding="9px 16px"; el.style.borderRadius="10px"; el.style.textDecoration="none"; } else { el.textContent=resetLabel[el.getAttribute("data-r")]||"تصفير"; el.style.background="none"; el.style.color="var(--red)"; el.style.padding="0"; el.style.textDecoration="underline"; } }
 function doReset(kind,el){
   if(!resetArm[kind]){
@@ -733,7 +922,7 @@ function doReset(kind,el){
   resetArm[kind]=false; if(resetTimer[kind])clearTimeout(resetTimer[kind]);
   if(kind==="taqfeel"){ S.agencyBal=0;S.agencyIn=0;S.drawn=0;S.shipBal=0;S.shipIn=0;S.closedAccounts=0;S.accounts=[];S.active=null;S.openRooms=[];S.rooms=[];S.weeks=[];S.selAcc=null;S.log=[];S.rebateTot=0;S.boxTot=0;S.prizeTot=0;S.fedTot=0;S.pumpKonzTot=0;S.advances=0;S.accDebt=0; }
   else if(kind==="fakcup"){ S.fak=[];S.cup=[]; }
-  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; }
+  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; } else if(kind==="alerts"){ S.alerts=[]; renderAlerts(); } else if(kind==="ppl"){ S.ppl=[]; PP_SEL={}; renderPpl(); }
   EDIT=null; armBtn(el,false); render();
 }
 
@@ -1923,25 +2112,10 @@ function render(){
   }
 
   /* الملخص والخصم */
-  if($("sm_totalAcc")){
-    var fakTotal2=sumArr(S.fak), cupTotal2=sumArr(S.cup);
-    var fb2=blockCalc(fakTotal2,c), ub2=blockCalc(cupTotal2,c);
-    var tqAcc=S.closedAccounts, tqSal=S.closedAccounts*(c.salAcc+c.salAgent);
-    var totalAcc=tqAcc+fb2.acc+ub2.acc;
-    var grossSal=tqSal+fb2.sal+ub2.sal;
-    $("sm_tqAcc").textContent=fmt(tqAcc); $("sm_tqSal").textContent="$"+fmt(tqSal);
-    $("sm_fakAcc").textContent=fmt(fb2.acc); $("sm_fakSal").textContent="$"+fmt(fb2.sal);
-    $("sm_cupAcc").textContent=fmt(ub2.acc); $("sm_cupSal").textContent="$"+fmt(ub2.sal);
-    $("sm_totalAcc").textContent=fmt(totalAcc); $("sm_grossSal").textContent="$"+fmt(grossSal);
-    var dedTotal=0; for(var d=0;d<S.deductions.length;d++){ dedTotal+=S.deductions[d].amt; }
-    var advTot=(S.advances||0)+(S.accDebt||0); $("sm_dedTotal").textContent="$"+fmt(dedTotal); if($("sm_advances"))$("sm_advances").textContent="$"+fmt(advTot); $("sm_net").textContent="$"+fmt(grossSal-dedTotal-advTot);
-    var dl=$("dedList");
-    if(S.deductions.length===0){ dl.innerHTML='<div class="empty">ما فيه خصومات</div>'; }
-    else{ var dh=""; for(var e=0;e<S.deductions.length;e++){ var dd=S.deductions[e]; dh+='<div class="logitem"><div class="top"><div class="nm">$'+fmt(dd.amt)+'</div><span class="x" onclick="delDeduction('+e+')" style="color:var(--red);cursor:pointer;font-weight:800">&times;</span></div><div class="dt">راح إلى: '+dd.reason+'</div></div>'; } dl.innerHTML=dh; }
-  }
+  
   if($("sal_groups")) renderSalary();
   if($("pc_amount")) calcPct();
-  if($("bankList")) renderBanks();
+  if($("pp_list")) renderPpl();
   if($("tgGrid")) renderTarget();
   if($("pl_list")) renderPlay();
   if($("brd_accs")) renderPlan();
