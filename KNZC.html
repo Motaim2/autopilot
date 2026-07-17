@@ -235,16 +235,16 @@
   .custi{width:60px;background:rgba(255,255,255,.07);border:none;border-radius:6px;color:var(--ink);font-size:9.5px;padding:3px 4px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
   @keyframes alsh{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
   .alring{display:inline-block;animation:alsh .5s infinite}
-  .pcard{border-radius:14px;padding:10px;margin-bottom:10px;border:1.5px solid transparent;background:rgba(255,255,255,.05)}
+  .pcard{border-radius:14px;padding:11px;margin-bottom:10px;border:2px solid transparent;background:#212A35;box-shadow:0 3px 12px rgba(0,0,0,.25)}
   .prow{display:flex;justify-content:space-between;align-items:center;gap:6px}
   .pnm{font-size:13.5px;font-weight:800;background:transparent;border:none;color:inherit;outline:none;width:40%}
   .psal{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums}
-  .pmeta input{background:rgba(255,255,255,.08);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:6px 8px;outline:none;width:100%}
+  .pmeta input{background:rgba(255,255,255,.13);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:6px 8px;outline:none;width:100%}
   .pmeta{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
   .ptab{width:100%;border-collapse:collapse;font-size:10px;margin-top:7px}
   .ptab th{font-size:9px;color:var(--muted);padding:4px 3px;text-align:center;cursor:pointer}
   .ptab td{padding:3px 2px;text-align:center}
-  .ptab input{width:100%;background:rgba(255,255,255,.07);border:none;border-radius:6px;color:var(--ink);font-size:10.5px;padding:5px 3px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+  .ptab input{width:100%;background:rgba(255,255,255,.13);border:none;border-radius:6px;color:var(--ink);font-size:10.5px;padding:5px 3px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
   .pcell.on{outline:2px solid #5EE3A6;border-radius:6px}
   .pdot{width:16px;height:16px;border-radius:50%;cursor:pointer;flex:none;border:2px solid rgba(255,255,255,.3)}
 </style>
@@ -614,6 +614,8 @@
 </div>
 
 <div class="toast" id="copyToast">✓</div>
+<video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
+<canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
 <div id="alOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
   <div style="background:#1B222B;border:2px solid #FFC96B;border-radius:22px;padding:26px 22px;max-width:82%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.6)">
     <div style="font-size:40px" class="alring">&#9200;</div>
@@ -653,23 +655,58 @@ function pplName(pid,v){ var p=pplOf(pid); if(p){p.name=v.trim()||p.name; save()
 function pplBank(pid,v){ var p=pplOf(pid); if(p){p.bank=v; save();} }
 function pplGroup(pid,v){ var p=pplOf(pid); if(p){p.group=v; save(); renderPpl();} }
 function pplIban(pid,v){ var p=pplOf(pid); if(p){p.iban=v.trim(); save();} }
-var PP_SPEAKT=null;
+var PP_SP={on:false,timer:null};
+function pplSpeakStop(){ PP_SP.on=false;
+  if(PP_SP.timer){ clearTimeout(PP_SP.timer); PP_SP.timer=null; }
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+  var vid=$("pip_vid");
+  try{ if(vid&&vid.webkitSetPresentationMode)vid.webkitSetPresentationMode("inline"); }catch(e){}
+  try{ if(document.pictureInPictureElement)document.exitPictureInPicture(); }catch(e){}
+}
 function pplSpeakIban(pid){
   if(!("speechSynthesis" in window)){ alert("جهازك ما يدعم النطق."); return; }
+  if(PP_SP.on){ pplSpeakStop(); return; } // ضغطة ثانية = إيقاف
   var ss=window.speechSynthesis;
-  if(ss.speaking||ss.pending){ ss.cancel(); return; } // ضغطة ثانية = إيقاف
   var inp=$("ppi_"+pid); var p=pplOf(pid);
   var v=(inp&&inp.value?inp.value:(p&&p.iban)||"").trim();
   if(!v){ alert("ما فيه آيبان مكتوب."); return; }
-  var t=$("copyToast"); if(t){ t.textContent="\uD83D\uDD0A عد تنازلي ثم النطق رقم رقم…"; t.classList.add("show"); setTimeout(function(){t.classList.remove("show");},2500); }
-  // كل النطق يتصف بطابور النظام مرة وحدة — يكمل حتى لو الصفحة بالخلفية
-  function q(txt,lang,rate){ var u=new SpeechSynthesisUtterance(txt); u.lang=lang; u.rate=rate; u.pitch=1; ss.speak(u); }
-  q("ثلاثة","ar-SA",0.8); q("اثنان","ar-SA",0.8); q("واحد","ar-SA",0.8);
-  var chars=v.replace(/\s+/g,"").split("");
-  for(var i=0;i<chars.length;i++){ var ch=chars[i];
-    if(/[0-9\u0660-\u0669]/.test(ch)){ q(ch+"\u060C","ar-SA",0.6); }        // فاصلة بعد الرقم = سكتة
-    else if(/[A-Za-z]/.test(ch)){ q(ch+",","en-US",0.6); }
+  var chars=[]; var raw=v.replace(/\s+/g,"").split("");
+  for(var i0=0;i0<raw.length;i0++){ if(/[0-9A-Za-z\u0660-\u0669]/.test(raw[i0]))chars.push(raw[i0]); }
+  if(!chars.length){ alert("ما فيه أرقام أو حروف."); return; }
+  PP_SP.on=true;
+  // نافذة عائمة PiP — تبقي الصفحة شغالة والصوت مستمر حتى بالخلفية
+  var cv=$("pip_cv"), vid=$("pip_vid"), ctx=null;
+  try{ ctx=cv.getContext("2d"); }catch(e){}
+  function draw(big,sub){ if(!ctx)return;
+    ctx.fillStyle="#141A22"; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle="#FFC96B"; ctx.font="bold 100px -apple-system, Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText(String(big),cv.width/2,cv.height/2-10);
+    ctx.fillStyle="rgba(255,255,255,.65)"; ctx.font="16px -apple-system, Arial";
+    ctx.fillText(String(sub||""),cv.width/2,cv.height-20); }
+  draw("\uD83D\uDD0A","آيبان "+(p?p.name:""));
+  try{
+    if(!vid.srcObject&&cv.captureStream)vid.srcObject=cv.captureStream(8);
+    vid.muted=true;
+    var pr=vid.play(); if(pr&&pr.then)pr.then(function(){
+      try{ if(vid.webkitSetPresentationMode)vid.webkitSetPresentationMode("picture-in-picture");
+      else if(vid.requestPictureInPicture)vid.requestPictureInPicture().catch(function(){}); }catch(e){}
+    }).catch(function(){});
+  }catch(e){}
+  try{ ss.cancel(); }catch(e){}
+  function sp(t,l,r,done){ var u=new SpeechSynthesisUtterance(t); u.lang=l; u.rate=r; u.pitch=1;
+    u.onend=done; u.onerror=done; ss.speak(u); }
+  var cd=3, ci=0;
+  function nextStep(){
+    if(!PP_SP.on)return;
+    if(cd>0){ draw(cd,"استعد…"); var w=(cd===3?"ثلاثة":(cd===2?"اثنان":"واحد")); cd--;
+      sp(w,"ar-SA",0.8,function(){ PP_SP.timer=setTimeout(nextStep,350); }); return; }
+    if(ci>=chars.length){ draw("\u2713","انتهى"); PP_SP.timer=setTimeout(pplSpeakStop,1500); return; }
+    var ch=chars[ci++];
+    draw(ch,ci+" / "+chars.length);
+    var isNum=/[0-9\u0660-\u0669]/.test(ch);
+    sp(ch,isNum?"ar-SA":"en-US",0.6,function(){ PP_SP.timer=setTimeout(nextStep,700); });
   }
+  nextStep();
 }
 function pplGroupAdd(){ var g=$("pp_newgroup").value.trim(); if(!g){ alert("اكتب اسم المجموعة."); return; }
   pplInit(); if(!S.pplGroups)S.pplGroups=[];
@@ -724,7 +761,7 @@ function renderPpl(){ var el=$("pp_list"); if(!el)return; pplInit();
   for(var i=0;i<S.ppl.length;i++){ var p=S.ppl[i];
     if(PP_GF&&p.group!==PP_GF)continue;
     var col=PP_COLORS[p.color%PP_COLORS.length];
-    h+='<div class="pcard" style="border-color:'+col+'66;background:'+col+'14">'+
+    h+='<div class="pcard" style="border-color:'+col+'">'+
        '<div class="prow">'+
        '<span onclick="pplToggle('+p.id+')" style="cursor:pointer;color:'+col+';font-size:12px;font-weight:900">'+(p.open?"\u25BC":"\u25B6")+'</span>'+
        '<div class="pdot" style="background:'+col+'" onclick="pplColor('+p.id+')"></div>'+
@@ -740,7 +777,7 @@ function renderPpl(){ var el=$("pp_list"); if(!el)return; pplInit();
        '<div style="display:flex;gap:4px"><input placeholder="الآيبان IBAN" id="ppi_'+p.id+'" style="direction:ltr;text-align:right;flex:1;min-width:0" value="'+String(p.iban||"").replace(/"/g,"&quot;")+'" onchange="pplIban('+p.id+',this.value)">'+
        '<button onclick="pplSpeakIban('+p.id+')" style="flex:none;background:rgba(124,187,255,.18);border:none;border-radius:8px;color:#7CBBFF;font-size:13px;padding:0 10px;cursor:pointer">\uD83D\uDD0A</button></div>'+
        '<input placeholder="اسم البنك" id="ppb_'+p.id+'" value="'+String(p.bank||"").replace(/"/g,"&quot;")+'" onchange="pplBank('+p.id+',this.value)">'+
-       '<select onchange="pplGroup('+p.id+',this.value)" style="grid-column:span 2;background:rgba(255,255,255,.08);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:7px 8px;outline:none">'+gopts+'</select>'+
+       '<select onchange="pplGroup('+p.id+',this.value)" style="grid-column:span 2;background:rgba(255,255,255,.13);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:7px 8px;outline:none">'+gopts+'</select>'+
        '</div>';
     if(p.accs.length){
       h+='<table class="ptab"><tr><th></th><th style="cursor:default">الحساب</th>'+
