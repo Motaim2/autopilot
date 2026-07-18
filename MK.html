@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ذكرياتنا 💞</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#160d1a;
+  --bg2:#241226;
+  --rose:#a93b5b;
+  --rose-soft:#e8899d;
+  --gold:#d9b26a;
+  --cream:#f6ecdf;
+  --card:#fdf8f0;
+  --ink:#3a2430;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Tajawal',sans-serif;
+  background:radial-gradient(1200px 700px at 50% -10%, var(--bg2), var(--bg) 70%);
+  color:var(--cream);
+  min-height:100vh;
+  padding-bottom:130px;
+  overflow-x:hidden;
+}
+
+/* تنبيه الإعداد */
+.setup-banner{
+  display:none;
+  background:#5a2030;color:#ffd9e0;
+  padding:14px 18px;text-align:center;font-size:.9rem;line-height:1.9;
+  position:relative;z-index:20;
+}
+.setup-banner.show{display:block}
+
+/* قلوب طايرة */
+.heart-float{
+  position:fixed;bottom:-40px;font-size:18px;opacity:.5;
+  animation:floatUp linear forwards;pointer-events:none;z-index:1;
+}
+@keyframes floatUp{
+  0%{transform:translateY(0) rotate(0deg);opacity:.55}
+  100%{transform:translateY(-110vh) rotate(40deg);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .heart-float{display:none}
+  .disc.spin{animation:none !important}
+}
+
+/* الهيدر */
+header{text-align:center;padding:48px 20px 22px;position:relative;z-index:2}
+.names{
+  font-family:'Aref Ruqaa',serif;
+  font-size:clamp(1.9rem,7vw,3.2rem);
+  color:var(--gold);outline:none;line-height:1.5;
+}
+.names:empty::before{content:'اسمك ♥ اسم حبيبك';opacity:.4}
+.sub{color:var(--rose-soft);font-weight:300;letter-spacing:1px;margin-top:8px;outline:none}
+.sub:empty::before{content:'اكتب هنا عبارة تعبّر عنكم…';opacity:.4}
+.divider{
+  width:120px;height:1px;margin:20px auto 0;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  position:relative;
+}
+.divider::after{
+  content:'❦';position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  color:var(--gold);background:var(--bg);padding:0 10px;font-size:15px;
+}
+.sync-note{font-size:.72rem;color:rgba(246,236,223,.4);margin-top:14px}
+.sync-note .dot{color:#6fe08a}
+
+/* زر الإضافة */
+.add-wrap{text-align:center;margin:22px 0 8px;position:relative;z-index:2}
+.btn-add{
+  font-family:'Tajawal',sans-serif;
+  background:linear-gradient(135deg,var(--rose),#7c2743);
+  color:#fff;border:none;border-radius:40px;
+  padding:14px 34px;font-size:1.05rem;font-weight:500;
+  cursor:pointer;box-shadow:0 8px 24px rgba(169,59,91,.4);
+  transition:transform .2s;
+}
+.btn-add:active{transform:scale(.95)}
+
+/* شبكة الذكريات - عمودين */
+.memories{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px 16px;
+  max-width:680px;
+  margin:28px auto;
+  padding:0 16px;
+  position:relative;z-index:2;
+  align-items:start;
+}
+.mem-card{
+  background:var(--card);
+  color:var(--ink);
+  border-radius:6px;
+  padding:12px 12px 14px;
+  box-shadow:0 12px 32px rgba(0,0,0,.45);
+  position:relative;
+  animation:pop .4s ease;
+}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.mem-card:nth-child(odd){transform:rotate(-1deg)}
+.mem-card:nth-child(even){transform:rotate(1deg)}
+.tape{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-2deg);
+  width:80px;height:22px;
+  background:rgba(217,178,106,.45);
+  border-left:1px dashed rgba(255,255,255,.5);
+  border-right:1px dashed rgba(255,255,255,.5);
+  z-index:1;
+}
+/* الكتابة فوق الصورة فقط */
+.mem-text{
+  font-family:'Aref Ruqaa',serif;
+  font-size:1rem;text-align:center;line-height:1.8;
+  padding:8px 4px 10px;outline:none;min-height:30px;
+}
+.mem-text:empty::before{content:'اكتب هنا…';opacity:.35}
+/* الصور بحجم موحد */
+.photo-box{
+  border:2px dashed rgba(58,36,48,.25);
+  border-radius:4px;overflow:hidden;
+  aspect-ratio:4/5;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;background:#f3ebdf;
+  transition:background .2s;
+}
+.photo-box:hover{background:#efe4d2}
+.photo-box img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-hint{color:#a08a7d;font-size:.85rem;text-align:center;padding:14px}
+.mem-tools{display:flex;justify-content:flex-end;margin-top:8px}
+.tool-btn{
+  background:none;border:none;cursor:pointer;
+  color:#c0555f;font-family:'Tajawal',sans-serif;font-size:.8rem;
+  padding:3px 8px;border-radius:8px;
+}
+.tool-btn:hover{background:rgba(169,59,91,.1)}
+
+.empty-state{
+  grid-column:1 / -1;
+  text-align:center;color:rgba(246,236,223,.45);
+  font-weight:300;padding:40px 20px;line-height:2;
+}
+.loading{
+  grid-column:1 / -1;text-align:center;
+  color:var(--rose-soft);padding:40px;font-weight:300;
+}
+
+/* مشغل الأغنية */
+.player{
+  position:fixed;bottom:0;left:0;right:0;z-index:10;
+  background:rgba(22,13,26,.92);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-top:1px solid rgba(217,178,106,.3);
+  padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:14px;
+}
+.disc{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at center, var(--gold) 0 8px, #1c1c1c 8px 9px, #2b2b2b 9px);
+  box-shadow:0 0 0 2px rgba(217,178,106,.4), 0 4px 14px rgba(0,0,0,.5);
+  position:relative;
+}
+.disc::after{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:repeating-radial-gradient(circle at center, transparent 0 3px, rgba(255,255,255,.04) 3px 4px);
+}
+.disc.spin{animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.song-info{flex:1;min-width:0}
+.song-name{
+  font-size:.95rem;color:var(--cream);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.song-hint{font-size:.75rem;color:var(--rose-soft);opacity:.85;cursor:pointer}
+.song-hint:hover{text-decoration:underline}
+.song-status{font-size:.7rem;color:var(--gold);margin-top:2px;min-height:1em}
+.progress{
+  height:4px;background:rgba(255,255,255,.12);border-radius:4px;
+  margin-top:6px;overflow:hidden;cursor:pointer;
+}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--rose),var(--gold));border-radius:4px}
+.btn-play{
+  width:56px;height:56px;border-radius:50%;border:none;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),#b88f45);
+  color:#2a1a10;font-size:1.4rem;cursor:pointer;
+  box-shadow:0 6px 18px rgba(217,178,106,.45);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s;
+}
+.btn-play:active{transform:scale(.92)}
+.btn-play:disabled{opacity:.4;cursor:default}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<div class="setup-banner" id="setupBanner">
+  ⚠️ الصفحة تحتاج إعداد Firebase أول مرة فقط:<br>
+  افتح الملف وعدّل قيم <b>firebaseConfig</b> في أول السكربت بقيم مشروعك
+</div>
+
+<header>
+  <div class="names" id="names" contenteditable="true" spellcheck="false"></div>
+  <div class="sub" id="sub" contenteditable="true" spellcheck="false"></div>
+  <div class="divider"></div>
+  <div class="sync-note" id="syncNote">جاري الاتصال…</div>
+</header>
+
+<div class="add-wrap">
+  <button class="btn-add" onclick="addMemory()">✦ أضف ذكرى جديدة</button>
+</div>
+
+<div class="memories" id="memories">
+  <div class="loading">جاري تحميل ذكرياتكم…</div>
+</div>
+
+<!-- مشغل الأغنية -->
+<div class="player">
+  <div class="disc" id="disc"></div>
+  <div class="song-info">
+    <div class="song-name" id="songName">ما فيه أغنية بعد</div>
+    <div class="song-hint" onclick="document.getElementById('songFile').click()">＋ ارفع أغنية MP3 (تصير أغنية الصفحة للجميع)</div>
+    <div class="song-status" id="songStatus"></div>
+    <div class="progress" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+  <button class="btn-play" id="playBtn" onclick="togglePlay()" disabled>▶</button>
+</div>
+
+<input type="file" id="songFile" accept="audio/*">
+<input type="file" id="photoFile" accept="image/*">
+<audio id="audio"></audio>
+
+<script>
+/* ============================================================
+   ⚙️ إعداد Firebase — عدّل هذي القيم بقيم مشروعك (مرة وحدة فقط)
+   من: console.firebase.google.com → Project settings → Your apps
+   ============================================================ */
+var firebaseConfig = {
+  apiKey: "AIzaSyD2m4fXnK2dy00ggfQF75qerllD5FXnHOk",
+  authDomain: "mineral-oarlock-297910.firebaseapp.com",
+  databaseURL: "https://mineral-oarlock-297910-default-rtdb.firebaseio.com",
+  projectId: "mineral-oarlock-297910",
+  storageBucket: "mineral-oarlock-297910.firebasestorage.app",
+  messagingSenderId: "980237692993",
+  appId: "1:980237692993:web:68c20d1091e8c81366d6c0"
+};
+/* ============================================================ */
+
+var audio = document.getElementById('audio');
+var playBtn = document.getElementById('playBtn');
+var disc = document.getElementById('disc');
+var songName = document.getElementById('songName');
+var songStatus = document.getElementById('songStatus');
+var progressFill = document.getElementById('progressFill');
+var progressBar = document.getElementById('progressBar');
+var photoInput = document.getElementById('photoFile');
+var songInput = document.getElementById('songFile');
+var memoriesEl = document.getElementById('memories');
+var namesEl = document.getElementById('names');
+var subEl = document.getElementById('sub');
+var syncNote = document.getElementById('syncNote');
+
+var db = null;
+var currentCard = null;
+var songVersion = '';
+var CHUNK = 4000000; // حجم كل جزء من الأغنية
+
+/* ---------- تشغيل Firebase ---------- */
+function startFirebase(){
+  if(typeof firebase === 'undefined'){
+    syncNote.textContent = '⚠️ ما قدرت أحمّل مكتبة Firebase — افتح الصفحة من Safari مباشرة (معاينة كلود تمنعها)';
+    memoriesEl.innerHTML = '<div class="empty-state">افتح الصفحة من رابطها على GitHub Pages<br>عشان تشتغل المشاركة 🤍</div>';
+    return false;
+  }
+  if(firebaseConfig.apiKey.indexOf('ضع_هنا') === 0){
+    document.getElementById('setupBanner').classList.add('show');
+    syncNote.textContent = '⚠️ غير متصل — يحتاج إعداد';
+    memoriesEl.innerHTML = '<div class="empty-state">أكمل إعداد Firebase عشان تشتغل المشاركة</div>';
+    return false;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  db.ref('.info/connected').on('value', function(snap){
+    if(snap.val()){
+      syncNote.innerHTML = '<span class="dot">●</span> متصل — صفحة مشتركة، كل اللي تضيفونه يشوفه الطرف الثاني 🤍';
+    } else {
+      syncNote.textContent = '○ جاري إعادة الاتصال…';
+    }
+  });
+  return true;
+}
+
+/* ---------- الهيدر (مزامنة لحظية) ---------- */
+function listenHeader(){
+  db.ref('header').on('value', function(snap){
+    var h = snap.val();
+    if(!h) return;
+    if(document.activeElement !== namesEl) namesEl.textContent = h.names || '';
+    if(document.activeElement !== subEl) subEl.textContent = h.sub || '';
+  });
+}
+function saveHeader(){
+  if(!db) return;
+  db.ref('header').set({names: namesEl.textContent, sub: subEl.textContent});
+}
+namesEl.addEventListener('blur', saveHeader);
+subEl.addEventListener('blur', saveHeader);
+
+/* ---------- الذكريات ---------- */
+function buildCard(id, data){
+  var card = document.createElement('div');
+  card.className = 'mem-card';
+  card.dataset.id = id;
+  card.innerHTML =
+    '<div class="tape"></div>' +
+    '<div class="mem-text" contenteditable="true" spellcheck="false"></div>' +
+    '<div class="photo-box"><div class="photo-hint">اضغط لإضافة صورة 📷</div></div>' +
+    '<div class="mem-tools">' +
+      '<button class="tool-btn" onclick="delMemory(this)">🗑 حذف</button>' +
+    '</div>';
+
+  var txt = card.querySelector('.mem-text');
+  var box = card.querySelector('.photo-box');
+
+  if(data){
+    if(data.text) txt.textContent = data.text;
+    if(data.img){
+      box.innerHTML = '<img src="' + data.img + '" alt="ذكرى">';
+      box.style.border = 'none';
+    }
+  }
+
+  txt.addEventListener('blur', function(){ saveMemory(card); });
+  box.addEventListener('click', function(){
+    currentCard = card;
+    photoInput.click();
+  });
+  return card;
+}
+
+function saveMemory(card){
+  if(!db) return;
+  var id = card.dataset.id;
+  var img = card.querySelector('.photo-box img');
+  db.ref('memories/' + id).set({
+    text: card.querySelector('.mem-text').textContent,
+    img: img ? img.src : ''
+  });
+}
+
+function addMemory(){
+  if(!db){ alert('أكمل إعداد Firebase أول'); return; }
+  var id = 'm' + Date.now();
+  db.ref('memories/' + id).set({text:'', img:''});
+  // البطاقة بتظهر تلقائياً من المزامنة اللحظية
+  setTimeout(function(){
+    var c = memoriesEl.querySelector('[data-id="' + id + '"]');
+    if(c){
+      c.scrollIntoView({behavior:'smooth', block:'center'});
+      c.querySelector('.mem-text').focus();
+    }
+  }, 400);
+}
+
+function delMemory(btn){
+  if(!db) return;
+  var card = btn.closest('.mem-card');
+  db.ref('memories/' + card.dataset.id).remove();
+}
+
+function showEmpty(){
+  memoriesEl.innerHTML = '<div class="empty-state">لا توجد ذكريات بعد…<br>اضغط الزر فوق وابدأ توثيق أجمل لحظاتكم 🤍</div>';
+}
+
+function listenMemories(){
+  db.ref('memories').on('value', function(snap){
+    // ما نعيد الرسم إذا أحد يكتب داخل بطاقة
+    if(document.activeElement && document.activeElement.isContentEditable
+       && document.activeElement.classList.contains('mem-text')) return;
+    var all = snap.val();
+    memoriesEl.innerHTML = '';
+    if(!all){ showEmpty(); return; }
+    var ids = Object.keys(all).sort();
+    for(var i = 0; i < ids.length; i++){
+      memoriesEl.appendChild(buildCard(ids[i], all[ids[i]]));
+    }
+  });
+}
+
+/* ---------- توحيد حجم الصور ---------- */
+function normalizeImage(file, cb){
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var TW = 640, TH = 800; // 4:5 حجم موحد
+      var canvas = document.createElement('canvas');
+      canvas.width = TW; canvas.height = TH;
+      var ctx = canvas.getContext('2d');
+      var scale = Math.max(TW / img.width, TH / img.height);
+      var w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (TW - w) / 2, (TH - h) / 2, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.72));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+photoInput.addEventListener('change', function(){
+  var f = photoInput.files[0];
+  if(!f || !currentCard) return;
+  var card = currentCard;
+  normalizeImage(f, function(dataUrl){
+    var box = card.querySelector('.photo-box');
+    box.innerHTML = '<img src="' + dataUrl + '" alt="ذكرى">';
+    box.style.border = 'none';
+    saveMemory(card);
+  });
+  photoInput.value = '';
+});
+
+/* ---------- الأغنية المشتركة (آخر وحدة مرفوعة تشتغل للجميع) ---------- */
+songInput.addEventListener('change', function(){
+  var f = songInput.files[0];
+  if(!f) return;
+  if(!db){ alert('أكمل إعداد Firebase أول'); songInput.value=''; return; }
+  if(f.size > 10 * 1024 * 1024){
+    alert('الأغنية كبيرة (فوق 10MB)، اختر ملف أصغر');
+    songInput.value = '';
+    return;
+  }
+  songStatus.textContent = 'جاري رفع الأغنية…';
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var dataUrl = ev.target.result;
+    var chunks = [];
+    for(var i = 0; i < dataUrl.length; i += CHUNK){
+      chunks.push(dataUrl.slice(i, i + CHUNK));
+    }
+    var stamp = String(Date.now());
+    var done = 0;
+    var failed = false;
+
+    function afterAll(){
+      if(failed){ songStatus.textContent = 'فشل الرفع، حاول مرة ثانية'; return; }
+      db.ref('song/meta').set({
+        name: f.name.replace(/\.[^.]+$/,''),
+        chunks: chunks.length,
+        stamp: stamp
+      });
+      songVersion = stamp;
+      audio.src = dataUrl;
+      songName.textContent = f.name.replace(/\.[^.]+$/,'');
+      playBtn.disabled = false;
+      songStatus.textContent = 'تم ✓ هذي صارت أغنية الصفحة للجميع';
+      setTimeout(function(){ songStatus.textContent = ''; }, 4000);
+    }
+
+    for(var c = 0; c < chunks.length; c++){
+      (function(idx){
+        db.ref('song/chunks/c' + idx).set(chunks[idx], function(err){
+          if(err) failed = true;
+          done++;
+          songStatus.textContent = 'جاري الرفع… ' + Math.round((done / chunks.length) * 100) + '%';
+          if(done === chunks.length) afterAll();
+        });
+      })(c);
+    }
+    songInput.value = '';
+  };
+  reader.readAsDataURL(f);
+});
+
+function listenSong(){
+  db.ref('song/meta').on('value', function(snap){
+    var meta = snap.val();
+    if(!meta || meta.stamp === songVersion) return;
+    songStatus.textContent = 'جاري تحميل الأغنية…';
+    db.ref('song/chunks').once('value', function(csnap){
+      var all = csnap.val();
+      if(!all){ songStatus.textContent = ''; return; }
+      var parts = [];
+      for(var i = 0; i < meta.chunks; i++){
+        if(all['c' + i] === undefined){ songStatus.textContent = ''; return; }
+        parts.push(all['c' + i]);
+      }
+      var wasPlaying = !audio.paused;
+      audio.src = parts.join('');
+      songName.textContent = meta.name;
+      playBtn.disabled = false;
+      songVersion = meta.stamp;
+      songStatus.textContent = '';
+      if(wasPlaying) audio.play();
+    });
+  });
+}
+
+function togglePlay(){
+  if(audio.paused){
+    audio.play();
+    playBtn.textContent = '❚❚';
+    disc.classList.add('spin');
+  } else {
+    audio.pause();
+    playBtn.textContent = '▶';
+    disc.classList.remove('spin');
+  }
+}
+
+audio.addEventListener('ended', function(){
+  playBtn.textContent = '▶';
+  disc.classList.remove('spin');
+});
+audio.addEventListener('timeupdate', function(){
+  if(audio.duration){
+    progressFill.style.width = (audio.currentTime / audio.duration * 100) + '%';
+  }
+});
+progressBar.addEventListener('click', function(e){
+  if(!audio.duration) return;
+  var r = progressBar.getBoundingClientRect();
+  var ratio = 1 - ((e.clientX - r.left) / r.width); /* RTL */
+  audio.currentTime = ratio * audio.duration;
+});
+
+/* ---------- قلوب طايرة ---------- */
+function spawnHeart(){
+  var h = document.createElement('div');
+  h.className = 'heart-float';
+  var hearts = ['🤍','💗','✨','♥'];
+  h.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+  h.style.left = (Math.random()*100) + 'vw';
+  h.style.fontSize = (12 + Math.random()*16) + 'px';
+  h.style.animationDuration = (7 + Math.random()*6) + 's';
+  document.body.appendChild(h);
+  setTimeout(function(){ h.remove(); }, 14000);
+}
+setInterval(spawnHeart, 1800);
+spawnHeart();
+
+/* ---------- البداية ---------- */
+if(startFirebase()){
+  listenHeader();
+  listenMemories();
+  listenSong();
+}
+</script>
+</body>
+</html>
