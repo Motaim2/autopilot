@@ -112,24 +112,55 @@ header{text-align:center;padding:42px 20px 16px;position:relative;z-index:2}
 .mem-card{
   background:#fdf8f0;
   color:#3a2430;
-  padding:14px 12px 12px;
-  filter:drop-shadow(0 10px 22px rgba(0,0,0,.5));
+  padding:16px 12px 10px;
+  border-radius:3px;
+  box-shadow:0 14px 30px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3);
   position:relative;
   animation:pop .4s ease;
+  transform-origin:top center;
 }
-/* أشكال قصاصات ورق ممزقة */
-.mem-card.scrap0{clip-path:polygon(2% 3%, 25% 0%, 52% 2%, 78% 0%, 98% 4%, 100% 30%, 97% 55%, 100% 78%, 97% 97%, 70% 100%, 45% 97%, 20% 100%, 1% 96%, 3% 70%, 0% 45%, 2% 20%);transform:rotate(-1.6deg)}
-.mem-card.scrap1{clip-path:polygon(0% 5%, 22% 2%, 48% 0%, 75% 3%, 100% 0%, 98% 25%, 100% 52%, 97% 80%, 99% 100%, 72% 98%, 50% 100%, 24% 97%, 0% 100%, 2% 74%, 0% 48%, 3% 24%);transform:rotate(1.4deg)}
-.mem-card.scrap2{clip-path:polygon(3% 0%, 30% 3%, 55% 0%, 80% 2%, 100% 1%, 97% 28%, 100% 50%, 98% 75%, 100% 96%, 76% 100%, 48% 98%, 26% 100%, 2% 98%, 0% 72%, 3% 50%, 0% 26%);transform:rotate(1.8deg)}
-.mem-card.scrap3{clip-path:polygon(0% 2%, 26% 0%, 50% 3%, 77% 0%, 99% 2%, 100% 26%, 98% 52%, 100% 76%, 98% 100%, 73% 97%, 47% 100%, 22% 98%, 1% 100%, 3% 76%, 0% 52%, 2% 26%);transform:rotate(-1.3deg)}
+/* ميلان خفيف كأنها معلقة من فوق */
+.mem-card.tilt0{transform:rotate(-1.8deg)}
+.mem-card.tilt1{transform:rotate(1.4deg)}
+.mem-card.tilt2{transform:rotate(-0.9deg)}
+.mem-card.tilt3{transform:rotate(2deg)}
+/* طية ظل خفيفة أسفل الورقة */
+.mem-card::after{
+  content:'';position:absolute;bottom:4px;left:8%;right:8%;height:12px;
+  box-shadow:0 10px 12px rgba(0,0,0,.25);
+  border-radius:50%;z-index:-1;
+}
 @keyframes pop{from{transform:scale(.92);opacity:0}to{opacity:1}}
+
+/* التعليقات: لصق، مشبك، دبوس، ورد… */
+.decor-slot{position:absolute;top:0;left:0;right:0;height:0;z-index:3}
 .tape{
   position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-3deg);
   width:74px;height:20px;
   background:rgba(217,178,106,.5);
   border-left:1px dashed rgba(255,255,255,.55);
   border-right:1px dashed rgba(255,255,255,.55);
-  z-index:2;
+}
+.decor-emoji{
+  position:absolute;top:-17px;left:50%;
+  transform:translateX(-50%) rotate(-8deg);
+  font-size:27px;line-height:1;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));
+}
+/* لوحة ألوان القصاصة */
+.palette{
+  display:none;justify-content:center;flex-wrap:wrap;gap:7px;
+  padding:7px 2px 3px;
+}
+.palette.show{display:flex}
+.swatch{
+  width:19px;height:19px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.18);cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.swatch.auto{
+  background:conic-gradient(#e8899d,#d9b26a,#8fc7a3,#8aa8d8,#e8899d);
+  position:relative;
 }
 /* تاريخ الذكرى في الزاوية */
 .mem-date{
@@ -432,6 +463,74 @@ function formatDate(ms){
   return d.getDate() + ' ' + AR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
 }
 
+/* التعليقات المتاحة */
+var DECORS = [
+  {id:'tape',      name:'🩹 لصق'},
+  {id:'clip',      name:'📎 مشبك',    e:'📎'},
+  {id:'pin',       name:'📌 دبوس',    e:'📌'},
+  {id:'flower',    name:'🌸 وردة',    e:'🌸'},
+  {id:'rose',      name:'🌹 جورية',   e:'🌹'},
+  {id:'heart',     name:'🤍 قلب',     e:'🤍'},
+  {id:'butterfly', name:'🦋 فراشة',   e:'🦋'},
+  {id:'star',      name:'⭐ نجمة',    e:'⭐'}
+];
+function renderDecor(card, decorId){
+  var slot = card.querySelector('.decor-slot');
+  var d = null;
+  for(var i = 0; i < DECORS.length; i++){
+    if(DECORS[i].id === decorId){ d = DECORS[i]; break; }
+  }
+  if(!d) d = DECORS[0];
+  if(d.id === 'tape'){
+    slot.innerHTML = '<div class="tape"></div>';
+  } else {
+    slot.innerHTML = '<div class="decor-emoji">' + d.e + '</div>';
+  }
+}
+function changeDecor(sel){
+  var card = sel.closest('.mem-card');
+  renderDecor(card, sel.value);
+  saveMemory(card);
+}
+
+/* ألوان القصاصات الجاهزة */
+var PALETTE = [
+  [253,248,240], // كريمي
+  [251,227,234], // وردي
+  [224,236,247], // أزرق فاتح
+  [226,242,228], // نعناعي
+  [236,228,246], // بنفسجي
+  [253,243,213], // أصفر
+  [253,228,212], // خوخي
+  [238,234,228]  // رمادي دافئ
+];
+function pickColor(el, idx){
+  var card = el.closest('.mem-card');
+  if(idx === -1){
+    // تلقائي: نعيد استخراج اللون من الصورة الموجودة
+    card.dataset.manual = '';
+    var im = card.querySelector('.photo-box img');
+    if(im){
+      try{
+        var canvas = document.createElement('canvas');
+        canvas.width = 100; canvas.height = 100;
+        canvas.getContext('2d').drawImage(im, 0, 0, 100, 100);
+        var color = avgColorFromCanvas(canvas);
+        card.dataset.color = JSON.stringify(color);
+        applyCardColor(card, color);
+      }catch(e){}
+    }
+  } else {
+    card.dataset.manual = '1';
+    card.dataset.color = JSON.stringify(PALETTE[idx]);
+    applyCardColor(card, PALETTE[idx]);
+  }
+  saveMemory(card);
+}
+function togglePalette(btn){
+  btn.closest('.mem-card').querySelector('.palette').classList.toggle('show');
+}
+
 function fontCss(id){
   for(var i = 0; i < FONTS.length; i++){
     if(FONTS[i].id === id) return FONTS[i].css;
@@ -441,27 +540,42 @@ function fontCss(id){
 
 function buildCard(id, data, index){
   var card = document.createElement('div');
-  card.className = 'mem-card scrap' + (index % 4);
+  card.className = 'mem-card tilt' + (index % 4);
   card.dataset.id = id;
+  if(data && data.manual) card.dataset.manual = '1';
 
   var opts = '';
   for(var i = 0; i < FONTS.length; i++){
     var sel = (data && data.font === FONTS[i].id) ? ' selected' : '';
     opts += '<option value="' + FONTS[i].id + '"' + sel + '>' + FONTS[i].name + '</option>';
   }
+  var dopts = '';
+  for(var j = 0; j < DECORS.length; j++){
+    var dsel = ((data && data.decor) || 'tape') === DECORS[j].id ? ' selected' : '';
+    dopts += '<option value="' + DECORS[j].id + '"' + dsel + '>' + DECORS[j].name + '</option>';
+  }
+  var swatches = '<div class="swatch auto" title="تلقائي من الصورة" onclick="pickColor(this,-1)"></div>';
+  for(var k = 0; k < PALETTE.length; k++){
+    swatches += '<div class="swatch" style="background:rgb(' + PALETTE[k].join(',') + ')" onclick="pickColor(this,' + k + ')"></div>';
+  }
 
   card.innerHTML =
-    '<div class="tape"></div>' +
+    '<div class="decor-slot"></div>' +
     '<div class="mem-date" contenteditable="true" spellcheck="false"></div>' +
     '<div class="mem-text" contenteditable="true" spellcheck="false"></div>' +
     '<div class="photo-box"><div class="photo-hint">اضغط لإضافة صورة أو فيديو 📷🎬</div></div>' +
     '<div class="mem-tools">' +
       '<select class="font-select" onchange="changeFont(this)">' + opts + '</select>' +
+      '<select class="font-select decor-select" onchange="changeDecor(this)">' + dopts + '</select>' +
       '<span>' +
+        '<button class="tool-btn" onclick="togglePalette(this)">🎨</button>' +
         '<button class="tool-btn" onclick="replaceMedia(this)">📷</button>' +
         '<button class="tool-btn" onclick="delMemory(this)">🗑</button>' +
       '</span>' +
-    '</div>';
+    '</div>' +
+    '<div class="palette">' + swatches + '</div>';
+
+  renderDecor(card, (data && data.decor) || 'tape');
 
   var txt = card.querySelector('.mem-text');
   var box = card.querySelector('.photo-box');
@@ -560,7 +674,9 @@ function saveMemory(card){
     text: card.querySelector('.mem-text').textContent,
     img: card.dataset.media ? '' : (img ? img.src : ''),
     font: card.querySelector('.font-select').value,
+    decor: card.querySelector('.decor-select').value,
     date: card.querySelector('.mem-date').textContent,
+    manual: card.dataset.manual === '1',
     color: card.dataset.color ? JSON.parse(card.dataset.color) : null
   };
   if(card.dataset.media){
@@ -574,7 +690,7 @@ function saveMemory(card){
 function addMemory(){
   if(!db) return;
   var id = 'm' + Date.now();
-  db.ref('memories/' + id).set({text:'', img:'', font:'ruqaa', color:null});
+  db.ref('memories/' + id).set({text:'', img:'', font:'ruqaa', decor:'tape', color:null});
   setTimeout(function(){
     var c = memoriesEl.querySelector('[data-id="' + id + '"]');
     if(c){
@@ -610,7 +726,7 @@ function listenMemories(){
     memoriesEl.appendChild(colA);
     memoriesEl.appendChild(colB);
 
-    var ids = Object.keys(all).sort();
+    var ids = Object.keys(all).sort().reverse(); // الأحدث أولاً
     for(var i = 0; i < ids.length; i++){
       var card = buildCard(ids[i], all[ids[i]], i);
       if(all[ids[i]].color) card.dataset.color = JSON.stringify(all[ids[i]].color);
@@ -665,8 +781,10 @@ function handleStill(card, f){
       var box = card.querySelector('.photo-box');
       box.innerHTML = '<img src="' + dataUrl + '" alt="ذكرى">';
       box.style.border = 'none';
-      card.dataset.color = JSON.stringify(color);
-      applyCardColor(card, color);
+      if(card.dataset.manual !== '1'){
+        card.dataset.color = JSON.stringify(color);
+        applyCardColor(card, color);
+      }
       saveMemory(card);
     };
     img.src = ev.target.result;
@@ -727,8 +845,10 @@ function handleGif(card, f){
         canvas.width = 100; canvas.height = 100;
         canvas.getContext('2d').drawImage(img, 0, 0, 100, 100);
         var color = avgColorFromCanvas(canvas);
-        card.dataset.color = JSON.stringify(color);
-        applyCardColor(card, color);
+        if(card.dataset.manual !== '1'){
+          card.dataset.color = JSON.stringify(color);
+          applyCardColor(card, color);
+        }
       }catch(e){}
       uploadMedia(card, dataUrl, 'gif');
     };
@@ -759,9 +879,11 @@ function handleVideo(card, f){
             canvas.width = 100; canvas.height = 100;
             canvas.getContext('2d').drawImage(v, 0, 0, 100, 100);
             var color = avgColorFromCanvas(canvas);
-            card.dataset.color = JSON.stringify(color);
-            applyCardColor(card, color);
-            saveMemory(card);
+            if(card.dataset.manual !== '1'){
+              card.dataset.color = JSON.stringify(color);
+              applyCardColor(card, color);
+              saveMemory(card);
+            }
           }catch(e){}
         });
         v.src = dataUrl;
