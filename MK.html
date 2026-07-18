@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ذكرياتنا 💞</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Amiri:wght@400;700&family=Reem+Kufi:wght@400;600&family=Rakkas&family=Marhey:wght@400;600&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
@@ -16,27 +16,24 @@
   --rose-soft:#e8899d;
   --gold:#d9b26a;
   --cream:#f6ecdf;
-  --card:#fdf8f0;
-  --ink:#3a2430;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
   font-family:'Tajawal',sans-serif;
   background:radial-gradient(1200px 700px at 50% -10%, var(--bg2), var(--bg) 70%);
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
   color:var(--cream);
   min-height:100vh;
-  padding-bottom:130px;
+  padding-bottom:150px;
   overflow-x:hidden;
 }
-
-/* تنبيه الإعداد */
-.setup-banner{
-  display:none;
-  background:#5a2030;color:#ffd9e0;
-  padding:14px 18px;text-align:center;font-size:.9rem;line-height:1.9;
-  position:relative;z-index:20;
+body.has-bg::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background:linear-gradient(180deg, rgba(22,13,26,.55), rgba(22,13,26,.75));
+  pointer-events:none;
 }
-.setup-banner.show{display:block}
 
 /* قلوب طايرة */
 .heart-float{
@@ -53,147 +50,204 @@ body{
 }
 
 /* الهيدر */
-header{text-align:center;padding:48px 20px 22px;position:relative;z-index:2}
+header{text-align:center;padding:42px 20px 16px;position:relative;z-index:2}
 .names{
   font-family:'Aref Ruqaa',serif;
-  font-size:clamp(1.9rem,7vw,3.2rem);
+  font-size:clamp(1.8rem,6.5vw,3rem);
   color:var(--gold);outline:none;line-height:1.5;
+  text-shadow:0 2px 12px rgba(0,0,0,.5);
 }
 .names:empty::before{content:'اسمك ♥ اسم حبيبك';opacity:.4}
-.sub{color:var(--rose-soft);font-weight:300;letter-spacing:1px;margin-top:8px;outline:none}
+.sub{color:var(--rose-soft);font-weight:300;letter-spacing:1px;margin-top:6px;outline:none;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .sub:empty::before{content:'اكتب هنا عبارة تعبّر عنكم…';opacity:.4}
 .divider{
-  width:120px;height:1px;margin:20px auto 0;
+  width:110px;height:1px;margin:16px auto 0;
   background:linear-gradient(90deg,transparent,var(--gold),transparent);
   position:relative;
 }
 .divider::after{
   content:'❦';position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-  color:var(--gold);background:var(--bg);padding:0 10px;font-size:15px;
+  color:var(--gold);padding:0 10px;font-size:14px;
 }
-.sync-note{font-size:.72rem;color:rgba(246,236,223,.4);margin-top:14px}
-.sync-note .dot{color:#6fe08a}
 
-/* زر الإضافة */
-.add-wrap{text-align:center;margin:22px 0 8px;position:relative;z-index:2}
-.btn-add{
+/* الأزرار */
+.add-wrap{
+  text-align:center;margin:14px 0 4px;position:relative;z-index:2;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.btn-sm{
   font-family:'Tajawal',sans-serif;
-  background:linear-gradient(135deg,var(--rose),#7c2743);
-  color:#fff;border:none;border-radius:40px;
-  padding:14px 34px;font-size:1.05rem;font-weight:500;
-  cursor:pointer;box-shadow:0 8px 24px rgba(169,59,91,.4);
-  transition:transform .2s;
+  color:#fff;border:none;border-radius:30px;
+  padding:9px 18px;font-size:.85rem;font-weight:500;
+  cursor:pointer;transition:transform .2s;
 }
-.btn-add:active{transform:scale(.95)}
+.btn-sm:active{transform:scale(.94)}
+.btn-mem{
+  background:linear-gradient(135deg,var(--rose),#7c2743);
+  box-shadow:0 5px 16px rgba(169,59,91,.4);
+}
+.btn-bg{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(217,178,106,.35);
+  color:var(--gold);
+  padding:5px 13px;font-size:.72rem;
+  border-radius:20px;
+}
 
-/* شبكة الذكريات - عمودين */
+/* شبكة القصاصات - عمودين متوازنين (ماسونري) */
 .memories{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:22px 16px;
+  display:flex;
+  gap:14px;
   max-width:680px;
-  margin:28px auto;
+  margin:26px auto;
   padding:0 16px;
   position:relative;z-index:2;
-  align-items:start;
+  align-items:flex-start;
+}
+.mcol{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  gap:26px;
 }
 .mem-card{
-  background:var(--card);
-  color:var(--ink);
-  border-radius:6px;
-  padding:12px 12px 14px;
-  box-shadow:0 12px 32px rgba(0,0,0,.45);
+  background:#fdf8f0;
+  color:#3a2430;
+  padding:14px 12px 12px;
+  filter:drop-shadow(0 10px 22px rgba(0,0,0,.5));
   position:relative;
   animation:pop .4s ease;
 }
-@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
-.mem-card:nth-child(odd){transform:rotate(-1deg)}
-.mem-card:nth-child(even){transform:rotate(1deg)}
+/* أشكال قصاصات ورق ممزقة */
+.mem-card.scrap0{clip-path:polygon(2% 3%, 25% 0%, 52% 2%, 78% 0%, 98% 4%, 100% 30%, 97% 55%, 100% 78%, 97% 97%, 70% 100%, 45% 97%, 20% 100%, 1% 96%, 3% 70%, 0% 45%, 2% 20%);transform:rotate(-1.6deg)}
+.mem-card.scrap1{clip-path:polygon(0% 5%, 22% 2%, 48% 0%, 75% 3%, 100% 0%, 98% 25%, 100% 52%, 97% 80%, 99% 100%, 72% 98%, 50% 100%, 24% 97%, 0% 100%, 2% 74%, 0% 48%, 3% 24%);transform:rotate(1.4deg)}
+.mem-card.scrap2{clip-path:polygon(3% 0%, 30% 3%, 55% 0%, 80% 2%, 100% 1%, 97% 28%, 100% 50%, 98% 75%, 100% 96%, 76% 100%, 48% 98%, 26% 100%, 2% 98%, 0% 72%, 3% 50%, 0% 26%);transform:rotate(1.8deg)}
+.mem-card.scrap3{clip-path:polygon(0% 2%, 26% 0%, 50% 3%, 77% 0%, 99% 2%, 100% 26%, 98% 52%, 100% 76%, 98% 100%, 73% 97%, 47% 100%, 22% 98%, 1% 100%, 3% 76%, 0% 52%, 2% 26%);transform:rotate(-1.3deg)}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{opacity:1}}
 .tape{
-  position:absolute;top:-12px;left:50%;transform:translateX(-50%) rotate(-2deg);
-  width:80px;height:22px;
-  background:rgba(217,178,106,.45);
-  border-left:1px dashed rgba(255,255,255,.5);
-  border-right:1px dashed rgba(255,255,255,.5);
-  z-index:1;
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(-3deg);
+  width:74px;height:20px;
+  background:rgba(217,178,106,.5);
+  border-left:1px dashed rgba(255,255,255,.55);
+  border-right:1px dashed rgba(255,255,255,.55);
+  z-index:2;
 }
+/* تاريخ الذكرى في الزاوية */
+.mem-date{
+  position:absolute;top:9px;left:11px;
+  font-family:'Tajawal',sans-serif;
+  font-size:.62rem;font-weight:500;
+  opacity:.55;letter-spacing:.3px;
+  transform:rotate(-4deg);
+  outline:none;white-space:nowrap;
+  z-index:2;
+}
+.mem-date::before{content:'✎ ';opacity:.6}
 /* الكتابة فوق الصورة فقط */
 .mem-text{
-  font-family:'Aref Ruqaa',serif;
-  font-size:1rem;text-align:center;line-height:1.8;
-  padding:8px 4px 10px;outline:none;min-height:30px;
+  font-size:1rem;text-align:center;line-height:1.85;
+  padding:16px 4px 10px;outline:none;min-height:30px;
 }
 .mem-text:empty::before{content:'اكتب هنا…';opacity:.35}
 /* الصور بحجم موحد */
 .photo-box{
   border:2px dashed rgba(58,36,48,.25);
-  border-radius:4px;overflow:hidden;
+  overflow:hidden;
   aspect-ratio:4/5;
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;background:#f3ebdf;
-  transition:background .2s;
+  cursor:pointer;background:rgba(0,0,0,.05);
 }
-.photo-box:hover{background:#efe4d2}
 .photo-box img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-hint{color:#a08a7d;font-size:.85rem;text-align:center;padding:14px}
-.mem-tools{display:flex;justify-content:flex-end;margin-top:8px}
+.photo-box video{width:100%;height:100%;object-fit:cover;display:block}
+.photo-hint{color:#a08a7d;font-size:.8rem;text-align:center;padding:12px}
+.mem-tools{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:8px;gap:6px;
+}
+.font-select{
+  font-family:'Tajawal',sans-serif;
+  font-size:.72rem;border:1px solid rgba(58,36,48,.2);
+  border-radius:8px;padding:3px 6px;
+  background:rgba(255,255,255,.5);color:inherit;
+  max-width:90px;
+}
 .tool-btn{
   background:none;border:none;cursor:pointer;
-  color:#c0555f;font-family:'Tajawal',sans-serif;font-size:.8rem;
-  padding:3px 8px;border-radius:8px;
+  color:#c0555f;font-family:'Tajawal',sans-serif;font-size:.78rem;
+  padding:3px 6px;border-radius:8px;
 }
-.tool-btn:hover{background:rgba(169,59,91,.1)}
-
 .empty-state{
-  grid-column:1 / -1;
-  text-align:center;color:rgba(246,236,223,.45);
-  font-weight:300;padding:40px 20px;line-height:2;
+  width:100%;
+  text-align:center;color:rgba(246,236,223,.5);
+  font-weight:300;padding:36px 20px;line-height:2;
+  text-shadow:0 1px 8px rgba(0,0,0,.6);
 }
 .loading{
-  grid-column:1 / -1;text-align:center;
-  color:var(--rose-soft);padding:40px;font-weight:300;
+  width:100%;text-align:center;
+  color:var(--rose-soft);padding:36px;font-weight:300;
 }
 
-/* مشغل الأغنية */
+/* المشغل */
 .player{
   position:fixed;bottom:0;left:0;right:0;z-index:10;
-  background:rgba(22,13,26,.92);
+  background:rgba(22,13,26,.94);
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border-top:1px solid rgba(217,178,106,.3);
-  padding:14px 18px calc(14px + env(safe-area-inset-bottom));
-  display:flex;align-items:center;gap:14px;
+  padding:8px 14px calc(10px + env(safe-area-inset-bottom));
 }
+.chips{
+  display:flex;gap:6px;overflow-x:auto;
+  padding:4px 2px 8px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex-shrink:0;
+  display:flex;align-items:center;gap:5px;
+  font-size:.72rem;color:var(--cream);
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(217,178,106,.35);
+  border-radius:20px;padding:4px 11px;
+  cursor:pointer;white-space:nowrap;
+  transition:background .2s;
+}
+.chip.active{
+  background:linear-gradient(135deg,rgba(169,59,91,.55),rgba(217,178,106,.35));
+  border-color:var(--gold);
+}
+.chip .x{opacity:.5;font-size:.68rem;padding:0 1px}
+.chip .x:hover{opacity:1}
+.chip-add{border-style:dashed;color:var(--rose-soft)}
+.player-row{display:flex;align-items:center;gap:11px}
 .disc{
-  width:52px;height:52px;border-radius:50%;flex-shrink:0;
-  background:radial-gradient(circle at center, var(--gold) 0 8px, #1c1c1c 8px 9px, #2b2b2b 9px);
-  box-shadow:0 0 0 2px rgba(217,178,106,.4), 0 4px 14px rgba(0,0,0,.5);
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at center, var(--gold) 0 6px, #1c1c1c 6px 7px, #2b2b2b 7px);
+  box-shadow:0 0 0 2px rgba(217,178,106,.4);
   position:relative;
 }
 .disc::after{
   content:'';position:absolute;inset:0;border-radius:50%;
-  background:repeating-radial-gradient(circle at center, transparent 0 3px, rgba(255,255,255,.04) 3px 4px);
+  background:repeating-radial-gradient(circle at center, transparent 0 3px, rgba(255,255,255,.05) 3px 4px);
 }
 .disc.spin{animation:spin 3s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .song-info{flex:1;min-width:0}
 .song-name{
-  font-size:.95rem;color:var(--cream);
+  font-size:.85rem;color:var(--cream);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.song-hint{font-size:.75rem;color:var(--rose-soft);opacity:.85;cursor:pointer}
-.song-hint:hover{text-decoration:underline}
-.song-status{font-size:.7rem;color:var(--gold);margin-top:2px;min-height:1em}
+.song-status{font-size:.65rem;color:var(--gold);min-height:.9em}
 .progress{
-  height:4px;background:rgba(255,255,255,.12);border-radius:4px;
-  margin-top:6px;overflow:hidden;cursor:pointer;
+  height:3px;background:rgba(255,255,255,.12);border-radius:4px;
+  margin-top:5px;overflow:hidden;cursor:pointer;
 }
 .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--rose),var(--gold));border-radius:4px}
 .btn-play{
-  width:56px;height:56px;border-radius:50%;border:none;flex-shrink:0;
+  width:44px;height:44px;border-radius:50%;border:none;flex-shrink:0;
   background:linear-gradient(135deg,var(--gold),#b88f45);
-  color:#2a1a10;font-size:1.4rem;cursor:pointer;
-  box-shadow:0 6px 18px rgba(217,178,106,.45);
+  color:#2a1a10;font-size:1.1rem;cursor:pointer;
+  box-shadow:0 4px 14px rgba(217,178,106,.4);
   display:flex;align-items:center;justify-content:center;
   transition:transform .15s;
 }
@@ -204,46 +258,43 @@ input[type=file]{display:none}
 </head>
 <body>
 
-<div class="setup-banner" id="setupBanner">
-  ⚠️ الصفحة تحتاج إعداد Firebase أول مرة فقط:<br>
-  افتح الملف وعدّل قيم <b>firebaseConfig</b> في أول السكربت بقيم مشروعك
-</div>
-
 <header>
   <div class="names" id="names" contenteditable="true" spellcheck="false"></div>
   <div class="sub" id="sub" contenteditable="true" spellcheck="false"></div>
   <div class="divider"></div>
-  <div class="sync-note" id="syncNote">جاري الاتصال…</div>
 </header>
 
 <div class="add-wrap">
-  <button class="btn-add" onclick="addMemory()">✦ أضف ذكرى جديدة</button>
+  <button class="btn-sm btn-mem" onclick="addMemory()">✦ أضف ذكرى</button>
+  <button class="btn-sm btn-bg" onclick="document.getElementById('bgFile').click()">🖼 خلفية الصفحة</button>
 </div>
 
 <div class="memories" id="memories">
   <div class="loading">جاري تحميل ذكرياتكم…</div>
 </div>
 
-<!-- مشغل الأغنية -->
+<!-- المشغل -->
 <div class="player">
-  <div class="disc" id="disc"></div>
-  <div class="song-info">
-    <div class="song-name" id="songName">ما فيه أغنية بعد</div>
-    <div class="song-hint" onclick="document.getElementById('songFile').click()">＋ ارفع أغنية MP3 (تصير أغنية الصفحة للجميع)</div>
-    <div class="song-status" id="songStatus"></div>
-    <div class="progress" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="chips" id="chips"></div>
+  <div class="player-row">
+    <div class="disc" id="disc"></div>
+    <div class="song-info">
+      <div class="song-name" id="songName">ما فيه أغاني بعد — اضغط ＋ فوق</div>
+      <div class="song-status" id="songStatus"></div>
+      <div class="progress" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <button class="btn-play" id="playBtn" onclick="togglePlay()" disabled>▶</button>
   </div>
-  <button class="btn-play" id="playBtn" onclick="togglePlay()" disabled>▶</button>
 </div>
 
 <input type="file" id="songFile" accept="audio/*">
-<input type="file" id="photoFile" accept="image/*">
+<input type="file" id="photoFile" accept="image/*,video/*">
+<input type="file" id="bgFile" accept="image/*">
 <audio id="audio"></audio>
 
 <script>
 /* ============================================================
-   ⚙️ إعداد Firebase — عدّل هذي القيم بقيم مشروعك (مرة وحدة فقط)
-   من: console.firebase.google.com → Project settings → Your apps
+   ⚙️ إعداد Firebase
    ============================================================ */
 var firebaseConfig = {
   apiKey: "AIzaSyD2m4fXnK2dy00ggfQF75qerllD5FXnHOk",
@@ -256,6 +307,17 @@ var firebaseConfig = {
 };
 /* ============================================================ */
 
+var FONTS = [
+  {id:'ruqaa',  name:'رقعة',  css:"'Aref Ruqaa',serif"},
+  {id:'amiri',  name:'أميري', css:"'Amiri',serif"},
+  {id:'reem',   name:'كوفي',  css:"'Reem Kufi',sans-serif"},
+  {id:'rakkas', name:'ركاز',  css:"'Rakkas',cursive"},
+  {id:'marhey', name:'مرح',   css:"'Marhey',sans-serif"},
+  {id:'tajawal',name:'تجوال', css:"'Tajawal',sans-serif"}
+];
+var MAX_SONGS = 10;
+var CHUNK = 4000000;
+
 var audio = document.getElementById('audio');
 var playBtn = document.getElementById('playBtn');
 var disc = document.getElementById('disc');
@@ -265,42 +327,30 @@ var progressFill = document.getElementById('progressFill');
 var progressBar = document.getElementById('progressBar');
 var photoInput = document.getElementById('photoFile');
 var songInput = document.getElementById('songFile');
+var bgInput = document.getElementById('bgFile');
 var memoriesEl = document.getElementById('memories');
+var chipsEl = document.getElementById('chips');
 var namesEl = document.getElementById('names');
 var subEl = document.getElementById('sub');
-var syncNote = document.getElementById('syncNote');
 
 var db = null;
 var currentCard = null;
-var songVersion = '';
-var CHUNK = 4000000; // حجم كل جزء من الأغنية
+var currentSongId = '';
+var songsCache = {};
+var wantAutoplay = true;
 
 /* ---------- تشغيل Firebase ---------- */
 function startFirebase(){
   if(typeof firebase === 'undefined'){
-    syncNote.textContent = '⚠️ ما قدرت أحمّل مكتبة Firebase — افتح الصفحة من Safari مباشرة (معاينة كلود تمنعها)';
     memoriesEl.innerHTML = '<div class="empty-state">افتح الصفحة من رابطها على GitHub Pages<br>عشان تشتغل المشاركة 🤍</div>';
-    return false;
-  }
-  if(firebaseConfig.apiKey.indexOf('ضع_هنا') === 0){
-    document.getElementById('setupBanner').classList.add('show');
-    syncNote.textContent = '⚠️ غير متصل — يحتاج إعداد';
-    memoriesEl.innerHTML = '<div class="empty-state">أكمل إعداد Firebase عشان تشتغل المشاركة</div>';
     return false;
   }
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
-  db.ref('.info/connected').on('value', function(snap){
-    if(snap.val()){
-      syncNote.innerHTML = '<span class="dot">●</span> متصل — صفحة مشتركة، كل اللي تضيفونه يشوفه الطرف الثاني 🤍';
-    } else {
-      syncNote.textContent = '○ جاري إعادة الاتصال…';
-    }
-  });
   return true;
 }
 
-/* ---------- الهيدر (مزامنة لحظية) ---------- */
+/* ---------- الهيدر ---------- */
 function listenHeader(){
   db.ref('header').on('value', function(snap){
     var h = snap.val();
@@ -316,53 +366,215 @@ function saveHeader(){
 namesEl.addEventListener('blur', saveHeader);
 subEl.addEventListener('blur', saveHeader);
 
+/* ---------- خلفية الصفحة ---------- */
+bgInput.addEventListener('change', function(){
+  var f = bgInput.files[0];
+  if(!f || !db) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var maxW = 1280;
+      var scale = Math.min(1, maxW / img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      db.ref('background').set(canvas.toDataURL('image/jpeg', 0.6));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+  bgInput.value = '';
+});
+function listenBackground(){
+  db.ref('background').on('value', function(snap){
+    var bg = snap.val();
+    if(bg){
+      document.body.style.backgroundImage = 'url(' + bg + ')';
+      document.body.classList.add('has-bg');
+    }
+  });
+}
+
+/* ---------- استخراج لون من الصورة ---------- */
+function avgColorFromCanvas(canvas){
+  var ctx = canvas.getContext('2d');
+  var d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  var r = 0, g = 0, b = 0, n = 0;
+  for(var i = 0; i < d.length; i += 160){ // عينة كل 40 بكسل
+    r += d[i]; g += d[i+1]; b += d[i+2]; n++;
+  }
+  return [Math.round(r/n), Math.round(g/n), Math.round(b/n)];
+}
+function blend(c, t, ratio){
+  return [
+    Math.round(c[0] + (t[0]-c[0]) * ratio),
+    Math.round(c[1] + (t[1]-c[1]) * ratio),
+    Math.round(c[2] + (t[2]-c[2]) * ratio)
+  ];
+}
+function rgbStr(c){ return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+
+function applyCardColor(card, color){
+  if(!color || color.length !== 3) return;
+  var light = blend(color, [255,253,248], 0.78);
+  var dark = blend(color, [20,10,15], 0.62);
+  card.style.background = rgbStr(light);
+  card.style.color = rgbStr(dark);
+}
+
 /* ---------- الذكريات ---------- */
-function buildCard(id, data){
+var AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+function formatDate(ms){
+  var d = new Date(ms);
+  if(isNaN(d.getTime())) d = new Date();
+  return d.getDate() + ' ' + AR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function fontCss(id){
+  for(var i = 0; i < FONTS.length; i++){
+    if(FONTS[i].id === id) return FONTS[i].css;
+  }
+  return FONTS[0].css;
+}
+
+function buildCard(id, data, index){
   var card = document.createElement('div');
-  card.className = 'mem-card';
+  card.className = 'mem-card scrap' + (index % 4);
   card.dataset.id = id;
+
+  var opts = '';
+  for(var i = 0; i < FONTS.length; i++){
+    var sel = (data && data.font === FONTS[i].id) ? ' selected' : '';
+    opts += '<option value="' + FONTS[i].id + '"' + sel + '>' + FONTS[i].name + '</option>';
+  }
+
   card.innerHTML =
     '<div class="tape"></div>' +
+    '<div class="mem-date" contenteditable="true" spellcheck="false"></div>' +
     '<div class="mem-text" contenteditable="true" spellcheck="false"></div>' +
-    '<div class="photo-box"><div class="photo-hint">اضغط لإضافة صورة 📷</div></div>' +
+    '<div class="photo-box"><div class="photo-hint">اضغط لإضافة صورة أو فيديو 📷🎬</div></div>' +
     '<div class="mem-tools">' +
-      '<button class="tool-btn" onclick="delMemory(this)">🗑 حذف</button>' +
+      '<select class="font-select" onchange="changeFont(this)">' + opts + '</select>' +
+      '<span>' +
+        '<button class="tool-btn" onclick="replaceMedia(this)">📷</button>' +
+        '<button class="tool-btn" onclick="delMemory(this)">🗑</button>' +
+      '</span>' +
     '</div>';
 
   var txt = card.querySelector('.mem-text');
   var box = card.querySelector('.photo-box');
+  var dateEl = card.querySelector('.mem-date');
+
+  // التاريخ: المحفوظ، وإلا تاريخ إنشاء الذكرى
+  if(data && data.date){
+    dateEl.textContent = data.date;
+  } else {
+    dateEl.textContent = formatDate(parseInt(id.replace('m',''), 10));
+  }
+  dateEl.addEventListener('blur', function(){ saveMemory(card); });
 
   if(data){
     if(data.text) txt.textContent = data.text;
-    if(data.img){
+    txt.style.fontFamily = fontCss(data.font || 'ruqaa');
+    if(data.media && data.mchunks){
+      card.dataset.media = data.media;
+      card.dataset.mchunks = data.mchunks;
+      card.dataset.mstamp = data.mstamp || 0;
+      renderMedia(card, id, data);
+    } else if(data.img){
       box.innerHTML = '<img src="' + data.img + '" alt="ذكرى">';
       box.style.border = 'none';
     }
+    if(data.color) applyCardColor(card, data.color);
+  } else {
+    txt.style.fontFamily = fontCss('ruqaa');
   }
 
   txt.addEventListener('blur', function(){ saveMemory(card); });
   box.addEventListener('click', function(){
+    // الصندوق الفاضي فقط يفتح المنتقي — للاستبدال استخدم زر 📷
+    if(box.querySelector('img') || box.querySelector('video')) return;
     currentCard = card;
     photoInput.click();
   });
   return card;
 }
 
-function saveMemory(card){
-  if(!db) return;
-  var id = card.dataset.id;
-  var img = card.querySelector('.photo-box img');
-  db.ref('memories/' + id).set({
-    text: card.querySelector('.mem-text').textContent,
-    img: img ? img.src : ''
+function replaceMedia(btn){
+  currentCard = btn.closest('.mem-card');
+  photoInput.click();
+}
+
+/* عرض الفيديو / الصورة المتحركة من التخزين مع كاش */
+var mediaCache = {};
+var mediaCacheStamp = {};
+
+function fillMedia(box, type, url){
+  if(type === 'video'){
+    box.innerHTML = '<video src="' + url + '" playsinline muted loop autoplay></video>';
+    box.querySelector('video').addEventListener('click', function(){
+      this.muted = !this.muted;
+    });
+  } else {
+    box.innerHTML = '<img src="' + url + '" alt="ذكرى">';
+  }
+  box.style.border = 'none';
+}
+
+function renderMedia(card, id, data){
+  var box = card.querySelector('.photo-box');
+  var stamp = data.mstamp || 0;
+  if(mediaCache[id] && mediaCacheStamp[id] === stamp){
+    fillMedia(box, data.media, mediaCache[id]);
+    return;
+  }
+  box.innerHTML = '<div class="photo-hint">جاري تحميل ' + (data.media === 'video' ? 'الفيديو' : 'الصورة المتحركة') + '…</div>';
+  db.ref('memmedia/' + id).once('value', function(snap){
+    var all = snap.val();
+    if(!all) return;
+    var parts = [];
+    for(var i = 0; i < data.mchunks; i++){
+      if(all['c' + i] === undefined) return;
+      parts.push(all['c' + i]);
+    }
+    var url = parts.join('');
+    mediaCache[id] = url;
+    mediaCacheStamp[id] = stamp;
+    var c = memoriesEl.querySelector('[data-id="' + id + '"]');
+    if(c) fillMedia(c.querySelector('.photo-box'), data.media, url);
   });
 }
 
+function changeFont(sel){
+  var card = sel.closest('.mem-card');
+  card.querySelector('.mem-text').style.fontFamily = fontCss(sel.value);
+  saveMemory(card);
+}
+
+function saveMemory(card){
+  if(!db) return;
+  var img = card.querySelector('.photo-box img');
+  var rec = {
+    text: card.querySelector('.mem-text').textContent,
+    img: card.dataset.media ? '' : (img ? img.src : ''),
+    font: card.querySelector('.font-select').value,
+    date: card.querySelector('.mem-date').textContent,
+    color: card.dataset.color ? JSON.parse(card.dataset.color) : null
+  };
+  if(card.dataset.media){
+    rec.media = card.dataset.media;
+    rec.mchunks = parseInt(card.dataset.mchunks, 10);
+    rec.mstamp = parseInt(card.dataset.mstamp, 10) || 0;
+  }
+  db.ref('memories/' + card.dataset.id).set(rec);
+}
+
 function addMemory(){
-  if(!db){ alert('أكمل إعداد Firebase أول'); return; }
+  if(!db) return;
   var id = 'm' + Date.now();
-  db.ref('memories/' + id).set({text:'', img:''});
-  // البطاقة بتظهر تلقائياً من المزامنة اللحظية
+  db.ref('memories/' + id).set({text:'', img:'', font:'ruqaa', color:null});
   setTimeout(function(){
     var c = memoriesEl.querySelector('[data-id="' + id + '"]');
     if(c){
@@ -374,72 +586,245 @@ function addMemory(){
 
 function delMemory(btn){
   if(!db) return;
-  var card = btn.closest('.mem-card');
-  db.ref('memories/' + card.dataset.id).remove();
+  var id = btn.closest('.mem-card').dataset.id;
+  db.ref('memories/' + id).remove();
+  db.ref('memmedia/' + id).remove();
 }
 
 function showEmpty(){
-  memoriesEl.innerHTML = '<div class="empty-state">لا توجد ذكريات بعد…<br>اضغط الزر فوق وابدأ توثيق أجمل لحظاتكم 🤍</div>';
+  memoriesEl.innerHTML = '<div class="empty-state">لا توجد ذكريات بعد…<br>اضغط «أضف ذكرى» وابدأ توثيق أجمل لحظاتكم 🤍</div>';
 }
 
 function listenMemories(){
   db.ref('memories').on('value', function(snap){
-    // ما نعيد الرسم إذا أحد يكتب داخل بطاقة
     if(document.activeElement && document.activeElement.isContentEditable
        && document.activeElement.classList.contains('mem-text')) return;
     var all = snap.val();
     memoriesEl.innerHTML = '';
     if(!all){ showEmpty(); return; }
+
+    // عمودين ماسونري: كل قصاصة تنضاف للعمود الأقصر
+    var colA = document.createElement('div');
+    var colB = document.createElement('div');
+    colA.className = 'mcol'; colB.className = 'mcol';
+    memoriesEl.appendChild(colA);
+    memoriesEl.appendChild(colB);
+
     var ids = Object.keys(all).sort();
     for(var i = 0; i < ids.length; i++){
-      memoriesEl.appendChild(buildCard(ids[i], all[ids[i]]));
+      var card = buildCard(ids[i], all[ids[i]], i);
+      if(all[ids[i]].color) card.dataset.color = JSON.stringify(all[ids[i]].color);
+      // نقيس الارتفاعات مباشرة — نسبة الصور محجوزة مسبقاً فالقياس دقيق
+      var target = (colA.offsetHeight <= colB.offsetHeight) ? colA : colB;
+      target.appendChild(card);
     }
   });
 }
 
-/* ---------- توحيد حجم الصور ---------- */
-function normalizeImage(file, cb){
+/* ---------- رفع الوسائط: صورة / GIF / فيديو ---------- */
+photoInput.addEventListener('change', function(){
+  var f = photoInput.files[0];
+  if(!f || !currentCard) return;
+  var card = currentCard;
+  if(f.type.indexOf('video') === 0){
+    handleVideo(card, f);
+  } else if(f.type === 'image/gif'){
+    handleGif(card, f);
+  } else {
+    handleStill(card, f);
+  }
+  photoInput.value = '';
+});
+
+function clearOldMedia(card){
+  if(card.dataset.media){
+    db.ref('memmedia/' + card.dataset.id).remove();
+    delete card.dataset.media;
+    delete card.dataset.mchunks;
+    delete card.dataset.mstamp;
+    delete mediaCache[card.dataset.id];
+  }
+}
+
+/* صورة ثابتة: توحيد الحجم + استخراج اللون */
+function handleStill(card, f){
   var reader = new FileReader();
   reader.onload = function(ev){
     var img = new Image();
     img.onload = function(){
-      var TW = 640, TH = 800; // 4:5 حجم موحد
+      var TW = 640, TH = 800;
       var canvas = document.createElement('canvas');
       canvas.width = TW; canvas.height = TH;
       var ctx = canvas.getContext('2d');
       var scale = Math.max(TW / img.width, TH / img.height);
       var w = img.width * scale, h = img.height * scale;
       ctx.drawImage(img, (TW - w) / 2, (TH - h) / 2, w, h);
-      cb(canvas.toDataURL('image/jpeg', 0.72));
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+      var color = avgColorFromCanvas(canvas);
+      clearOldMedia(card);
+      var box = card.querySelector('.photo-box');
+      box.innerHTML = '<img src="' + dataUrl + '" alt="ذكرى">';
+      box.style.border = 'none';
+      card.dataset.color = JSON.stringify(color);
+      applyCardColor(card, color);
+      saveMemory(card);
     };
     img.src = ev.target.result;
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(f);
 }
 
-photoInput.addEventListener('change', function(){
-  var f = photoInput.files[0];
-  if(!f || !currentCard) return;
-  var card = currentCard;
-  normalizeImage(f, function(dataUrl){
-    var box = card.querySelector('.photo-box');
-    box.innerHTML = '<img src="' + dataUrl + '" alt="ذكرى">';
-    box.style.border = 'none';
-    saveMemory(card);
-  });
-  photoInput.value = '';
-});
+/* رفع مقسّم لأي وسائط كبيرة */
+function uploadMedia(card, dataUrl, type, doneCb){
+  var box = card.querySelector('.photo-box');
+  var chunks = [];
+  for(var i = 0; i < dataUrl.length; i += CHUNK){
+    chunks.push(dataUrl.slice(i, i + CHUNK));
+  }
+  var id = card.dataset.id;
+  db.ref('memmedia/' + id).remove();
+  var done = 0, failed = false;
+  for(var c = 0; c < chunks.length; c++){
+    (function(idx){
+      db.ref('memmedia/' + id + '/c' + idx).set(chunks[idx], function(err){
+        if(err) failed = true;
+        done++;
+        box.innerHTML = '<div class="photo-hint">جاري الرفع… ' + Math.round((done / chunks.length) * 100) + '%</div>';
+        if(done === chunks.length){
+          if(failed){
+            box.innerHTML = '<div class="photo-hint">فشل الرفع، حاول مرة ثانية</div>';
+            return;
+          }
+          var stamp = Date.now();
+          card.dataset.media = type;
+          card.dataset.mchunks = chunks.length;
+          card.dataset.mstamp = stamp;
+          mediaCache[id] = dataUrl;
+          mediaCacheStamp[id] = stamp;
+          fillMedia(box, type, dataUrl);
+          saveMemory(card);
+          if(doneCb) doneCb();
+        }
+      });
+    })(c);
+  }
+}
 
-/* ---------- الأغنية المشتركة (آخر وحدة مرفوعة تشتغل للجميع) ---------- */
+/* صورة متحركة GIF: تُرفع كما هي بدون توحيد عشان تظل تتحرك */
+function handleGif(card, f){
+  if(f.size > 6 * 1024 * 1024){
+    alert('الصورة المتحركة كبيرة (فوق 6MB)، اختر ملف أصغر');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var dataUrl = ev.target.result;
+    // استخراج اللون من أول إطار
+    var img = new Image();
+    img.onload = function(){
+      try{
+        var canvas = document.createElement('canvas');
+        canvas.width = 100; canvas.height = 100;
+        canvas.getContext('2d').drawImage(img, 0, 0, 100, 100);
+        var color = avgColorFromCanvas(canvas);
+        card.dataset.color = JSON.stringify(color);
+        applyCardColor(card, color);
+      }catch(e){}
+      uploadMedia(card, dataUrl, 'gif');
+    };
+    img.onerror = function(){ uploadMedia(card, dataUrl, 'gif'); };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(f);
+}
+
+/* فيديو: يُرفع مقسّم ويشتغل تلقائياً صامت داخل القصاصة */
+function handleVideo(card, f){
+  if(f.size > 15 * 1024 * 1024){
+    alert('الفيديو كبير (فوق 15MB)، اختر مقطع أقصر أو اضغطه أول');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var dataUrl = ev.target.result;
+    uploadMedia(card, dataUrl, 'video', function(){
+      // استخراج اللون من إطار الفيديو
+      try{
+        var v = document.createElement('video');
+        v.muted = true;
+        v.playsInline = true;
+        v.addEventListener('loadeddata', function(){
+          try{
+            var canvas = document.createElement('canvas');
+            canvas.width = 100; canvas.height = 100;
+            canvas.getContext('2d').drawImage(v, 0, 0, 100, 100);
+            var color = avgColorFromCanvas(canvas);
+            card.dataset.color = JSON.stringify(color);
+            applyCardColor(card, color);
+            saveMemory(card);
+          }catch(e){}
+        });
+        v.src = dataUrl;
+      }catch(e){}
+    });
+  };
+  reader.readAsDataURL(f);
+}
+
+/* ---------- الأغاني (حتى 10 بأسماء) ---------- */
+function renderChips(){
+  chipsEl.innerHTML = '';
+  var ids = Object.keys(songsCache).sort();
+  for(var i = 0; i < ids.length; i++){
+    (function(id){
+      var chip = document.createElement('div');
+      chip.className = 'chip' + (id === currentSongId ? ' active' : '');
+      chip.innerHTML = '<span>♪ ' + songsCache[id].name + '</span><span class="x">✕</span>';
+      chip.querySelector('span').addEventListener('click', function(){ playSong(id, true); });
+      chip.querySelector('.x').addEventListener('click', function(e){
+        e.stopPropagation();
+        if(confirm('حذف أغنية «' + songsCache[id].name + '»؟')){
+          db.ref('songs/' + id).remove();
+          db.ref('songdata/' + id).remove();
+        }
+      });
+      chipsEl.appendChild(chip);
+    })(ids[i]);
+  }
+  if(ids.length < MAX_SONGS){
+    var add = document.createElement('div');
+    add.className = 'chip chip-add';
+    add.textContent = '＋ أضف أغنية (' + ids.length + '/' + MAX_SONGS + ')';
+    add.addEventListener('click', function(){ songInput.click(); });
+    chipsEl.appendChild(add);
+  }
+}
+
+function listenSongs(){
+  db.ref('songs').on('value', function(snap){
+    songsCache = snap.val() || {};
+    renderChips();
+  });
+}
+
 songInput.addEventListener('change', function(){
   var f = songInput.files[0];
-  if(!f) return;
-  if(!db){ alert('أكمل إعداد Firebase أول'); songInput.value=''; return; }
+  if(!f || !db) return;
+  if(Object.keys(songsCache).length >= MAX_SONGS){
+    alert('وصلت الحد الأقصى (' + MAX_SONGS + ' أغاني) — احذف وحدة أول');
+    songInput.value = '';
+    return;
+  }
   if(f.size > 10 * 1024 * 1024){
     alert('الأغنية كبيرة (فوق 10MB)، اختر ملف أصغر');
     songInput.value = '';
     return;
   }
+  var defaultName = f.name.replace(/\.[^.]+$/,'');
+  var name = prompt('اسم الأغنية؟', defaultName);
+  if(name === null){ songInput.value = ''; return; }
+  if(!name.trim()) name = defaultName;
+
   songStatus.textContent = 'جاري رفع الأغنية…';
   var reader = new FileReader();
   reader.onload = function(ev){
@@ -448,28 +833,25 @@ songInput.addEventListener('change', function(){
     for(var i = 0; i < dataUrl.length; i += CHUNK){
       chunks.push(dataUrl.slice(i, i + CHUNK));
     }
-    var stamp = String(Date.now());
-    var done = 0;
-    var failed = false;
+    var id = 's' + Date.now();
+    var done = 0, failed = false;
 
     function afterAll(){
       if(failed){ songStatus.textContent = 'فشل الرفع، حاول مرة ثانية'; return; }
-      db.ref('song/meta').set({
-        name: f.name.replace(/\.[^.]+$/,''),
-        chunks: chunks.length,
-        stamp: stamp
-      });
-      songVersion = stamp;
+      db.ref('songs/' + id).set({name: name.trim(), chunks: chunks.length, stamp: Date.now()});
+      db.ref('player/current').set({id: id, stamp: Date.now()});
+      currentSongId = id;
       audio.src = dataUrl;
-      songName.textContent = f.name.replace(/\.[^.]+$/,'');
+      songName.textContent = name.trim();
       playBtn.disabled = false;
-      songStatus.textContent = 'تم ✓ هذي صارت أغنية الصفحة للجميع';
-      setTimeout(function(){ songStatus.textContent = ''; }, 4000);
+      songStatus.textContent = 'تم ✓';
+      setTimeout(function(){ songStatus.textContent = ''; }, 3000);
+      startPlayback();
     }
 
     for(var c = 0; c < chunks.length; c++){
       (function(idx){
-        db.ref('song/chunks/c' + idx).set(chunks[idx], function(err){
+        db.ref('songdata/' + id + '/c' + idx).set(chunks[idx], function(err){
           if(err) failed = true;
           done++;
           songStatus.textContent = 'جاري الرفع… ' + Math.round((done / chunks.length) * 100) + '%';
@@ -482,26 +864,82 @@ songInput.addEventListener('change', function(){
   reader.readAsDataURL(f);
 });
 
-function listenSong(){
-  db.ref('song/meta').on('value', function(snap){
-    var meta = snap.val();
-    if(!meta || meta.stamp === songVersion) return;
+function playSong(id, autostart){
+  var meta = songsCache[id];
+  if(!meta) return;
+  songStatus.textContent = 'جاري تحميل الأغنية…';
+  db.ref('songdata/' + id).once('value', function(snap){
+    var all = snap.val();
+    if(!all){ songStatus.textContent = ''; return; }
+    var parts = [];
+    for(var i = 0; i < meta.chunks; i++){
+      if(all['c' + i] === undefined){ songStatus.textContent = ''; return; }
+      parts.push(all['c' + i]);
+    }
+    audio.src = parts.join('');
+    songName.textContent = meta.name;
+    playBtn.disabled = false;
+    currentSongId = id;
+    songStatus.textContent = '';
+    renderChips();
+    db.ref('player/current').set({id: id, stamp: Date.now()});
+    if(autostart) startPlayback();
+  });
+}
+
+/* تشغيل مع تجاوز حظر التشغيل التلقائي في المتصفحات */
+function startPlayback(){
+  var p = audio.play();
+  if(p && p.catch){
+    p.then(function(){
+      playBtn.textContent = '❚❚';
+      disc.classList.add('spin');
+    }).catch(function(){
+      // المتصفح منع التشغيل التلقائي — نشغّل مع أول لمسة
+      playBtn.textContent = '▶';
+      var once = function(){
+        audio.play();
+        playBtn.textContent = '❚❚';
+        disc.classList.add('spin');
+        document.removeEventListener('pointerdown', once);
+      };
+      document.addEventListener('pointerdown', once);
+    });
+  }
+}
+
+/* تشغيل آخر أغنية تلقائياً عند فتح الصفحة */
+function autoplayLast(){
+  db.ref('player/current').once('value', function(snap){
+    var cur = snap.val();
+    var targetId = cur ? cur.id : null;
+    if(!targetId || !songsCache[targetId]){
+      // ما فيه سجل — نشغّل أحدث أغنية مرفوعة
+      var ids = Object.keys(songsCache);
+      if(ids.length === 0) return;
+      var latest = ids[0];
+      for(var i = 1; i < ids.length; i++){
+        if((songsCache[ids[i]].stamp || 0) > (songsCache[latest].stamp || 0)) latest = ids[i];
+      }
+      targetId = latest;
+    }
+    var meta = songsCache[targetId];
     songStatus.textContent = 'جاري تحميل الأغنية…';
-    db.ref('song/chunks').once('value', function(csnap){
-      var all = csnap.val();
+    db.ref('songdata/' + targetId).once('value', function(dsnap){
+      var all = dsnap.val();
       if(!all){ songStatus.textContent = ''; return; }
       var parts = [];
       for(var i = 0; i < meta.chunks; i++){
         if(all['c' + i] === undefined){ songStatus.textContent = ''; return; }
         parts.push(all['c' + i]);
       }
-      var wasPlaying = !audio.paused;
       audio.src = parts.join('');
       songName.textContent = meta.name;
       playBtn.disabled = false;
-      songVersion = meta.stamp;
+      currentSongId = targetId;
       songStatus.textContent = '';
-      if(wasPlaying) audio.play();
+      renderChips();
+      startPlayback();
     });
   });
 }
@@ -552,8 +990,15 @@ spawnHeart();
 /* ---------- البداية ---------- */
 if(startFirebase()){
   listenHeader();
+  listenBackground();
   listenMemories();
-  listenSong();
+  // نحمّل قائمة الأغاني أول، وبعدها نشغّل آخر أغنية
+  db.ref('songs').once('value', function(snap){
+    songsCache = snap.val() || {};
+    renderChips();
+    autoplayLast();
+    listenSongs();
+  });
 }
 </script>
 </body>
