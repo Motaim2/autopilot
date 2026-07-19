@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ساحة كونز — الغرف والأطوار</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Changa:wght@500;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E1A; --panel:#141931; --panel2:#1C2342;
+  --cyan:#22D3EE; --magenta:#F0339B; --gold:#FFC53D; --lime:#4ADE80; --red:#FF5D5D;
+  --text:#EAF0FF; --dim:#8A94B8;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;touch-action:none}
+h1,h2,h3{font-family:'Changa',sans-serif}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;padding:22px;padding-top:calc(22px + env(safe-area-inset-top));background:radial-gradient(1200px 600px at 50% -10%, #1B2350 0%, var(--bg) 60%);overflow-y:auto}
+.screen.show{display:flex}
+.screen h1{font-size:28px;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:var(--panel);border:1px solid #262E55;border-radius:20px;padding:18px;width:min(380px,94vw);display:flex;flex-direction:column;gap:13px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.btn{font-family:'Changa',sans-serif;font-weight:700;border:none;border-radius:12px;padding:12px 16px;font-size:15px;cursor:pointer;color:var(--text);background:var(--panel2);transition:transform .1s}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:linear-gradient(90deg,#0FB8D4,#22D3EE);color:#062430;font-size:17px;box-shadow:0 6px 24px rgba(34,211,238,.4)}
+.btn.gold{background:linear-gradient(90deg,#D9A21B,#FFC53D);color:#2a1e00;box-shadow:0 6px 24px rgba(255,197,61,.35)}
+.btn.redb{background:linear-gradient(90deg,#C2273F,#FF5D5D);color:#2a0008}
+.btn.small{padding:8px 10px;font-size:13px}
+.btn:disabled{opacity:.5}
+input[type=text],input[type=password]{background:var(--panel2);border:1px solid #2C3560;border-radius:12px;padding:12px 14px;color:var(--text);font-family:'Tajawal';font-size:16px;outline:none;width:100%}
+input:focus{border-color:var(--cyan)}
+.label{font-size:13px;color:var(--dim)}
+.avatarPick{display:flex;align-items:center;gap:14px}
+#avatarPreview{width:66px;height:66px;border-radius:50%;background:var(--panel2);border:3px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:31px;overflow:hidden;flex-shrink:0;box-shadow:0 0 18px rgba(34,211,238,.45)}
+#avatarPreview img{width:100%;height:100%;object-fit:cover}
+.avatarBtns{display:flex;flex-direction:column;gap:8px;flex:1}
+.emojiRow{display:flex;gap:7px;flex-wrap:wrap}
+.emojiOpt{width:38px;height:38px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;border:2px solid transparent}
+.emojiOpt.sel{border-color:var(--magenta);box-shadow:0 0 12px rgba(240,51,155,.5)}
+.durRow{display:flex;gap:10px}
+.durOpt,.modeSm{flex:1;text-align:center;padding:9px;border-radius:12px;background:var(--panel2);cursor:pointer;border:2px solid transparent;font-family:'Changa';font-weight:700;font-size:14px}
+.durOpt.sel{border-color:var(--gold);color:var(--gold)}
+.modeSm.sel{border-color:var(--cyan);color:var(--cyan)}
+#netBanner{font-size:12px;text-align:center;color:var(--dim);min-height:16px}
+#netBanner.on{color:var(--lime)}
+#netBanner.err{color:var(--red)}
+
+/* قائمة الغرف */
+#roomsList{display:flex;flex-direction:column;gap:10px;width:100%}
+.roomRow{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid #2C3560;border-radius:14px;padding:12px 14px;cursor:pointer}
+.roomRow .rIcon{font-size:26px}
+.roomRow .rName{font-family:'Changa';font-weight:700;font-size:15px}
+.roomRow .rInfo{font-size:12px;color:var(--dim)}
+.roomRow .rCount{margin-inline-start:auto;font-family:'Changa';font-weight:800;color:var(--cyan)}
+.roomRow.playing{opacity:.55}
+.roomRow.playing .rCount{color:var(--red)}
+#noRooms{text-align:center;color:var(--dim);font-size:14px;padding:8px}
+
+/* غرفة الانتظار */
+#membersGrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.membCell{display:flex;flex-direction:column;align-items:center;gap:5px;width:70px}
+.membCell .mPic{width:54px;height:54px;border-radius:50%;overflow:hidden;background:var(--panel2);border:2px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:26px}
+.membCell .mPic img{width:100%;height:100%;object-fit:cover}
+.membCell .mName{font-size:11px;font-weight:700;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.membCell.admin .mPic{border-color:var(--gold);box-shadow:0 0 14px rgba(255,197,61,.5)}
+.waitPulse{font-family:'Changa';color:var(--dim);animation:waitP 1.2s infinite alternate}
+@keyframes waitP{from{opacity:.4}to{opacity:1}}
+
+/* ---------- الساحة ---------- */
+#screenArena{position:fixed;inset:0;display:none;background:var(--bg)}
+#viewport{position:absolute;inset:0;overflow:hidden}
+#viewport.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-8px,5px)}40%{transform:translate(7px,-6px)}60%{transform:translate(-5px,4px)}80%{transform:translate(4px,-3px)}}
+#world{position:absolute;left:0;top:0;will-change:transform;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;background-color:var(--bg)}
+#world.powerWorld{box-shadow:inset 0 0 0 8px rgba(255,93,93,.7), inset 0 0 80px rgba(255,93,93,.25);
+  background-image:radial-gradient(900px 600px at 25% 25%, rgba(34,211,238,.05), transparent 60%),
+  radial-gradient(900px 600px at 75% 75%, rgba(240,51,155,.05), transparent 60%),
+  linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px)}
+
+.player{position:absolute;left:0;top:0;width:64px;height:64px;margin:-32px 0 0 -32px;z-index:20;will-change:transform;transition:filter .2s}
+.player .pic{width:64px;height:64px;border-radius:50%;overflow:hidden;border:3px solid var(--cyan);background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 16px rgba(34,211,238,.5)}
+.player .pic img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.player .pname{position:absolute;top:68px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;font-weight:700;text-shadow:0 2px 6px #000;pointer-events:none}
+.player .ppow{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-family:'Changa';font-weight:800;font-size:15px;color:var(--lime);text-shadow:0 0 8px rgba(0,0,0,.9);pointer-events:none;display:none}
+.player.me .pic{border-color:var(--gold);box-shadow:0 0 22px rgba(255,197,61,.65)}
+.player.danger .pic{border-color:var(--red);box-shadow:0 0 22px rgba(255,93,93,.8)}
+.player.prey .pic{border-color:var(--lime);box-shadow:0 0 18px rgba(74,222,128,.7)}
+.player.frozen{filter:grayscale(1) brightness(1.4) drop-shadow(0 0 10px #7DD3FC)}
+.player.dead{filter:grayscale(1);opacity:.25;pointer-events:none}
+.player.shielded .pic{border-color:#FFE58A;box-shadow:0 0 26px rgba(255,229,138,.95), 0 0 8px #fff}
+.player .shieldRing{position:absolute;inset:-9px;border-radius:50%;border:3px dashed #FFE58A;display:none;animation:spinRing 2.5s linear infinite;pointer-events:none}
+.player.shielded .shieldRing{display:block}
+@keyframes spinRing{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.obj{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;display:flex;align-items:center;justify-content:center;font-size:30px;z-index:10;will-change:transform;filter:drop-shadow(0 0 8px rgba(255,255,255,.35))}
+.obj .in{display:block;animation:spawnIn .3s ease-out}
+.obj.rare{font-size:38px;filter:drop-shadow(0 0 14px rgba(255,120,60,.9))}
+.obj.rare .in,.obj.power .in{animation:spawnIn .3s ease-out,rarePulse 1s infinite alternate}
+.obj.power{filter:drop-shadow(0 0 12px rgba(74,222,128,.8))}
+.obj.bad{filter:drop-shadow(0 0 12px rgba(255,93,93,.85))}
+.obj.bad .in{animation:spawnIn .3s ease-out,rarePulse 1.2s infinite alternate}
+.obj.shield{filter:drop-shadow(0 0 14px rgba(255,229,138,.95))}
+.obj.shield .in{animation:spawnIn .3s ease-out,rarePulse .9s infinite alternate}
+@keyframes spawnIn{from{transform:scale(0) rotate(-90deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+@keyframes rarePulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+
+.floatScore{position:absolute;z-index:40;font-family:'Changa';font-weight:800;font-size:20px;color:var(--gold);text-shadow:0 0 10px rgba(255,197,61,.8);pointer-events:none;animation:floatUp 1s forwards}
+.floatScore.neg{color:var(--red);text-shadow:0 0 10px rgba(255,93,93,.8)}
+@keyframes floatUp{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-70px) scale(1.4)}}
+.particle{position:absolute;width:8px;height:8px;border-radius:50%;z-index:35;pointer-events:none;animation:pop .6s forwards}
+@keyframes pop{from{opacity:1;transform:translate(0,0) scale(1)}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}}
+
+#hudTop{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));z-index:50;pointer-events:none}
+.hudBox{background:rgba(20,25,49,.85);border:1px solid #2C3560;border-radius:14px;padding:6px 14px;font-family:'Changa';font-weight:700;backdrop-filter:blur(6px)}
+#hudTimer{font-size:22px;color:var(--cyan)}
+#hudTimer.low{color:var(--red);animation:rarePulse .5s infinite alternate}
+#hudScore{font-size:17px;color:var(--gold)}
+#hudCount{font-size:14px;color:var(--dim)}
+#hudBuffs{position:absolute;top:calc(58px + env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:50;pointer-events:none}
+.buff{background:rgba(20,25,49,.85);border:1px solid var(--lime);border-radius:12px;padding:3px 10px;font-size:13px;font-weight:700;color:var(--lime)}
+.buff.gold{border-color:#FFE58A;color:#FFE58A}
+
+/* شريط الإقصاء بالصور — تحت الساعة */
+#killFeed{position:absolute;top:calc(96px + env(safe-area-inset-top));left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:55;pointer-events:none}
+.feedRow{display:flex;align-items:center;gap:8px;background:rgba(20,10,15,.92);border:1px solid var(--red);border-radius:30px;padding:5px 14px;box-shadow:0 0 18px rgba(255,93,93,.45);animation:feedIn .3s ease-out}
+@keyframes feedIn{from{opacity:0;transform:translateY(-14px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+.feedRow .fPic{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid var(--gold)}
+.feedRow .fPic.victim{border-color:var(--red);filter:grayscale(1)}
+.feedRow .fPic img{width:100%;height:100%;object-fit:cover}
+.feedRow .fName{font-family:'Changa';font-weight:700;font-size:13px}
+.feedRow .fSkull{font-size:16px}
+.feedRow .fOut{font-size:11px;color:var(--red);font-weight:800;background:rgba(255,93,93,.15);border-radius:8px;padding:2px 7px}
+
+#minimap{position:absolute;top:calc(58px + env(safe-area-inset-top));left:12px;width:96px;height:96px;background:rgba(20,25,49,.8);border:1px solid var(--red);border-radius:10px;z-index:50;display:none;pointer-events:none;overflow:hidden}
+.mmDot{position:absolute;width:5px;height:5px;border-radius:50%;margin:-2.5px 0 0 -2.5px}
+#mmView{position:absolute;border:1px solid rgba(255,255,255,.5);border-radius:3px}
+
+#hudBottom{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));z-index:70}
+#hudBottom .btn{pointer-events:auto}
+
+#leaderPanel{position:absolute;bottom:0;left:0;right:0;background:var(--panel);border-radius:24px 24px 0 0;border-top:2px solid var(--cyan);padding:18px;padding-bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;transform:translateY(110%);transition:transform .3s ease;max-height:65%;overflow-y:auto}
+#leaderPanel.open{transform:translateY(0)}
+#leaderPanel .lpHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+#leaderPanel h3{color:var(--cyan)}
+#lbClose{background:var(--panel2);border:none;color:var(--text);width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer}
+.lbRow{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid #232B52}
+.lbRow .rank{font-family:'Changa';font-weight:800;width:26px;color:var(--dim)}
+.lbRow .lbPic{width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:18px}
+.lbRow .lbPic img{width:100%;height:100%;object-fit:cover}
+.lbRow .lbName{flex:1;font-weight:700}
+.lbRow .lbScore{font-family:'Changa';font-weight:800;color:var(--gold)}
+.lbRow.me{background:rgba(34,211,238,.08);border-radius:10px}
+.lbRow.deadRow{opacity:.4}
+
+#screenResults{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:radial-gradient(1000px 500px at 50% 0%, #241B50 0%, var(--bg) 65%);z-index:100;overflow-y:auto}
+#screenResults h2{font-size:28px;color:var(--gold);text-shadow:0 0 20px rgba(255,197,61,.6)}
+#screenResults h2.lost{color:var(--red);text-shadow:0 0 20px rgba(255,93,93,.6)}
+#podium{display:flex;align-items:flex-end;gap:12px;margin:8px 0}
+.pod{display:flex;flex-direction:column;align-items:center;gap:6px;animation:podIn .6s backwards}
+.pod:nth-child(1){animation-delay:.1s}.pod:nth-child(2){animation-delay:.3s}.pod:nth-child(3){animation-delay:.5s}
+@keyframes podIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+.pod .pPic{width:60px;height:60px;border-radius:50%;overflow:hidden;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:28px;border:3px solid var(--dim)}
+.pod .pPic img{width:100%;height:100%;object-fit:cover}
+.pod.first .pPic{width:82px;height:82px;border-color:var(--gold);box-shadow:0 0 28px rgba(255,197,61,.7);animation:podIn .6s .3s backwards,rarePulse 1.2s infinite alternate}
+.pod .bar{width:70px;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;font-family:'Changa';font-weight:800;font-size:20px}
+.pod.first .bar{height:110px;background:linear-gradient(180deg,var(--gold),#8a6a1d);color:#231a00}
+.pod.second .bar{height:80px;background:linear-gradient(180deg,#C0CBE8,#5A6690);color:#10142A}
+.pod.third .bar{height:60px;background:linear-gradient(180deg,#D08A54,#6b3f1d);color:#2a1500}
+.pod .pName{font-size:13px;font-weight:700;max-width:80px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod .pScore{font-family:'Changa';font-weight:800;color:var(--gold)}
+#myStats{background:var(--panel);border:1px solid #262E55;border-radius:16px;padding:14px 18px;display:flex;gap:16px;font-size:15px;flex-wrap:wrap;justify-content:center}
+#myStats b{font-family:'Changa';color:var(--cyan)}
+#fullRanks{width:min(360px,92vw)}
+.resBtns{display:flex;gap:12px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- ============ الرئيسية: الاسم والصورة + الغرف ============ -->
+<div class="screen show" id="screenHome">
+  <h1>⚡ ساحة كونز</h1>
+  <div class="card">
+    <div class="avatarPick">
+      <div id="avatarPreview">😀</div>
+      <div class="avatarBtns">
+        <button class="btn small" id="btnUpload">📷 ارفع صورتك</button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+        <div class="emojiRow" id="emojiRow"></div>
+      </div>
+    </div>
+    <input type="text" id="nameInput" maxlength="14" placeholder="اكتب اسمك...">
+  </div>
+  <div class="card">
+    <div class="label" style="text-align:center">🎮 الغرف المتاحة — اضغط غرفة للدخول</div>
+    <div id="roomsList"><div id="noRooms">لا توجد غرف حاليًا... بانتظار الأدمن</div></div>
+  </div>
+  <div class="card">
+    <button class="btn gold" id="btnAdmin">👑 دخول الأدمن</button>
+    <button class="btn" id="btnPractice">🤖 تدريب محلي ضد البوتات</button>
+    <div id="practiceBox" style="display:none;flex-direction:column;gap:10px">
+      <div class="durRow">
+        <div class="modeSm sel" data-m="catch">⚡ التقاط</div>
+        <div class="modeSm" data-m="power">🦈 القوي</div>
+      </div>
+      <div class="durRow">
+        <div class="durOpt sel" data-d="120">دقيقتان</div>
+        <div class="durOpt" data-d="180">3 دقائق</div>
+      </div>
+      <button class="btn primary" id="btnPracticeGo">🚀 ابدأ التدريب</button>
+    </div>
+  </div>
+  <div id="netBanner">جارٍ الاتصال بالخادم...</div>
+</div>
+
+<!-- ============ شاشة الأدمن: إنشاء غرفة ============ -->
+<div class="screen" id="screenAdmin">
+  <h1>👑 لوحة الأدمن</h1>
+  <div class="card">
+    <div class="label">اسم الغرفة</div>
+    <input type="text" id="roomNameInput" maxlength="18" placeholder="مثال: غرفة كونز الكبرى">
+    <div class="label">الطور</div>
+    <div class="durRow">
+      <div class="modeSm sel" data-m="catch" id="admCatch">⚡ الالتقاط السريع</div>
+      <div class="modeSm" data-m="power" id="admPower">🦈 القوي يأكل الضعيف</div>
+    </div>
+    <div class="label">مدة الجولة</div>
+    <div class="durRow">
+      <div class="durOpt sel" data-d="120">دقيقتان</div>
+      <div class="durOpt" data-d="180">3 دقائق</div>
+      <div class="durOpt" data-d="300">5 دقائق</div>
+    </div>
+    <button class="btn primary" id="btnCreateRoom">✅ إنشاء الغرفة</button>
+    <button class="btn" id="btnAdminBack">↩️ رجوع</button>
+  </div>
+</div>
+
+<!-- ============ غرفة الانتظار ============ -->
+<div class="screen" id="screenWaiting">
+  <h1 id="waitRoomName">الغرفة</h1>
+  <div class="label" id="waitRoomInfo"></div>
+  <div class="card">
+    <div class="label" style="text-align:center">اللاعبون المنضمون <span id="waitCount">0</span></div>
+    <div id="membersGrid"></div>
+  </div>
+  <div class="card" id="waitAdminBox" style="display:none">
+    <button class="btn primary" id="btnStartGame">🚀 ابدأ اللعبة للجميع</button>
+    <button class="btn redb" id="btnDeleteRoom">🗑️ حذف الغرفة</button>
+  </div>
+  <div class="card" id="waitMemberBox" style="display:none">
+    <div class="waitPulse" style="text-align:center">⏳ بانتظار الأدمن يبدأ اللعبة...</div>
+    <button class="btn" id="btnLeaveRoom">🚪 خروج من الغرفة</button>
+  </div>
+</div>
+
+<!-- ============ الساحة ============ -->
+<div id="screenArena">
+  <div id="viewport"><div id="world"></div></div>
+  <div id="hudTop">
+    <div class="hudBox" id="hudScore">0 نقطة</div>
+    <div class="hudBox" id="hudTimer">2:00</div>
+    <div class="hudBox" id="hudCount">👥 1</div>
+  </div>
+  <div id="hudBuffs"></div>
+  <div id="killFeed"></div>
+  <div id="minimap"><div id="mmView"></div></div>
+  <div id="hudBottom">
+    <button class="btn" id="btnLeader">🏆 الصدارة</button>
+    <button class="btn" id="btnExit">🚪 خروج</button>
+  </div>
+  <div id="leaderPanel">
+    <div class="lpHead">
+      <h3 id="lbTitle">🏆 الصدارة المباشرة</h3>
+      <button id="lbClose">✕</button>
+    </div>
+    <div id="lbList"></div>
+  </div>
+</div>
+
+<!-- ============ النتائج ============ -->
+<div id="screenResults">
+  <h2 id="resTitle">🎉 انتهت الجولة!</h2>
+  <div id="podium"></div>
+  <div id="myStats"></div>
+  <div id="fullRanks"></div>
+  <div class="resBtns">
+    <button class="btn primary" id="btnAgain">🔄 ارجع للغرفة</button>
+    <button class="btn" id="btnLobby">🏠 الرئيسية</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ⚙️ الإعدادات
+===================================================================== */
+var ADMIN_PIN = "1234"; /* 🔑 غيّر رقم الأدمن السري من هنا */
+
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBMtpCtLjrlMveykmZwCx7mtmUQIlqfUKE",
+  authDomain: "motaim.firebaseapp.com",
+  databaseURL: "https://motaim-default-rtdb.firebaseio.com",
+  projectId: "motaim",
+  storageBucket: "motaim.firebasestorage.app",
+  messagingSenderId: "57026256362",
+  appId: "1:57026256362:web:134137ea30b50b648ca693"
+};
+
+/* ============ الحالة العامة ============ */
+var G = {
+  mode:"catch", running:false, duration:120, timeLeft:120,
+  me:null, players:{}, objects:{}, myBuffs:{}, objSeq:0,
+  lastFrame:0, cam:{x:0,y:0}, WW:0, WH:0,
+  online:false, isHost:false, net:null,
+  roomId:null, round:0, isAdmin:false,
+  finalRanks:null,
+  collected:{"⭐":0,"💎":0,"👑":0,"🔥":0}
+};
+var MYID = "p" + Math.random().toString(36).slice(2,10);
+var db = null;
+
+var OBJ_TYPES = [
+  {e:"⭐", v:10,  w:50, cls:""},
+  {e:"💎", v:30,  w:28, cls:""},
+  {e:"👑", v:50,  w:15, cls:""},
+  {e:"🔥", v:100, w:7,  cls:"rare"}
+];
+var POWERS = [
+  {e:"⚡", name:"سرعة",    dur:5000},
+  {e:"🧲", name:"مغناطيس", dur:6000},
+  {e:"❄️", name:"تجميد",   dur:2000},
+  {e:"✨", name:"نقاط ×2", dur:10000},
+  {e:"🚀", name:"اندفاع",  dur:1500}
+];
+/* أجسام طور القوة — 🛡️ درع حماية 5-10 ثوانٍ */
+var POWER_ORBS = [
+  {e:"🟢", v:1,  w:42, cls:"power"},
+  {e:"💠", v:3,  w:24, cls:"power"},
+  {e:"⭐", v:5,  w:11, cls:"rare"},
+  {e:"☠️", v:-4, w:16, cls:"bad"},
+  {e:"🛡️", v:0,  w:7,  cls:"shield", shield:true}
+];
+var BOT_DEFS = [
+  {name:"صقر",   emoji:"🦅", skill:.85},
+  {name:"برق",   emoji:"⚡", skill:.78},
+  {name:"نمر",   emoji:"🐯", skill:.7},
+  {name:"ذيب",   emoji:"🐺", skill:.62},
+  {name:"ثعلب",  emoji:"🦊", skill:.55},
+  {name:"نسر",   emoji:"🦅", skill:.5},
+  {name:"قرش",   emoji:"🦈", skill:.45},
+  {name:"دبدوب", emoji:"🐻", skill:.4}
+];
+var EMOJIS = ["😀","😎","🤖","👽","🐱","🦊","🐸","🔥"];
+
+var $ = function(id){ return document.getElementById(id); };
+var world = $("world"), viewport = $("viewport");
+var chosenEmoji = "😀", avatarData = null;
+var pracMode = "catch", pracDur = 120;
+var admMode = "catch", admDur = 120;
+
+/* ============ أدوات واجهة ============ */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("show");});
+  $("screenArena").style.display = "none";
+  $("screenResults").style.display = "none";
+  if(id==="arena"){ $("screenArena").style.display = "block"; }
+  else if(id==="results"){ $("screenResults").style.display = "flex"; }
+  else $(id).classList.add("show");
+}
+function escapeHtml(s){ return String(s).replace(/[<>&"]/g,function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c];}); }
+function picHtml(img, emoji){ return img ? '<img src="'+img+'">' : (emoji||"😀"); }
+function myName(){ return $("nameInput").value.trim() || "لاعب"; }
+
+/* ============ الصورة والاسم ============ */
+EMOJIS.forEach(function(e,i){
+  var d = document.createElement("div");
+  d.className = "emojiOpt" + (i===0?" sel":"");
+  d.textContent = e;
+  d.onclick = function(){
+    document.querySelectorAll(".emojiOpt").forEach(function(x){x.classList.remove("sel");});
+    d.classList.add("sel");
+    chosenEmoji = e; avatarData = null;
+    $("avatarPreview").innerHTML = ""; $("avatarPreview").textContent = e;
+  };
+  $("emojiRow").appendChild(d);
+});
+$("btnUpload").onclick = function(){ $("fileInput").click(); };
+$("fileInput").onchange = function(ev){
+  var f = ev.target.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    var img = new Image();
+    img.onload = function(){
+      var c = document.createElement("canvas"); c.width = 96; c.height = 96;
+      var s = Math.min(img.width, img.height);
+      c.getContext("2d").drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,96,96);
+      avatarData = c.toDataURL("image/jpeg",.72);
+      $("avatarPreview").innerHTML = '<img src="'+avatarData+'">';
+    };
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+};
+
+/* ============ التدريب المحلي ============ */
+$("btnPractice").onclick = function(){
+  var b = $("practiceBox");
+  b.style.display = b.style.display==="none" ? "flex" : "none";
+};
+document.querySelectorAll("#practiceBox .modeSm").forEach(function(d){
+  d.onclick = function(){
+    document.querySelectorAll("#practiceBox .modeSm").forEach(function(x){x.classList.remove("sel");});
+    d.classList.add("sel"); pracMode = d.dataset.m;
+  };
+});
+document.querySelectorAll("#practiceBox .durOpt").forEach(function(d){
+  d.onclick = function(){
+    document.querySelectorAll("#practiceBox .durOpt").forEach(function(x){x.classList.remove("sel");});
+    d.classList.add("sel"); pracDur = parseInt(d.dataset.d,10);
+  };
+});
+$("btnPracticeGo").onclick = function(){
+  G.mode = pracMode; G.duration = pracDur;
+  startGame(false);
+};
+
+/* ============ الأدمن ============ */
+$("btnAdmin").onclick = function(){
+  var pin = prompt("أدخل رقم الأدمن السري:");
+  if(pin === ADMIN_PIN){ G.isAdmin = true; showScreen("screenAdmin"); }
+  else if(pin !== null) alert("رقم غير صحيح");
+};
+$("btnAdminBack").onclick = function(){ showScreen("screenHome"); };
+document.querySelectorAll("#screenAdmin .modeSm").forEach(function(d){
+  d.onclick = function(){
+    document.querySelectorAll("#screenAdmin .modeSm").forEach(function(x){x.classList.remove("sel");});
+    d.classList.add("sel"); admMode = d.dataset.m;
+  };
+});
+document.querySelectorAll("#screenAdmin .durOpt").forEach(function(d){
+  d.onclick = function(){
+    document.querySelectorAll("#screenAdmin .durOpt").forEach(function(x){x.classList.remove("sel");});
+    d.classList.add("sel"); admDur = parseInt(d.dataset.d,10);
+  };
+});
+$("btnCreateRoom").onclick = function(){
+  if(!db){ alert("لا يوجد اتصال بالخادم"); return; }
+  var rname = $("roomNameInput").value.trim() || ("غرفة "+myName());
+  var rid = "r"+Date.now().toString(36);
+  var ref = db.ref("lobby/"+rid);
+  ref.set({
+    name:rname, mode:admMode, dur:admDur,
+    adminId:MYID, adminName:myName(),
+    status:"waiting", round:0, endsAt:0,
+    created:firebase.database.ServerValue.TIMESTAMP
+  });
+  ref.onDisconnect().remove(); /* لو طلع الأدمن تنحذف الغرفة */
+  db.ref("rooms/"+rid).onDisconnect().remove();
+  enterWaiting(rid, true);
+};
+
+/* ============ قائمة الغرف بالرئيسية ============ */
+function watchLobby(){
+  db.ref("lobby").on("value", function(snap){
+    var all = snap.val()||{};
+    var keys = Object.keys(all).sort(function(a,b){return (all[a].created||0)-(all[b].created||0);});
+    if(!keys.length){
+      $("roomsList").innerHTML = '<div id="noRooms">لا توجد غرف حاليًا... بانتظار الأدمن</div>';
+      return;
+    }
+    var html = "";
+    keys.forEach(function(k){
+      var r = all[k];
+      var cnt = r.members ? Object.keys(r.members).length : 0;
+      var playing = r.status==="playing";
+      html += '<div class="roomRow'+(playing?" playing":"")+'" data-rid="'+k+'" data-st="'+r.status+'">'
+        +'<div class="rIcon">'+(r.mode==="power"?"🦈":"⚡")+'</div>'
+        +'<div><div class="rName">'+escapeHtml(r.name||"غرفة")+'</div>'
+        +'<div class="rInfo">'+(r.mode==="power"?"القوي يأكل الضعيف":"الالتقاط السريع")
+        +' • '+Math.round((r.dur||120)/60)+' دقائق • أدمن: '+escapeHtml(r.adminName||"?")
+        +(playing?' • <b style="color:var(--red)">جارية الآن</b>':'')+'</div></div>'
+        +'<div class="rCount">👥 '+cnt+'</div></div>';
+    });
+    $("roomsList").innerHTML = html;
+    document.querySelectorAll(".roomRow").forEach(function(row){
+      row.onclick = function(){
+        if(row.dataset.st==="playing"){ alert("الجولة جارية الآن — انتظر انتهاءها"); return; }
+        enterWaiting(row.dataset.rid, false);
+      };
+    });
+  });
+}
+
+/* ============ غرفة الانتظار ============ */
+var waitRef = null, waitLobbyCb = null, lastRound = 0;
+function enterWaiting(rid, asAdmin){
+  G.roomId = rid;
+  var lref = db.ref("lobby/"+rid);
+  waitRef = lref;
+
+  /* انضم كعضو */
+  var mRef = lref.child("members/"+MYID);
+  mRef.set({name:myName(), img:avatarData||null, emoji:avatarData?null:chosenEmoji,
+    joined:firebase.database.ServerValue.TIMESTAMP});
+  mRef.onDisconnect().remove();
+
+  showScreen("screenWaiting");
+  $("waitAdminBox").style.display = asAdmin ? "flex" : "none";
+  $("waitMemberBox").style.display = asAdmin ? "none" : "flex";
+
+  waitLobbyCb = lref.on("value", function(snap){
+    var r = snap.val();
+    if(!r){
+      /* الغرفة انحذفت */
+      cleanupWaiting();
+      alert("الأدمن أغلق الغرفة");
+      showScreen("screenHome");
+      return;
+    }
+    lastRound = lastRound || r.round || 0;
+    $("waitRoomName").textContent = (r.mode==="power"?"🦈 ":"⚡ ") + (r.name||"الغرفة");
+    $("waitRoomInfo").textContent = (r.mode==="power"?"القوي يأكل الضعيف":"الالتقاط السريع")
+      +" • "+Math.round((r.dur||120)/60)+" دقائق";
+
+    var mems = r.members||{};
+    var mkeys = Object.keys(mems).sort(function(a,b){return (mems[a].joined||0)-(mems[b].joined||0);});
+    $("waitCount").textContent = mkeys.length;
+    var mh = "";
+    mkeys.forEach(function(k){
+      var m = mems[k];
+      mh += '<div class="membCell'+(k===r.adminId?" admin":"")+'">'
+        +'<div class="mPic">'+picHtml(m.img,m.emoji)+'</div>'
+        +'<div class="mName">'+escapeHtml(m.name||"لاعب")+(k===r.adminId?" 👑":"")+'</div></div>';
+    });
+    $("membersGrid").innerHTML = mh || '<div class="label">لا أحد بعد...</div>';
+
+    /* بدأت الجولة؟ */
+    if(r.status==="playing" && r.round > lastRound){
+      lastRound = r.round;
+      G.mode = r.mode; G.duration = r.dur||120;
+      G.round = r.round;
+      cleanupWaiting(false); /* أوقف الاستماع لكن ابق عضوًا */
+      startGame(true, r.endsAt, r.adminId);
+    }
+  });
+}
+function cleanupWaiting(removeMember){
+  if(waitRef){ waitRef.off(); }
+  if(removeMember !== false && waitRef){
+    waitRef.child("members/"+MYID).remove();
+  }
+  waitLobbyCb = null;
+}
+$("btnLeaveRoom").onclick = function(){
+  cleanupWaiting(true); G.roomId = null;
+  showScreen("screenHome");
+};
+$("btnDeleteRoom").onclick = function(){
+  if(!confirm("حذف الغرفة نهائيًا؟")) return;
+  if(G.roomId){ db.ref("lobby/"+G.roomId).remove(); db.ref("rooms/"+G.roomId).remove(); }
+  cleanupWaiting(false); G.roomId = null;
+  showScreen("screenHome");
+};
+$("btnStartGame").onclick = function(){
+  if(!G.roomId) return;
+  var lref = db.ref("lobby/"+G.roomId);
+  lref.once("value", function(snap){
+    var r = snap.val(); if(!r) return;
+    var newRound = (r.round||0)+1;
+    /* نظف بيانات الجولة السابقة */
+    db.ref("rooms/"+G.roomId+"/g"+(newRound-1)).remove();
+    lref.update({status:"playing", round:newRound, endsAt: Date.now() + (r.dur||120)*1000 + 3000});
+  });
+};
+
+/* ============ بدء اللعبة ============ */
+var spawnTimer=null, powerTimer=null, timerInt=null;
+function startGame(online, endsAt, adminId){
+  G.online = !!online; G.isHost = online ? (adminId===MYID) : true;
+  G.timeLeft = G.duration;
+  G.players = {}; G.objects = {}; G.myBuffs = {}; G.objSeq = 0;
+  G.finalRanks = null;
+  G.collected = {"⭐":0,"💎":0,"👑":0,"🔥":0};
+  world.innerHTML = "";
+  $("killFeed").innerHTML = "";
+  $("leaderPanel").classList.remove("open");
+
+  var W = window.innerWidth, H = window.innerHeight;
+  /* 🗺️ ساحات أكبر بكثير */
+  if(G.mode==="power"){ G.WW = G.online? 5200 : W*6; G.WH = G.online? 8400 : H*6; }
+  else { G.WW = G.online? 1100 : W; G.WH = G.online? 1800 : H; }
+  if(!G.online){ G.WW = Math.max(G.WW, W); G.WH = Math.max(G.WH, H); }
+  world.style.width = G.WW+"px"; world.style.height = G.WH+"px";
+  world.className = G.mode==="power" ? "powerWorld" : "";
+  $("minimap").style.display = G.mode==="power" ? "block" : "none";
+  $("lbTitle").textContent = G.mode==="power" ? "🦈 الأقوياء الآن" : "🏆 الصدارة المباشرة";
+
+  var sx = 150+Math.random()*(G.WW-300), sy = 150+Math.random()*(G.WH-300);
+  if(!G.online){ sx = G.WW/2; sy = G.WH/2; }
+  G.me = mkPlayer(MYID, myName(), avatarData, avatarData?null:chosenEmoji, sx, sy, true);
+
+  if(!G.online){
+    var botCount = G.mode==="power" ? 8 : 4;
+    for(var i=0;i<botCount;i++){
+      var b = BOT_DEFS[i], bx, by;
+      do { bx = 100+Math.random()*(G.WW-200); by = 100+Math.random()*(G.WH-200); }
+      while(Math.hypot(bx-G.me.x, by-G.me.y) < 300);
+      var p = mkPlayer("bot"+i, b.name, null, b.emoji, bx, by, false);
+      p.bot = true; p.skill = b.skill; p.reactT = 0;
+    }
+  }
+
+  showScreen("arena");
+  updateHudScore(); updateCount(); renderLeaderboard();
+
+  clearInterval(spawnTimer); clearInterval(powerTimer);
+  startSpawners();
+
+  G.running = true; G.lastFrame = performance.now();
+  requestAnimationFrame(loop);
+
+  if(G.online){
+    startSharedTimer(endsAt);
+    netJoin();
+  } else {
+    startLocalTimer();
+  }
+}
+function orbTarget(){
+  /* عدد الكرات يتناسب مع مساحة الساحة */
+  return Math.max(34, Math.round((G.WW*G.WH)/500000));
+}
+function startSpawners(){
+  if(G.mode==="catch"){
+    spawnTimer = setInterval(function(){ if(G.running && G.isHost) spawnCatchObject(false); }, 900);
+    powerTimer = setInterval(function(){ if(G.running && G.isHost && Math.random()<.5) spawnCatchObject(true); }, 7000);
+    if(G.isHost) for(var j=0;j<5;j++) spawnCatchObject(false);
+  } else {
+    var target = orbTarget();
+    if(G.isHost) for(var k=0;k<target;k++) spawnOrb();
+    spawnTimer = setInterval(function(){
+      if(G.running && G.isHost && Object.keys(G.objects).length < orbTarget()) spawnOrb();
+    }, 700);
+  }
+}
+
+function mkPlayer(id, name, imgData, emoji, x, y, isMe){
+  var el = document.createElement("div");
+  el.className = "player" + (isMe?" me":"");
+  el.innerHTML = '<div class="shieldRing"></div><div class="ppow"></div><div class="pic">'+picHtml(imgData,emoji)+'</div><div class="pname">'+escapeHtml(name)+'</div>';
+  world.appendChild(el);
+  var p = {id:id,name:name,img:imgData,emoji:emoji,x:x,y:y,tx:x,ty:y,
+    score:0, power:10, kills:0, dead:false, respawnAt:0,
+    el:el, me:isMe, frozenUntil:0, shieldUntil:0};
+  el.style.transform = "translate("+x+"px,"+y+"px)";
+  if(G.mode==="power"){
+    el.querySelector(".ppow").style.display = "block";
+    el.querySelector(".ppow").textContent = p.power;
+  }
+  G.players[id] = p;
+  return p;
+}
+
+/* ============ السحب ============ */
+(function(){
+  var dragging = false;
+  var onMove = function(ev){
+    var me = G.me;
+    if(!dragging || !G.running || !me || me.dead) return;
+    var t = ev.touches ? ev.touches[0] : ev;
+    me.tx = Math.max(34, Math.min(G.WW-34, t.clientX + G.cam.x));
+    me.ty = Math.max(34, Math.min(G.WH-34, t.clientY + G.cam.y));
+    ev.preventDefault();
+  };
+  var start = function(ev){ if(!G.running) return; dragging = true; onMove(ev); };
+  viewport.addEventListener("touchstart", start, {passive:false});
+  viewport.addEventListener("mousedown", start);
+  window.addEventListener("touchmove", onMove, {passive:false});
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("touchend", function(){ dragging=false; });
+  window.addEventListener("mouseup", function(){ dragging=false; });
+})();
+
+/* ============ توليد الأجسام ============ */
+function weighted(list){
+  var tot = list.reduce(function(a,t){return a+t.w;},0), r = Math.random()*tot;
+  for(var i=0;i<list.length;i++){ r -= list[i].w; if(r<=0) return list[i]; }
+  return list[0];
+}
+function typeByEmoji(list, e){
+  for(var i=0;i<list.length;i++) if(list[i].e===e) return list[i];
+  return list[0];
+}
+function addObject(id, data){
+  if(G.objects[id]) return;
+  var t;
+  if(data.k==="pw") t = typeByEmoji(POWERS, data.e);
+  else if(data.k==="orb") t = typeByEmoji(POWER_ORBS, data.e);
+  else t = typeByEmoji(OBJ_TYPES, data.e);
+  var cls = data.k==="pw" ? "power" : (t.cls||"");
+  var el = document.createElement("div");
+  el.className = "obj" + (cls?" "+cls:"");
+  el.innerHTML = '<span class="in">'+t.e+'</span>';
+  el.style.transform = "translate("+data.x+"px,"+data.y+"px)";
+  world.appendChild(el);
+  G.objects[id] = {id:id, x:data.x, y:data.y, vx:data.vx, vy:data.vy,
+    type:t, power:data.k==="pw", orb:data.k==="orb", el:el};
+}
+function spawnCatchObject(isPower){
+  var W = G.WW, H = G.WH;
+  var side = Math.floor(Math.random()*8);
+  var x,y,vx,vy;
+  var sp = [60,110,180,260][Math.floor(Math.random()*4)];
+  if(side===0){ x=-30; y=90+Math.random()*(H-180); vx=sp; vy=(Math.random()-.5)*40; }
+  else if(side===1){ x=W+30; y=90+Math.random()*(H-180); vx=-sp; vy=(Math.random()-.5)*40; }
+  else if(side===2){ x=30+Math.random()*(W-60); y=-30; vx=(Math.random()-.5)*40; vy=sp; }
+  else if(side===3){ x=30+Math.random()*(W-60); y=H+30; vx=(Math.random()-.5)*40; vy=-sp; }
+  else {
+    var L = (side===4||side===6), T = (side===4||side===5);
+    x = L?-30:W+30; y = T?-30:H+30;
+    var d = sp/1.414;
+    vx = L?d:-d; vy = T?d:-d;
+  }
+  var t = isPower ? POWERS[Math.floor(Math.random()*POWERS.length)] : weighted(OBJ_TYPES);
+  var id = MYID+"_o"+(G.objSeq++);
+  var data = {e:t.e, x:Math.round(x), y:Math.round(y), vx:Math.round(vx), vy:Math.round(vy), k:isPower?"pw":"c"};
+  addObject(id, data);
+  if(G.online && G.net) G.net.pushObj(id, data);
+}
+function spawnOrb(){
+  var t = weighted(POWER_ORBS);
+  var x = 60+Math.random()*(G.WW-120), y = 60+Math.random()*(G.WH-120);
+  var a = Math.random()*Math.PI*2, sp = 15+Math.random()*30;
+  var id = MYID+"_o"+(G.objSeq++);
+  var data = {e:t.e, x:Math.round(x), y:Math.round(y),
+    vx:Math.round(Math.cos(a)*sp), vy:Math.round(Math.sin(a)*sp), k:"orb"};
+  addObject(id, data);
+  if(G.online && G.net) G.net.pushObj(id, data);
+}
+function removeObj(id, fromNet){
+  var o = G.objects[id]; if(!o) return;
+  o.el.remove(); delete G.objects[id];
+  if(G.online && G.net && !fromNet) G.net.removeObj(id);
+}
+
+/* ============ الحلقة الرئيسية ============ */
+function loop(now){
+  if(!G.running) return;
+  var dt = Math.min(.05,(now-G.lastFrame)/1000); G.lastFrame = now;
+  var W = window.innerWidth, H = window.innerHeight;
+
+  Object.keys(G.players).forEach(function(k){
+    var p = G.players[k];
+    if(p.dead){
+      if(p.bot && now > p.respawnAt) respawnBot(p);
+      return;
+    }
+    var frozen = now < p.frozenUntil;
+    p.el.classList.toggle("frozen", frozen);
+    p.el.classList.toggle("shielded", now < p.shieldUntil);
+
+    if(p.bot && !frozen){
+      if(G.mode==="power") botThinkPower(p, now);
+      else botThinkCatch(p, now);
+    }
+
+    var base = 340;
+    if(G.mode==="power"){
+      base = 300 - Math.min(120,(p.power-10)*2);
+      if(p.bot) base *= (.55 + p.skill*.5);
+    } else {
+      if(p.me){
+        if(G.myBuffs["⚡"] && now<G.myBuffs["⚡"]) base = 560;
+        if(G.myBuffs["🚀"] && now<G.myBuffs["🚀"]) base = 1000;
+      }
+      if(p.bot) base = 300*p.skill + 60;
+    }
+    if(!p.me && !p.bot) base = 900;
+    if(frozen) base = 0;
+
+    var dx = p.tx-p.x, dy = p.ty-p.y, dist = Math.hypot(dx,dy);
+    if(dist>1 && base>0){
+      var step = Math.min(dist, base*dt);
+      p.x += dx/dist*step; p.y += dy/dist*step;
+    }
+    p.x = Math.max(34, Math.min(G.WW-34, p.x));
+    p.y = Math.max(34, Math.min(G.WH-34, p.y));
+
+    if(G.mode==="power"){
+      var sc = Math.min(1.9, 1 + (p.power-10)*.012);
+      p.scale = sc;
+      p.el.style.transform = "translate("+p.x+"px,"+p.y+"px) scale("+sc+")";
+    } else {
+      p.el.style.transform = "translate("+p.x+"px,"+p.y+"px)";
+    }
+  });
+
+  if((G.mode==="power" || G.online) && !G.me.dead){
+    G.cam.x = Math.max(0, Math.min(Math.max(0,G.WW-W), G.me.x - W/2));
+    G.cam.y = Math.max(0, Math.min(Math.max(0,G.WH-H), G.me.y - H/2));
+  } else { G.cam.x = 0; G.cam.y = 0; }
+  world.style.transform = "translate("+(-G.cam.x)+"px,"+(-G.cam.y)+"px)";
+
+  var magnet = G.mode==="catch" && G.myBuffs["🧲"] && now<G.myBuffs["🧲"];
+  Object.keys(G.objects).forEach(function(id){
+    var o = G.objects[id]; if(!o) return;
+    if(magnet && !o.power){
+      var mdx = G.me.x-o.x, mdy = G.me.y-o.y, md = Math.hypot(mdx,mdy);
+      if(md<140 && md>1){ o.x += mdx/md*260*dt; o.y += mdy/md*260*dt; }
+      else { o.x += o.vx*dt; o.y += o.vy*dt; }
+    } else { o.x += o.vx*dt; o.y += o.vy*dt; }
+
+    if(o.orb){
+      if(o.x<40||o.x>G.WW-40){ o.vx*=-1; o.x=Math.max(40,Math.min(G.WW-40,o.x)); }
+      if(o.y<40||o.y>G.WH-40){ o.vy*=-1; o.y=Math.max(40,Math.min(G.WH-40,o.y)); }
+    } else if(o.x<-60||o.x>G.WW+60||o.y<-60||o.y>G.WH+60){ removeObj(id); return; }
+
+    o.el.style.transform = "translate("+o.x+"px,"+o.y+"px)";
+
+    if(G.online){
+      var pme = G.me;
+      if(!pme.dead && now >= pme.frozenUntil){
+        var radm = G.mode==="power" ? 30*(pme.scale||1)+14 : 44;
+        if(Math.hypot(pme.x-o.x, pme.y-o.y) < radm){
+          if(G.mode==="power") collectOrb(pme,o,now); else collectCatch(pme,o,now);
+        }
+      }
+    } else {
+      var keys = Object.keys(G.players);
+      for(var i=0;i<keys.length;i++){
+        var p = G.players[keys[i]];
+        if(p.dead || now < p.frozenUntil) continue;
+        var rad = G.mode==="power" ? 30*(p.scale||1)+14 : 44;
+        if(Math.hypot(p.x-o.x, p.y-o.y) < rad){
+          if(G.mode==="power") collectOrb(p,o,now); else collectCatch(p,o,now);
+          break;
+        }
+      }
+    }
+  });
+
+  if(G.mode==="power") resolveFights(now);
+  if(G.mode==="power") drawMinimap(W,H);
+  requestAnimationFrame(loop);
+}
+
+/* ============ طور القوة ============ */
+function collectOrb(p,o,now){
+  removeObj(o.id);
+  if(o.type.shield){
+    var dur = 5000 + Math.random()*5000; /* 5-10 ثوانٍ */
+    p.shieldUntil = now + dur;
+    if(p.me){
+      floatScore(o.x,o.y,"🛡️ حماية "+Math.round(dur/1000)+"ث");
+      renderShieldBuff();
+      if(G.online && G.net) G.net.shield(dur);
+    }
+    burst(o.x,o.y,"#FFE58A",12);
+    return;
+  }
+  p.power = Math.max(1, p.power + o.type.v);
+  p.el.querySelector(".ppow").textContent = p.power;
+  if(p.me){
+    updateHudScore();
+    floatScore(o.x,o.y,(o.type.v>0?"+":"")+o.type.v+" قوة", o.type.v<0);
+    if(G.online && G.net) G.net.syncMe();
+  }
+  burst(o.x,o.y, o.type.v<0 ? "#FF5D5D" : "#4ADE80", 8);
+  renderLeaderboard();
+}
+function renderShieldBuff(){
+  var now = performance.now();
+  if(G.me.shieldUntil > now){
+    var s = Math.ceil((G.me.shieldUntil-now)/1000);
+    var el = $("hudBuffs");
+    var b = el.querySelector(".buff.gold");
+    if(!b){ b = document.createElement("div"); b.className="buff gold"; el.appendChild(b); }
+    b.textContent = "🛡️ "+s+"ث";
+    setTimeout(renderShieldBuff, 400);
+  } else {
+    var b2 = $("hudBuffs").querySelector(".buff.gold");
+    if(b2) b2.remove();
+  }
+}
+function resolveFights(now){
+  var keys = Object.keys(G.players);
+  var canKill = function(a,b){
+    return a.power >= b.power+10 && now >= b.shieldUntil && now >= a.frozenUntil;
+  };
+  if(G.online){
+    var me = G.me;
+    if(!me.dead && now >= me.frozenUntil){
+      for(var i=0;i<keys.length;i++){
+        var q = G.players[keys[i]];
+        if(q.me||q.dead) continue;
+        var d = Math.hypot(me.x-q.x, me.y-q.y);
+        var minD = 30*((me.scale||1)+(q.scale||1));
+        if(d < minD && canKill(me,q)) killPlayer(me,q);
+      }
+    }
+  } else {
+    for(var a1=0;a1<keys.length;a1++){
+      for(var b1=a1+1;b1<keys.length;b1++){
+        var a = G.players[keys[a1]], b = G.players[keys[b1]];
+        if(a.dead||b.dead) continue;
+        var d2 = Math.hypot(a.x-b.x, a.y-b.y);
+        var minD2 = 30*((a.scale||1)+(b.scale||1));
+        if(d2 < minD2){
+          if(canKill(a,b)) killPlayer(a,b);
+          else if(canKill(b,a)) killPlayer(b,a);
+          else {
+            var push = (minD2-d2)/2 + 1, nx=(a.x-b.x)/(d2||1), ny=(a.y-b.y)/(d2||1);
+            a.x+=nx*push; a.y+=ny*push; b.x-=nx*push; b.y-=ny*push;
+          }
+        }
+      }
+    }
+  }
+  keys.forEach(function(k){
+    var p = G.players[k];
+    if(p.me||p.dead) return;
+    p.el.classList.toggle("danger", p.power >= G.me.power+10);
+    p.el.classList.toggle("prey",   G.me.power >= p.power+10 && performance.now() >= p.shieldUntil);
+  });
+}
+function killPlayer(killer, victim){
+  if(victim.dead) return;
+  applyDeath(victim);
+  killer.kills++;
+  killer.power += 5;
+  killer.el.querySelector(".ppow").textContent = killer.power;
+  killFeed(killer, victim);
+  if(victim.bot) victim.respawnAt = performance.now() + 6000;
+  if(G.online && G.net && killer.me){
+    G.net.syncMe();
+    G.net.killRemote(victim.id);
+  }
+  if(victim.me){
+    updateHudScore();
+    setTimeout(function(){ endGame(true); }, 1400);
+  }
+  if(killer.me) updateHudScore();
+  updateCount(); renderLeaderboard();
+}
+function applyDeath(victim){
+  if(victim.dead) return;
+  victim.dead = true;
+  victim.el.classList.add("dead");
+  victim.el.classList.remove("danger","prey","shielded");
+  burst(victim.x, victim.y, "#FF5D5D", 22);
+  viewport.classList.remove("shake"); void viewport.offsetWidth; viewport.classList.add("shake");
+}
+/* 💀 شريط الإقصاء بالصور تحت الساعة */
+function killFeed(killer, victim){
+  var row = document.createElement("div");
+  row.className = "feedRow";
+  row.innerHTML =
+    '<div class="fPic">'+picHtml(killer.img,killer.emoji)+'</div>'
+    +'<div class="fName">'+escapeHtml(killer.name)+'</div>'
+    +'<div class="fSkull">💀</div>'
+    +'<div class="fPic victim">'+picHtml(victim.img,victim.emoji)+'</div>'
+    +'<div class="fName">'+escapeHtml(victim.name)+'</div>'
+    +'<div class="fOut">تم إقصاؤه!</div>';
+  var feed = $("killFeed");
+  feed.prepend(row);
+  while(feed.children.length > 3) feed.lastChild.remove();
+  setTimeout(function(){ if(row.parentNode) row.remove(); }, 4000);
+}
+function respawnBot(p){
+  p.dead = false; p.power = 10; p.shieldUntil = performance.now()+2500;
+  p.el.classList.remove("dead");
+  do { p.x = 100+Math.random()*(G.WW-200); p.y = 100+Math.random()*(G.WH-200); }
+  while(!G.me.dead && Math.hypot(p.x-G.me.x,p.y-G.me.y) < 350);
+  p.tx=p.x; p.ty=p.y;
+  p.el.querySelector(".ppow").textContent = p.power;
+  updateCount(); renderLeaderboard();
+}
+
+/* ============ ذكاء البوتات ============ */
+function botThinkCatch(p, now){
+  if(now < p.reactT) return;
+  var best=null, bd=1e9;
+  Object.keys(G.objects).forEach(function(id){
+    var o = G.objects[id]; if(!o||o.power) return;
+    var d = Math.hypot(p.x-o.x,p.y-o.y)/(o.type.v/10);
+    if(d<bd){bd=d;best=o;}
+  });
+  if(best){
+    p.tx = best.x + best.vx*.4; p.ty = best.y + best.vy*.4;
+    p.reactT = now + (1-p.skill)*400 + Math.random()*200;
+  } else {
+    p.tx = 60+Math.random()*(G.WW-120); p.ty = 120+Math.random()*(G.WH-220);
+    p.reactT = now + 800;
+  }
+}
+function botThinkPower(p, now){
+  if(now < p.reactT) return;
+  var threat=null, td=1e9, prey=null, pd=1e9;
+  Object.keys(G.players).forEach(function(k){
+    var q = G.players[k];
+    if(q===p||q.dead) return;
+    var d = Math.hypot(p.x-q.x,p.y-q.y);
+    if(q.power >= p.power+10 && now >= p.shieldUntil && d<td){ td=d; threat=q; }
+    if(p.power >= q.power+10 && now >= q.shieldUntil && d<pd){ pd=d; prey=q; }
+  });
+  if(threat && td < 260){
+    var ang = Math.atan2(p.y-threat.y, p.x-threat.x);
+    p.tx = Math.max(50,Math.min(G.WW-50, p.x + Math.cos(ang)*320));
+    p.ty = Math.max(50,Math.min(G.WH-50, p.y + Math.sin(ang)*320));
+    p.reactT = now + 250;
+    return;
+  }
+  if(prey && pd < 450 && p.skill > .5){
+    p.tx = prey.x; p.ty = prey.y;
+    p.reactT = now + (1-p.skill)*350 + 120;
+    return;
+  }
+  var best=null, bd=1e9;
+  Object.keys(G.objects).forEach(function(id){
+    var o = G.objects[id]; if(!o||o.type.v<0) return;
+    var val = o.type.shield ? 4 : o.type.v;
+    var d = Math.hypot(p.x-o.x,p.y-o.y)/val;
+    if(d<bd){bd=d;best=o;}
+  });
+  if(best){ p.tx=best.x; p.ty=best.y; }
+  else { p.tx = 60+Math.random()*(G.WW-120); p.ty = 60+Math.random()*(G.WH-120); }
+  p.reactT = now + (1-p.skill)*500 + 200;
+}
+
+/* ============ طور الالتقاط ============ */
+function collectCatch(p, o, now){
+  var id = o.id;
+  if(!G.objects[id]) return;
+  removeObj(id);
+  if(o.power){
+    if(o.type.e==="❄️"){
+      if(G.online && G.net) G.net.freezeAll(o.type.dur);
+      Object.keys(G.players).forEach(function(k){
+        if(G.players[k]!==p) G.players[k].frozenUntil = now + o.type.dur;
+      });
+      if(p.me) floatScore(p.x,p.y-50,"❄️ جمّدت الجميع!");
+    } else if(p.me){
+      G.myBuffs[o.type.e] = now + o.type.dur;
+      floatScore(p.x,p.y-50,o.type.e+" "+o.type.name+"!");
+      renderBuffs();
+    }
+    burst(o.x,o.y,"#4ADE80",10);
+    return;
+  }
+  var val = o.type.v;
+  if(p.me && G.myBuffs["✨"] && now<G.myBuffs["✨"]) val *= 2;
+  p.score += val;
+  if(p.me){
+    G.collected[o.type.e] = (G.collected[o.type.e]||0)+1;
+    updateHudScore();
+    if(G.online && G.net) G.net.syncMe();
+  }
+  floatScore(o.x, o.y, "+"+val);
+  burst(o.x, o.y, o.type.e==="🔥"?"#FF7A3C":"#22D3EE", o.type.e==="🔥"?18:8);
+  if(o.type.e==="🔥"){
+    viewport.classList.remove("shake"); void viewport.offsetWidth; viewport.classList.add("shake");
+  }
+  renderLeaderboard();
+}
+
+/* ============ مؤثرات ============ */
+function floatScore(x,y,txt,neg){
+  var d = document.createElement("div");
+  d.className = "floatScore"+(neg?" neg":""); d.textContent = txt;
+  d.style.left = x+"px"; d.style.top = (y-20)+"px";
+  world.appendChild(d); setTimeout(function(){d.remove();},1000);
+}
+function burst(x,y,color,n){
+  for(var i=0;i<n;i++){
+    var pt = document.createElement("div");
+    pt.className = "particle"; pt.style.background = color;
+    pt.style.left = x+"px"; pt.style.top = y+"px";
+    var a = Math.random()*Math.PI*2, r = 30+Math.random()*50;
+    pt.style.setProperty("--dx", Math.cos(a)*r+"px");
+    pt.style.setProperty("--dy", Math.sin(a)*r+"px");
+    world.appendChild(pt);
+    setTimeout(function(el){return function(){el.remove();};}(pt),650);
+  }
+}
+function renderBuffs(){
+  var now = performance.now(), html = "";
+  Object.keys(G.myBuffs).forEach(function(e){
+    if(G.myBuffs[e]>now){
+      var s = Math.ceil((G.myBuffs[e]-now)/1000);
+      html += '<div class="buff">'+e+' '+s+'ث</div>';
+    }
+  });
+  var gold = $("hudBuffs").querySelector(".buff.gold");
+  $("hudBuffs").innerHTML = html;
+  if(gold) $("hudBuffs").appendChild(gold);
+  if(html) setTimeout(renderBuffs, 400);
+}
+
+/* ============ الخريطة المصغرة ============ */
+function drawMinimap(W,H){
+  var mm = $("minimap");
+  var mw = 96, mh = 96;
+  var html = '<div id="mmView" style="left:'+(G.cam.x/G.WW*mw)+'px;top:'+(G.cam.y/G.WH*mh)+'px;width:'+(W/G.WW*mw)+'px;height:'+(H/G.WH*mh)+'px"></div>';
+  Object.keys(G.players).forEach(function(k){
+    var p = G.players[k]; if(p.dead) return;
+    var c = p.me ? "#FFC53D" : (p.power >= G.me.power+10 ? "#FF5D5D" : (G.me.power >= p.power+10 ? "#4ADE80" : "#22D3EE"));
+    html += '<div class="mmDot" style="left:'+(p.x/G.WW*mw)+'px;top:'+(p.y/G.WH*mh)+'px;background:'+c+'"></div>';
+  });
+  mm.innerHTML = html;
+}
+
+/* ============ HUD والمؤقت ============ */
+function updateHudScore(){
+  if(G.mode==="power")
+    $("hudScore").textContent = "💪 قوة "+G.me.power+" | 💀 "+G.me.kills;
+  else
+    $("hudScore").textContent = G.me.score+" نقطة";
+}
+function showTime(){
+  var t = Math.max(0, G.timeLeft);
+  var m = Math.floor(t/60), s = t%60;
+  $("hudTimer").textContent = m+":"+(s<10?"0":"")+s;
+  $("hudTimer").classList.toggle("low", t<=10);
+}
+function startLocalTimer(){
+  clearInterval(timerInt); showTime();
+  timerInt = setInterval(function(){
+    G.timeLeft--; showTime();
+    if(G.timeLeft<=0) endGame(false);
+  },1000);
+}
+function startSharedTimer(endsAt){
+  clearInterval(timerInt);
+  var tick = function(){
+    G.timeLeft = Math.ceil((endsAt - Date.now())/1000);
+    showTime();
+    if(G.timeLeft<=0) endGame(false);
+  };
+  tick();
+  timerInt = setInterval(tick, 500);
+}
+
+/* ============ الصدارة ============ */
+function pScore(p){ return G.mode==="power" ? p.power : p.score; }
+function sortedPlayers(){
+  return Object.keys(G.players).map(function(k){return G.players[k];})
+    .sort(function(a,b){
+      if(G.mode==="power" && a.dead!==b.dead) return a.dead?1:-1;
+      return pScore(b)-pScore(a) || (b.kills-a.kills);
+    });
+}
+function renderLeaderboard(){
+  var html = "";
+  sortedPlayers().forEach(function(p,i){
+    html += '<div class="lbRow'+(p.me?" me":"")+(p.dead?" deadRow":"")+'"><div class="rank">'+(i+1)+'</div>'
+      +'<div class="lbPic">'+picHtml(p.img,p.emoji)+'</div>'
+      +'<div class="lbName">'+escapeHtml(p.name)+(p.me?" (أنت)":"")+(p.dead?" 💀":"")+'</div>'
+      +'<div class="lbScore">'+pScore(p)+(G.mode==="power"?' 💪':'')+'</div></div>';
+  });
+  $("lbList").innerHTML = html;
+}
+function updateCount(){
+  var alive = Object.keys(G.players).filter(function(k){return !G.players[k].dead;}).length;
+  $("hudCount").textContent = "👥 "+alive;
+}
+/* 🔧 إصلاح: زر الصدارة فوق اللوحة + زر إغلاق داخلها */
+$("btnLeader").onclick = function(){ $("leaderPanel").classList.toggle("open"); };
+$("lbClose").onclick = function(){ $("leaderPanel").classList.remove("open"); };
+$("btnExit").onclick = function(){ if(confirm("متأكد من الخروج؟")) leaveToHome(); };
+
+/* ============ النهاية ============ */
+function endGame(iDied){
+  if(!G.running) return;
+  G.running = false;
+  clearInterval(timerInt); clearInterval(spawnTimer); clearInterval(powerTimer);
+
+  /* 🔧 إصلاح الترتيب: نثبت الترتيب النهائي قبل قطع الاتصال */
+  var ranks = sortedPlayers();
+  G.finalRanks = ranks;
+
+  if(G.online && G.net) G.net.leave();
+
+  var title = $("resTitle");
+  if(G.mode==="power" && iDied){
+    title.textContent = "💀 تم التهامك!";
+    title.classList.add("lost");
+  } else if(ranks[0] && ranks[0].me){
+    title.textContent = "👑 أنت البطل!";
+    title.classList.remove("lost");
+  } else {
+    title.textContent = "🎉 انتهت الجولة!";
+    title.classList.remove("lost");
+  }
+
+  var medals = ["first","second","third"];
+  var order = [1,0,2];
+  var pod = "";
+  order.forEach(function(idx){
+    var p = ranks[idx]; if(!p) return;
+    pod += '<div class="pod '+medals[idx]+'">'
+      +'<div class="pPic">'+picHtml(p.img,p.emoji)+'</div>'
+      +'<div class="pName">'+escapeHtml(p.name)+'</div>'
+      +'<div class="pScore">'+pScore(p)+'</div>'
+      +'<div class="bar">'+(idx+1)+'</div></div>';
+  });
+  $("podium").innerHTML = pod;
+
+  if(G.mode==="power"){
+    $("myStats").innerHTML =
+      '<span>قوتك <b>'+G.me.power+'</b></span>'
+      +'<span>💀 قتلاتك <b>'+G.me.kills+'</b></span>'
+      +'<span>مركزك <b>'+(ranks.indexOf(G.me)+1)+'</b></span>';
+  } else {
+    $("myStats").innerHTML =
+      '<span>نقاطك <b>'+G.me.score+'</b></span>'
+      +'<span>⭐ <b>'+G.collected["⭐"]+'</b></span>'
+      +'<span>💎 <b>'+G.collected["💎"]+'</b></span>'
+      +'<span>👑 <b>'+G.collected["👑"]+'</b></span>'
+      +'<span>🔥 <b>'+G.collected["🔥"]+'</b></span>';
+  }
+
+  var fr = "";
+  ranks.forEach(function(p,i){
+    fr += '<div class="lbRow'+(p.me?" me":"")+'"><div class="rank">'+(i+1)+'</div>'
+      +'<div class="lbPic">'+picHtml(p.img,p.emoji)+'</div>'
+      +'<div class="lbName">'+escapeHtml(p.name)+(p.dead?" 💀":"")+'</div>'
+      +'<div class="lbScore">'+pScore(p)+'</div></div>';
+  });
+  $("fullRanks").innerHTML = fr;
+
+  /* الأدمن يعيد الغرفة لوضع الانتظار وينظف بيانات الجولة */
+  if(G.online && G.isAdmin && G.roomId){
+    db.ref("lobby/"+G.roomId).update({status:"waiting"});
+    db.ref("rooms/"+G.roomId+"/g"+G.round).remove();
+  }
+
+  showScreen("results");
+}
+$("btnAgain").onclick = function(){
+  if(G.online && G.roomId){
+    enterWaiting(G.roomId, G.isAdmin);
+  } else if(!G.online){
+    startGame(false);
+  } else {
+    showScreen("screenHome");
+  }
+};
+$("btnLobby").onclick = leaveToHome;
+function leaveToHome(){
+  G.running = false;
+  clearInterval(timerInt); clearInterval(spawnTimer); clearInterval(powerTimer);
+  if(G.online && G.net) G.net.leave();
+  if(G.roomId) cleanupWaiting(true);
+  G.roomId = null;
+  showScreen("screenHome");
+}
+
+/* =====================================================================
+   🌐 طبقة الشبكة — Firebase
+===================================================================== */
+function netJoin(){
+  var base = db.ref("rooms/"+G.roomId+"/g"+G.round);
+  var pRef = base.child("players/"+MYID);
+  var oRef = base.child("objects");
+  var meta = base.child("meta");
+
+  pRef.set({name:G.me.name, img:G.me.img||null, emoji:G.me.emoji||null,
+    x:Math.round(G.me.x), y:Math.round(G.me.y),
+    score:0, power:10, kills:0, dead:false, sh:0,
+    joined:firebase.database.ServerValue.TIMESTAMP});
+  pRef.onDisconnect().remove();
+
+  base.child("players").on("value", function(snap){
+    if(!G.running) return; /* 🔧 لا نعدل القوائم بعد نهاية الجولة */
+    var all = snap.val()||{};
+
+    /* المضيف الاحتياطي إذا خرج الأدمن: أقدم لاعب */
+    if(!all[MYID]){ /* لم تُكتب بياناتي بعد */ }
+    var adminIn = false;
+    Object.keys(all).forEach(function(k){ if(k!==MYID && G.players[k] && G.players[k].isAdminP) adminIn=true; });
+    var oldest=null, oldT=1e15;
+    Object.keys(all).forEach(function(k){
+      if(all[k].joined && all[k].joined < oldT){ oldT=all[k].joined; oldest=k; }
+    });
+    if(!G.isHost && oldest===MYID){ G.isHost = true; }
+
+    Object.keys(all).forEach(function(k){
+      if(k===MYID) return;
+      var d = all[k];
+      if(!G.players[k]){
+        mkPlayer(k, d.name||"لاعب", d.img, d.emoji, d.x||100, d.y||100, false);
+      }
+      var p = G.players[k];
+      p.tx = d.x; p.ty = d.y;
+      p.score = d.score||0; p.power = d.power||10; p.kills = d.kills||0;
+      if(G.mode==="power") p.el.querySelector(".ppow").textContent = p.power;
+      if(d.sh && d.sh > Date.now()){
+        p.shieldUntil = performance.now() + (d.sh - Date.now());
+      }
+      if(d.dead && !p.dead){
+        applyDeath(p);
+        if(d.kById && G.players[d.kById]) killFeed(G.players[d.kById], p);
+        else if(d.kById===MYID) killFeed(G.me, p);
+      }
+    });
+    Object.keys(G.players).forEach(function(k){
+      if(k!==MYID && !all[k] && !G.players[k].bot){
+        G.players[k].el.remove(); delete G.players[k];
+      }
+    });
+    updateCount(); renderLeaderboard();
+  });
+
+  /* موتي بيد لاعب آخر */
+  pRef.child("dead").on("value", function(snap){
+    if(snap.val()===true && !G.me.dead && G.running){
+      applyDeath(G.me);
+      pRef.child("kById").once("value", function(s){
+        var killer = G.players[s.val()];
+        if(killer) killFeed(killer, G.me);
+      });
+      setTimeout(function(){ endGame(true); }, 1400);
+    }
+  });
+
+  oRef.on("child_added", function(snap){ if(G.running) addObject(snap.key, snap.val()); });
+  oRef.on("child_removed", function(snap){
+    var o = G.objects[snap.key];
+    if(o){ o.el.remove(); delete G.objects[snap.key]; }
+  });
+
+  meta.child("freeze").on("value", function(snap){
+    var f = snap.val();
+    if(f && f.by!==MYID && f.until>Date.now() && G.running){
+      G.me.frozenUntil = performance.now() + (f.until-Date.now());
+    }
+  });
+
+  var syncInt = setInterval(function(){
+    if(!G.running || G.me.dead) return;
+    pRef.update({x:Math.round(G.me.x), y:Math.round(G.me.y)});
+  }, 85);
+
+  G.net = {
+    pushObj: function(id, data){ oRef.child(id).set(data); },
+    removeObj: function(id){ oRef.child(id).remove(); },
+    syncMe: function(){
+      pRef.update({score:G.me.score, power:G.me.power, kills:G.me.kills});
+    },
+    shield: function(dur){ pRef.update({sh: Date.now()+dur}); },
+    killRemote: function(vid){
+      base.child("players/"+vid).update({dead:true, kById:MYID});
+    },
+    freezeAll: function(dur){
+      meta.child("freeze").set({by:MYID, until:Date.now()+dur});
+    },
+    leave: function(){
+      clearInterval(syncInt);
+      base.child("players").off(); oRef.off(); meta.off();
+      pRef.child("dead").off();
+      pRef.remove();
+      G.net = null;
+    }
+  };
+}
+
+/* =====================================================================
+   🚀 تشغيل Firebase عند فتح الصفحة
+===================================================================== */
+(function initFB(){
+  var s1 = document.createElement("script");
+  s1.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
+  s1.onerror = function(){
+    $("netBanner").textContent = "⚠️ لا يوجد اتصال — التدريب المحلي فقط متاح";
+    $("netBanner").className = "err";
+  };
+  s1.onload = function(){
+    var s2 = document.createElement("script");
+    s2.src = "https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js";
+    s2.onerror = s1.onerror;
+    s2.onload = function(){
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        db = firebase.database();
+        $("netBanner").textContent = "🌐 متصل — الغرف تظهر تلقائيًا";
+        $("netBanner").className = "on";
+        watchLobby();
+      } catch(e){ s1.onerror(); }
+    };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+})();
+</script>
+</body>
+</html>
