@@ -383,6 +383,31 @@
 
 <!-- ============ تبويب 3: الفك والكاس ============ -->
 <div class="pane" id="pane3">
+  <div class="stage stg-room">
+    <h2>&#127942; حاسبة جائزة الروم (نسبة وتناسب)</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px">قيمة إغلاق الروم</label>
+    <input id="fkc_close" type="number" inputmode="numeric" placeholder="مثال: 14,000,000">
+    <div class="mini" style="margin-top:9px">
+      <div class="c"><div class="l">الجائزة المستحقة</div><div class="v v-gold" id="fkc_out" style="font-size:15px">0</div></div>
+      <div class="c"><div class="l">نسبة الاكتمال</div><div class="v n-green" id="fkc_pct" style="font-size:15px">0%</div></div>
+    </div>
+    <div class="note" id="fkc_note" style="margin-top:6px">الجائزة = (الإغلاق ÷ 28,000,000) × 1,820,000</div>
+  </div>
+  <div class="stage stg-acc">
+    <h2>&#128176; حاسبة التقفيل — كم حساب أقفل بفلوسي؟</h2>
+    <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px">الكونز اللي معي</label>
+    <input id="fkq_amt" type="number" inputmode="numeric" placeholder="مثال: 1,000,000">
+    <div class="mini" style="margin-top:9px;grid-template-columns:1fr 1fr 1fr">
+      <div class="c"><div class="l">حسابات نقفلها</div><div class="v v-gold" id="fkq_acc" style="font-size:16px">0</div></div>
+      <div class="c"><div class="l">نرمي فيها</div><div class="v n-blue" id="fkq_thrown" style="font-size:13px">0</div></div>
+      <div class="c"><div class="l">الفك يكمّلها</div><div class="v n-green" id="fkq_fak" style="font-size:13px">0</div></div>
+    </div>
+    <div class="mini" style="margin-top:6px">
+      <div class="c"><div class="l">مجموع التقفيل بعد الفك</div><div class="v n-green" id="fkq_total" style="font-size:14px">0</div></div>
+      <div class="c"><div class="l">الباقي نرميه على حساب</div><div class="v v-amber" id="fkq_rest" style="font-size:14px">0</div></div>
+    </div>
+    <div class="note" id="fkq_note" style="margin-top:6px"></div>
+  </div>
   <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
     <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
     <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
@@ -2155,13 +2180,33 @@ function render(){
   if($("pp_list")) renderPpl();
   if($("tgGrid")) renderTarget();
   if($("pl_list")) renderPlay();
+  if($("fkc_out")){
+    var fkcBase=c.perRoom*(num("s_lock2")||350000);
+    var fkcClose=num("fkc_close");
+    var fkcPrz=fkcBase>0?(fkcClose/fkcBase)*c.roomPrize:0;
+    $("fkc_out").textContent=fmt(Math.round(fkcPrz));
+    $("fkc_pct").textContent=fmt1(fkcBase>0?fkcClose/fkcBase*100:0)+"%";
+    $("fkc_note").textContent="الجائزة = (الإغلاق \u00F7 "+fmt(fkcBase)+") \u00D7 "+fmt(c.roomPrize);
+  }
+  if($("fkq_acc")){
+    var qThr=c.thr, qLock=num("s_lock2")||350000, qFak=qLock-qThr;
+    var qAmt=num("fkq_amt");
+    var qAcc=Math.floor(qAmt/qThr);
+    var qRest=qAmt-qAcc*qThr;
+    $("fkq_acc").textContent=fmt(qAcc);
+    $("fkq_thrown").textContent=fmt(qAcc*qThr);
+    $("fkq_fak").textContent=fmt(qAcc*qFak);
+    $("fkq_total").textContent=fmt(qAcc*qLock);
+    $("fkq_rest").textContent=fmt(qRest);
+    $("fkq_note").textContent=qAmt>0?("كل حساب: نرمي "+fmt(qThr)+" والفك يكمّله "+fmt(qFak)+" \u2190 يوصل "+fmt(qLock)+(qRest>0?" \u00B7 الباقي "+fmt(qRest)+" نرميه على حساب وناقصه "+fmt(qThr-qRest)+" ليقفل":"")):"";
+  }
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
