@@ -74,9 +74,24 @@ input:focus{border-color:var(--cyan)}
   background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
   background-size:48px 48px;background-color:var(--bg)}
 #world.powerWorld{box-shadow:inset 0 0 0 8px rgba(255,93,93,.7), inset 0 0 80px rgba(255,93,93,.25);
-  background-image:radial-gradient(900px 600px at 25% 25%, rgba(34,211,238,.05), transparent 60%),
-  radial-gradient(900px 600px at 75% 75%, rgba(240,51,155,.05), transparent 60%),
-  linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px)}
+  background-color:#0D1226;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 296px, rgba(34,211,238,.14) 296px 300px),
+    repeating-linear-gradient(90deg, transparent 0 296px, rgba(34,211,238,.14) 296px 300px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 150px, transparent 150px 300px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 150px, transparent 150px 300px),
+    linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:auto,auto,auto,auto,50px 50px,50px 50px}
+/* معالم ثابتة بالساحة تساعدك تعرف وين تتحرك */
+.decor{position:absolute;left:0;top:0;font-size:36px;opacity:.55;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+.decor.big{font-size:64px;opacity:.7}
+/* 🌀 هالة تدور حول اللاعب */
+.player .aura{position:absolute;left:50%;top:50%;width:0;height:0;z-index:1;animation:auraSpin 3.2s linear infinite;pointer-events:none}
+@keyframes auraSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.player .aura span{position:absolute;left:-10px;top:-10px;width:20px;height:20px;font-size:17px;text-align:center;transform:rotate(var(--a)) translateY(-48px) rotate(calc(-1 * var(--a)));filter:drop-shadow(0 0 6px rgba(255,255,255,.55))}
+.obj.aura{filter:drop-shadow(0 0 13px rgba(240,51,155,.9))}
+.obj.aura .in{animation:spawnIn .3s ease-out,rarePulse .9s infinite alternate}
 
 .player{position:absolute;left:0;top:0;width:64px;height:64px;margin:-32px 0 0 -32px;z-index:20;will-change:transform;transition:filter .2s}
 .player .pic{width:64px;height:64px;border-radius:50%;overflow:hidden;border:3px solid var(--cyan);background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 0 16px rgba(34,211,238,.5)}
@@ -316,6 +331,11 @@ var G = {
   collected:{"⭐":0,"💎":0,"👑":0,"🔥":0}
 };
 var MYID = "p" + Math.random().toString(36).slice(2,10);
+try {
+  var savedId = localStorage.getItem("knz_pid");
+  if(savedId) MYID = savedId;
+  else localStorage.setItem("knz_pid", MYID);
+} catch(e){}
 var db = null;
 
 var OBJ_TYPES = [
@@ -337,7 +357,14 @@ var POWER_ORBS = [
   {e:"💠", v:3,  w:24, cls:"power"},
   {e:"⭐", v:5,  w:11, cls:"rare"},
   {e:"☠️", v:-4, w:16, cls:"bad"},
-  {e:"🛡️", v:0,  w:7,  cls:"shield", shield:true}
+  {e:"🛡️", v:0,  w:7,  cls:"shield", shield:true},
+  /* 🌀 هالات تلتقطها وتدور حول صورتك */
+  {e:"🔥", v:0, w:3, cls:"aura", aura:true},
+  {e:"🌹", v:0, w:3, cls:"aura", aura:true},
+  {e:"🌸", v:0, w:3, cls:"aura", aura:true},
+  {e:"☁️", v:0, w:3, cls:"aura", aura:true},
+  {e:"🔪", v:0, w:3, cls:"aura", aura:true},
+  {e:"💜", v:0, w:3, cls:"aura", aura:true}
 ];
 var BOT_DEFS = [
   {name:"صقر",   emoji:"🦅", skill:.85},
@@ -453,8 +480,7 @@ $("btnCreateRoom").onclick = function(){
     status:"waiting", round:0, endsAt:0,
     created:firebase.database.ServerValue.TIMESTAMP
   });
-  ref.onDisconnect().remove(); /* لو طلع الأدمن تنحذف الغرفة */
-  db.ref("rooms/"+rid).onDisconnect().remove();
+  /* الغرفة تبقى حتى لو نزّل الأدمن الصفحة أو انقطع النت — تنحذف فقط بزر الحذف */
   enterWaiting(rid, true);
 };
 
@@ -497,11 +523,10 @@ function enterWaiting(rid, asAdmin){
   var lref = db.ref("lobby/"+rid);
   waitRef = lref;
 
-  /* انضم كعضو */
+  /* انضم كعضو — يبقى حتى مع تنزيل الصفحة أو انقطاع النت */
   var mRef = lref.child("members/"+MYID);
   mRef.set({name:myName(), img:avatarData||null, emoji:avatarData?null:chosenEmoji,
     joined:firebase.database.ServerValue.TIMESTAMP});
-  mRef.onDisconnect().remove();
 
   showScreen("screenWaiting");
   $("waitAdminBox").style.display = asAdmin ? "flex" : "none";
@@ -516,6 +541,11 @@ function enterWaiting(rid, asAdmin){
       showScreen("screenHome");
       return;
     }
+    /* لو رجع الأدمن للغرفة من الرئيسية يتعرف عليه بمعرّفه */
+    var iAmAdmin = (r.adminId === MYID);
+    G.isAdmin = G.isAdmin || iAmAdmin;
+    $("waitAdminBox").style.display = iAmAdmin ? "flex" : "none";
+    $("waitMemberBox").style.display = iAmAdmin ? "none" : "flex";
     lastRound = lastRound || r.round || 0;
     $("waitRoomName").textContent = (r.mode==="power"?"🦈 ":"⚡ ") + (r.name||"الغرفة");
     $("waitRoomInfo").textContent = (r.mode==="power"?"القوي يأكل الضعيف":"الالتقاط السريع")
@@ -591,6 +621,7 @@ function startGame(online, endsAt, adminId){
   if(!G.online){ G.WW = Math.max(G.WW, W); G.WH = Math.max(G.WH, H); }
   world.style.width = G.WW+"px"; world.style.height = G.WH+"px";
   world.className = G.mode==="power" ? "powerWorld" : "";
+  if(G.mode==="power") buildDecor();
   $("minimap").style.display = G.mode==="power" ? "block" : "none";
   $("lbTitle").textContent = G.mode==="power" ? "🦈 الأقوياء الآن" : "🏆 الصدارة المباشرة";
 
@@ -626,8 +657,8 @@ function startGame(online, endsAt, adminId){
   }
 }
 function orbTarget(){
-  /* عدد الكرات يتناسب مع مساحة الساحة */
-  return Math.max(34, Math.round((G.WW*G.WH)/500000));
+  /* كثافة أعلى: عدد الكرات يتناسب مع مساحة الساحة */
+  return Math.max(60, Math.round((G.WW*G.WH)/260000));
 }
 function startSpawners(){
   if(G.mode==="catch"){
@@ -641,6 +672,55 @@ function startSpawners(){
       if(G.running && G.isHost && Object.keys(G.objects).length < orbTarget()) spawnOrb();
     }, 700);
   }
+}
+
+/* 🗺️ معالم موزعة بشكل ثابت (نفسها عند كل اللاعبين بالغرفة) */
+function seededRand(str){
+  var h = 2166136261;
+  for(var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  var seed = h>>>0;
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed>>>15, 1 | seed);
+    t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t;
+    return ((t ^ t>>>14)>>>0) / 4294967296;
+  };
+}
+var DECOR = ["🌴","🪨","⛰️","🌵","🌲","🗿","🍄","🌾","🏜️","🪵"];
+var DECOR_BIG = ["🏰","🗼","⛺","🛖","🎡","⚓"];
+function buildDecor(){
+  var rnd = seededRand((G.roomId||"local")+"_"+(G.round||0));
+  var count = Math.round((G.WW*G.WH)/600000);
+  for(var i=0;i<count;i++){
+    var d = document.createElement("div");
+    d.className = "decor";
+    d.textContent = DECOR[Math.floor(rnd()*DECOR.length)];
+    d.style.transform = "translate("+Math.round(60+rnd()*(G.WW-120))+"px,"+Math.round(60+rnd()*(G.WH-120))+"px)";
+    world.appendChild(d);
+  }
+  /* معالم كبيرة مميزة تساعدك تحدد مكانك */
+  for(var j=0;j<8;j++){
+    var b = document.createElement("div");
+    b.className = "decor big";
+    b.textContent = DECOR_BIG[j % DECOR_BIG.length];
+    b.style.transform = "translate("+Math.round(200+rnd()*(G.WW-400))+"px,"+Math.round(200+rnd()*(G.WH-400))+"px)";
+    world.appendChild(b);
+  }
+}
+/* 🌀 تركيب الهالة الدوارة حول اللاعب */
+function setAura(p, emoji){
+  if(!emoji || p.aura === emoji) return;
+  p.aura = emoji;
+  var old = p.el.querySelector(".aura");
+  if(old) old.remove();
+  var a = document.createElement("div");
+  a.className = "aura";
+  var html = "";
+  [0,90,180,270].forEach(function(deg){
+    html += '<span style="--a:'+deg+'deg">'+emoji+'</span>';
+  });
+  a.innerHTML = html;
+  p.el.insertBefore(a, p.el.firstChild);
 }
 
 function mkPlayer(id, name, imgData, emoji, x, y, isMe){
@@ -846,6 +926,15 @@ function loop(now){
 /* ============ طور القوة ============ */
 function collectOrb(p,o,now){
   removeObj(o.id);
+  if(o.type.aura){
+    setAura(p, o.type.e);
+    if(p.me){
+      floatScore(o.x,o.y,o.type.e+" هالة جديدة!");
+      if(G.online && G.net) G.net.aura(o.type.e);
+    }
+    burst(o.x,o.y,"#F0339B",12);
+    return;
+  }
   if(o.type.shield){
     var dur = 5000 + Math.random()*5000; /* 5-10 ثوانٍ */
     p.shieldUntil = now + dur;
@@ -1017,7 +1106,7 @@ function botThinkPower(p, now){
   var best=null, bd=1e9;
   Object.keys(G.objects).forEach(function(id){
     var o = G.objects[id]; if(!o||o.type.v<0) return;
-    var val = o.type.shield ? 4 : o.type.v;
+    var val = o.type.shield ? 4 : (o.type.aura ? 1 : o.type.v);
     var d = Math.hypot(p.x-o.x,p.y-o.y)/val;
     if(d<bd){bd=d;best=o;}
   });
@@ -1265,23 +1354,24 @@ function netJoin(){
 
   pRef.set({name:G.me.name, img:G.me.img||null, emoji:G.me.emoji||null,
     x:Math.round(G.me.x), y:Math.round(G.me.y),
-    score:0, power:10, kills:0, dead:false, sh:0,
+    score:0, power:10, kills:0, dead:false, sh:0, au:null,
+    beat:firebase.database.ServerValue.TIMESTAMP,
     joined:firebase.database.ServerValue.TIMESTAMP});
-  pRef.onDisconnect().remove();
+  /* لا حذف تلقائي عند الانقطاع — اللاعب يبقى بالساحة حتى لو نزّل الصفحة */
 
   base.child("players").on("value", function(snap){
     if(!G.running) return; /* 🔧 لا نعدل القوائم بعد نهاية الجولة */
     var all = snap.val()||{};
 
-    /* المضيف الاحتياطي إذا خرج الأدمن: أقدم لاعب */
-    if(!all[MYID]){ /* لم تُكتب بياناتي بعد */ }
-    var adminIn = false;
-    Object.keys(all).forEach(function(k){ if(k!==MYID && G.players[k] && G.players[k].isAdminP) adminIn=true; });
+    /* انتخاب مولّد الأجسام: أقدم لاعب "نشِط" (نبضه حديث نسبةً لأحدث نبض) */
+    var maxBeat = 0;
+    Object.keys(all).forEach(function(k){ if(all[k].beat>maxBeat) maxBeat = all[k].beat; });
     var oldest=null, oldT=1e15;
     Object.keys(all).forEach(function(k){
-      if(all[k].joined && all[k].joined < oldT){ oldT=all[k].joined; oldest=k; }
+      var fresh = all[k].beat && (maxBeat - all[k].beat) < 9000;
+      if(fresh && all[k].joined && all[k].joined < oldT){ oldT=all[k].joined; oldest=k; }
     });
-    if(!G.isHost && oldest===MYID){ G.isHost = true; }
+    G.isHost = (oldest === MYID);
 
     Object.keys(all).forEach(function(k){
       if(k===MYID) return;
@@ -1293,6 +1383,7 @@ function netJoin(){
       p.tx = d.x; p.ty = d.y;
       p.score = d.score||0; p.power = d.power||10; p.kills = d.kills||0;
       if(G.mode==="power") p.el.querySelector(".ppow").textContent = p.power;
+      if(d.au) setAura(p, d.au);
       if(d.sh && d.sh > Date.now()){
         p.shieldUntil = performance.now() + (d.sh - Date.now());
       }
@@ -1302,6 +1393,7 @@ function netJoin(){
         else if(d.kById===MYID) killFeed(G.me, p);
       }
     });
+    /* حذف من القائمة فقط عند الخروج الصريح (حذف العقدة)، ما فيه حذف تلقائي */
     Object.keys(G.players).forEach(function(k){
       if(k!==MYID && !all[k] && !G.players[k].bot){
         G.players[k].el.remove(); delete G.players[k];
@@ -1339,6 +1431,11 @@ function netJoin(){
     if(!G.running || G.me.dead) return;
     pRef.update({x:Math.round(G.me.x), y:Math.round(G.me.y)});
   }, 85);
+  /* نبض حيّ كل 3 ثوانٍ لانتخاب المولّد */
+  var beatInt = setInterval(function(){
+    if(!G.running) return;
+    pRef.update({beat: firebase.database.ServerValue.TIMESTAMP});
+  }, 3000);
 
   G.net = {
     pushObj: function(id, data){ oRef.child(id).set(data); },
@@ -1347,6 +1444,7 @@ function netJoin(){
       pRef.update({score:G.me.score, power:G.me.power, kills:G.me.kills});
     },
     shield: function(dur){ pRef.update({sh: Date.now()+dur}); },
+    aura: function(e){ pRef.update({au: e}); },
     killRemote: function(vid){
       base.child("players/"+vid).update({dead:true, kById:MYID});
     },
@@ -1354,10 +1452,9 @@ function netJoin(){
       meta.child("freeze").set({by:MYID, until:Date.now()+dur});
     },
     leave: function(){
-      clearInterval(syncInt);
+      clearInterval(syncInt); clearInterval(beatInt);
       base.child("players").off(); oRef.off(); meta.off();
       pRef.child("dead").off();
-      pRef.remove();
       G.net = null;
     }
   };
