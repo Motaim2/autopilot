@@ -408,6 +408,27 @@
     </div>
     <div class="note" id="fkq_note" style="margin-top:6px"></div>
   </div>
+  <div class="stage stg-agency">
+    <h2>&#10134; حاسبة الفرق × 1950</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <div>
+        <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">الرقم (يمين) — ينقص</label>
+        <input id="fk2_a" type="number" inputmode="numeric" placeholder="0">
+        <div class="c" style="background:rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center;margin-top:6px">
+          <div class="l" style="font-size:9.5px;color:var(--muted)">الناتج (يسار − يمين)</div>
+          <div class="v v-amber" id="fk2_diff" style="font-size:15px">0</div>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">الرقم (يسار)</label>
+        <input id="fk2_b" type="number" inputmode="numeric" placeholder="0">
+        <div class="c" style="background:rgba(255,255,255,.07);border-radius:10px;padding:8px;text-align:center;margin-top:6px">
+          <div class="l" style="font-size:9.5px;color:var(--muted)">الناتج × 1950 كونز</div>
+          <div class="v n-blue" id="fk2_konz" style="font-size:15px">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
     <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
     <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
@@ -2229,13 +2250,20 @@ function render(){
     $("fkq_rest").textContent=fmt(qRest);
     $("fkq_note").textContent=qAmt>0?("كل حساب: نرمي "+fmt(qThr)+" والفك يكمّله "+fmt(qFak)+" \u2190 يوصل "+fmt(qLock)+(qRest>0?" \u00B7 الباقي "+fmt(qRest)+" نرميه على حساب وناقصه "+fmt(qThr-qRest)+" ليقفل":"")):"";
   }
+  if($("fk2_diff")){
+    var f2a=num("fk2_a"), f2b=num("fk2_b");
+    var f2d=f2b-f2a;
+    $("fk2_diff").textContent=fmt(f2d);
+    $("fk2_diff").style.color=f2d<0?"#FF8A80":"#FFC96B";
+    $("fk2_konz").textContent=fmt(Math.round(f2d*c.rateBuy));
+  }
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
