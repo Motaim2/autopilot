@@ -1407,7 +1407,7 @@ function renderPlan(){
     var roomKz2=c.perRoom*c.thr;
     var srm=B.rooms[B.selRoom];
     var info='<b style="color:'+selMeta.col+'">'+selMeta.n+'</b>: '+(nx2?('للصندوق الجاي ناقصه <b style="color:#FFC96B">'+fmt(Math.ceil((nx2.usd-sa.fed)*c.rateApp))+'</b> كونز (= $'+fmt(Math.ceil(nx2.usd-sa.fed))+' من الوكيل \u2248 $'+fmt(Math.ceil((nx2.usd-sa.fed)*c.rateApp/c.rateBuy))+' شراء)'):'كل صناديقه \u2713');
-    info+='<br><b style="color:#BBAEFF">روم '+brdRoomName(B.selRoom)+'</b>: '+(srm.done?'مكتمل \u2713':('ناقصه <b style="color:#FF8A80">'+fmt(roomKz2-srm.fill)+'</b> كونز'));
+    info+='<br><b style="color:#BBAEFF">روم '+brdRoomName(B.selRoom)+'</b>: '+(srm.done?'مكتمل \u2713':('ناقصه <b style="color:#FF8A80">'+fmt(roomKz2-srm.fill)+'</b> كونز (\u2248 <b style="color:#FFC96B">$'+fmt(Math.ceil((roomKz2-srm.fill)/c.rateBuy))+'</b> شراء \u00D71950)'));
     $("bv_selinfo").innerHTML=info;
   }
   $("bv_wak").textContent=fmt(B.wak);
