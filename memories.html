@@ -234,9 +234,26 @@ header{text-align:center;padding:42px 20px 16px;position:relative;z-index:2}
 .photo-box video{width:100%;height:100%;object-fit:cover;display:block}
 .photo-hint{color:#a08a7d;font-size:.8rem;text-align:center;padding:12px}
 .mem-tools{
-  display:flex;justify-content:space-between;align-items:center;
+  display:none;
+  justify-content:space-between;align-items:center;
   margin-top:8px;gap:6px;
+  animation:toolsIn .25s ease;
 }
+.mem-card.tools-open .mem-tools{display:flex}
+@keyframes toolsIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+/* زر إظهار الأدوات: خط عريض بالنص تحت */
+.toggle-wrap{
+  display:flex;justify-content:center;
+  padding:9px 0 1px;cursor:pointer;
+}
+.tools-toggle{
+  width:46px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,var(--rose),var(--gold));
+  box-shadow:0 1px 4px rgba(169,59,91,.35);
+  transition:width .25s ease, opacity .2s;
+}
+.toggle-wrap:active .tools-toggle{opacity:.7}
+.mem-card.tools-open .tools-toggle{width:70px}
 .font-select{
   font-family:'Tajawal',sans-serif;
   font-size:.72rem;border:1px solid rgba(58,36,48,.2);
@@ -624,6 +641,13 @@ function pickColor(el, idx){
 function togglePalette(btn){
   btn.closest('.mem-card').querySelector('.palette').classList.toggle('show');
 }
+function toggleTools(el){
+  var card = el.closest('.mem-card');
+  card.classList.toggle('tools-open');
+  if(!card.classList.contains('tools-open')){
+    card.querySelector('.palette').classList.remove('show');
+  }
+}
 
 function fontCss(id){
   for(var i = 0; i < FONTS.length; i++){
@@ -659,6 +683,7 @@ function buildCard(id, data, index){
     '<div class="mem-by"></div>' +
     '<div class="mem-text" contenteditable="true" spellcheck="false"></div>' +
     '<div class="photo-box"><div class="photo-hint">اضغط لإضافة صورة أو فيديو 📷🎬</div></div>' +
+    '<div class="toggle-wrap" onclick="toggleTools(this)"><div class="tools-toggle"></div></div>' +
     '<div class="mem-tools">' +
       '<select class="font-select" onchange="changeFont(this)">' + opts + '</select>' +
       '<select class="font-select decor-select" onchange="changeDecor(this)">' + dopts + '</select>' +
