@@ -89,7 +89,7 @@ body{
 /* المقاعد */
 .seats{
   display:flex;justify-content:center;gap:64px;
-  margin:8px 0 30px;
+  margin:70px 0 26px;
 }
 .seat{
   display:flex;flex-direction:column;align-items:center;gap:10px;
@@ -153,7 +153,7 @@ body{
 .shadowBar{
   display:flex;gap:8px;align-items:center;flex-wrap:wrap;
   padding:10px 12px;background:var(--panel);
-  border-bottom:1px solid var(--line);
+  border-top:1px solid var(--line);
 }
 .shadowBar .lbl{font-size:14px;font-weight:800;color:var(--gold);white-space:nowrap}
 #shadowUrl{
@@ -222,7 +222,7 @@ body.landscape .shadowWrap{
 }
 body.landscape .shadowBar{display:none}
 body.landscape .shadowBar.open{
-  display:flex;position:absolute;top:0;left:0;right:0;z-index:7;
+  display:flex;position:absolute;bottom:0;left:0;right:0;z-index:7;
   background:rgba(17,17,20,.94);
 }
 #barToggle{
@@ -231,6 +231,48 @@ body.landscape .shadowBar.open{
   background:rgba(0,0,0,.6);color:var(--gold);font-size:17px;cursor:pointer;
 }
 body.landscape #barToggle{display:block}
+
+/* فقاعة الكلام فوق المايك */
+.seat{position:relative}
+.bubble{
+  display:none;position:absolute;bottom:calc(100% + 12px);left:50%;
+  transform:translateX(-50%);z-index:12;
+  background:var(--panel2);border:1.5px solid var(--gold-soft);
+  border-radius:14px;padding:9px 30px 9px 14px;
+  font-size:13.5px;line-height:1.5;color:var(--text);
+  width:max-content;max-width:190px;word-wrap:break-word;white-space:normal;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  animation:bubblePop .18s ease;
+}
+.bubble.show{display:block}
+.bubble::after{
+  content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:8px solid transparent;border-top-color:var(--gold-soft);
+}
+.bubbleClose{
+  position:absolute;top:4px;right:6px;
+  width:20px;height:20px;border-radius:50%;border:none;
+  background:transparent;color:var(--dim);font-size:15px;cursor:pointer;
+  line-height:1;padding:0;
+}
+.bubbleClose:hover{color:var(--danger)}
+@keyframes bubblePop{from{transform:translateX(-50%) scale(.7);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+
+/* خانة الكتابة تحت المايكات */
+.chatRow{
+  display:flex;gap:8px;max-width:440px;width:100%;margin:0 auto 20px;
+}
+#chatInput{
+  flex:1;padding:12px 14px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);font-family:inherit;font-size:14px;outline:none;
+  transition:border-color .2s;
+}
+#chatInput:focus{border-color:var(--gold-soft)}
+#chatSend{
+  padding:12px 20px;border-radius:12px;border:none;cursor:pointer;
+  background:var(--gold);color:#111;font-family:inherit;font-weight:800;font-size:14px;
+}
 
 /* توست */
 #toast{
@@ -274,6 +316,7 @@ body.landscape #barToggle{display:block}
 
   <div class="seats">
     <div class="seat empty" id="seat1" data-seat="1">
+      <div class="bubble"><button class="bubbleClose">×</button><span class="bubbleTxt"></span></div>
       <div class="seatCircle">
         <div class="inner"><span class="micIcon">🎙️</span><img alt=""></div>
         <div class="muteBadge">🔇</div>
@@ -281,12 +324,18 @@ body.landscape #barToggle{display:block}
       <div class="seatName">مقعد فاضي</div>
     </div>
     <div class="seat empty" id="seat2" data-seat="2">
+      <div class="bubble"><button class="bubbleClose">×</button><span class="bubbleTxt"></span></div>
       <div class="seatCircle">
         <div class="inner"><span class="micIcon">🎙️</span><img alt=""></div>
         <div class="muteBadge">🔇</div>
       </div>
       <div class="seatName">مقعد فاضي</div>
     </div>
+  </div>
+
+  <div class="chatRow">
+    <input type="text" id="chatInput" placeholder="اكتب رسالة تطلع فوق مايكك..." maxlength="120">
+    <button id="chatSend">إرسال</button>
   </div>
 
   <div class="controls">
@@ -297,9 +346,27 @@ body.landscape #barToggle{display:block}
 
   <div class="shadowWrap" id="shadowWrap">
     <button id="barToggle">⚙️</button>
+    <div class="screenView">
+      <div class="sharedBy" id="sharedBy"></div>
+      <div class="shadowEmpty" id="shadowEmpty">
+        <div class="big">🖥️</div>
+        <div>حط رابط أو ارفع ملف/صورة — يشوفها الطرفين مباشرة<br>لف الجوال بالعرض والشاشة تكبر لحالها</div>
+      </div>
+      <iframe id="shadowFrame" allow="microphone; camera; gamepad; fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      <video id="screenLive" autoplay playsinline style="display:none;width:100%;height:100%;object-fit:contain;background:#000"></video>
+      <img id="screenImg" alt="">
+      <video id="screenVideo" controls playsinline></video>
+      <audio id="screenAudio" controls></audio>
+      <div class="fileCard" id="fileCard">
+        <div style="font-size:36px">📄</div>
+        <div class="fname" id="fileName"></div>
+        <a id="fileDl" download>تحميل الملف</a>
+      </div>
+      <button id="fsBtn">⛶</button>
+    </div>
     <div class="shadowBar" id="shadowBar">
       <span class="lbl">الشاشة</span>
-      <input id="shadowUrl" placeholder="حط رابط هنا https://..." value="https://shadow.tech">
+      <input id="shadowUrl" placeholder="رابط يوتيوب / تيكتوك / انستا / بنترست...">
       <button id="loadShadow">فتح للطرفين</button>
       <button id="openShadow">نافذة</button>
       <button id="uploadBtn">📎 ملف</button>
@@ -311,24 +378,6 @@ body.landscape #barToggle{display:block}
         <input type="range" id="volSlider" min="0" max="100" value="100">
         <span id="volVal">100%</span>
       </div>
-    </div>
-    <div class="screenView">
-      <div class="sharedBy" id="sharedBy"></div>
-      <div class="shadowEmpty" id="shadowEmpty">
-        <div class="big">🖥️</div>
-        <div>حط رابط أو ارفع ملف/صورة — يشوفها الطرفين مباشرة<br>لف الجوال بالعرض والشاشة تكبر لحالها</div>
-      </div>
-      <iframe id="shadowFrame" allow="microphone; camera; gamepad; fullscreen; autoplay; clipboard-read; clipboard-write" allowfullscreen></iframe>
-      <video id="screenLive" autoplay playsinline style="display:none;width:100%;height:100%;object-fit:contain;background:#000"></video>
-      <img id="screenImg" alt="">
-      <video id="screenVideo" controls playsinline></video>
-      <audio id="screenAudio" controls></audio>
-      <div class="fileCard" id="fileCard">
-        <div style="font-size:36px">📄</div>
-        <div class="fname" id="fileName"></div>
-        <a id="fileDl" download>تحميل الملف</a>
-      </div>
-      <button id="fsBtn">⛶</button>
     </div>
   </div>
 </div>
@@ -382,6 +431,7 @@ let trx = {};                       // قنوات البث الثابتة
 let liveStream = new MediaStream(); // شاشة الطرف الثاني
 let castStream = null;              // بثي أنا
 let currentContent = null;
+let lastAppliedOffer = null;
 
 const $ = s => document.querySelector(s);
 const toast = msg => {
@@ -447,6 +497,7 @@ function enterRoom(){
   $("#meName").textContent = me.name;
   listenSeats();
   listenScreen();
+  listenBubbles();
 }
 
 function seatRef(n){ return db.ref(`${ROOM}/seats/${n}`); }
@@ -517,6 +568,7 @@ async function joinSeat(n){
   const ref = seatRef(n);
   ref.set({ id: myId, name: me.name, photo: me.photo, muted:false });
   ref.onDisconnect().remove();
+  bubbleRef(n).onDisconnect().remove();
   rtcRef().onDisconnect().remove();
   startLocalAnalyser();
   toast("تم فتح المايك 🎤");
@@ -524,6 +576,7 @@ async function joinSeat(n){
 
 function leaveSeat(showMsg = true){
   if(!mySeat) return;
+  bubbleRef(mySeat).remove();
   seatRef(mySeat).remove();
   seatRef(mySeat).onDisconnect().cancel();
   mySeat = 0;
@@ -566,7 +619,7 @@ function handlePeering(){
 /* رفع جودة Opus: بت ريت عالي + تصحيح فقدان الحزم + بدون DTX */
 function boostAudioSDP(sdp){
   return sdp.replace(/a=fmtp:(\d+) (.*minptime.*)/g,
-    "a=fmtp:$1 $2;maxaveragebitrate=192000;maxplaybackrate=48000;stereo=1;sprop-stereo=1;useinbandfec=1;usedtx=0;cbr=1");
+    "a=fmtp:$1 $2;maxaveragebitrate=128000;useinbandfec=1;usedtx=0");
 }
 
 function setupPC(){
@@ -591,7 +644,7 @@ function setupPC(){
       try{
         const p = sender.getParameters();
         p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
-        p.encodings[0].maxBitrate = 192000;
+        p.encodings[0].maxBitrate = 128000;
         p.encodings[0].priority = "high";
         p.encodings[0].networkPriority = "high";
         sender.setParameters(p);
@@ -616,13 +669,28 @@ function setupPC(){
   pc.onicecandidate = e => {
     if(e.candidate) rtcRef().child("cand"+mySeat).push(JSON.stringify(e.candidate));
   };
+  let discTimer = null;
   pc.onconnectionstatechange = () => {
-    if(pc && pc.connectionState === "connected") toast("✅ الصوت متصل");
-    if(pc && ["failed","disconnected"].includes(pc.connectionState)){
-      teardownPC();
-      handlePeering(); // إعادة محاولة
+    if(!pc) return;
+    if(pc.connectionState === "connected"){
+      clearTimeout(discTimer);
+      toast("✅ الصوت متصل");
     }
+    if(pc.connectionState === "disconnected"){
+      // انقطاع مؤقت غالباً يرجع لحاله — ننتظر 4 ثواني قبل أي شي
+      clearTimeout(discTimer);
+      discTimer = setTimeout(() => {
+        if(pc && pc.connectionState !== "connected") rebuildConnection();
+      }, 4000);
+    }
+    if(pc.connectionState === "failed") rebuildConnection();
   };
+
+  function rebuildConnection(){
+    teardownPC();
+    toast("🔄 إعادة الاتصال...");
+    setTimeout(handlePeering, 500);
+  }
   // استقبال مرشحات الطرف الثاني
   const cRef = rtcRef().child("cand"+otherSeat());
   const h = cRef.on("child_added", s => {
@@ -634,13 +702,20 @@ function setupPC(){
     const oRef = rtcRef().child("offer");
     const oh = oRef.on("value", async s => {
       const v = s.val();
-      if(v && pc && !pc.currentRemoteDescription){
-        await pc.setRemoteDescription(JSON.parse(v));
-        const ans = await pc.createAnswer();
-        ans.sdp = boostAudioSDP(ans.sdp);
-        await pc.setLocalDescription(ans);
-        rtcRef().child("answer").set(JSON.stringify(pc.localDescription));
+      if(!v || !pc) return;
+      if(v === lastAppliedOffer) return; // نفس العرض القديم — نتجاهله
+      if(pc.currentRemoteDescription){
+        // عرض جديد بعد انقطاع → نبني اتصال نظيف
+        teardownPC();
+        setTimeout(handlePeering, 300);
+        return;
       }
+      lastAppliedOffer = v;
+      await pc.setRemoteDescription(JSON.parse(v));
+      const ans = await pc.createAnswer();
+      ans.sdp = boostAudioSDP(ans.sdp);
+      await pc.setLocalDescription(ans);
+      rtcRef().child("answer").set(JSON.stringify(pc.localDescription));
     });
     candListeners.push([oRef, oh]);
   }else{
@@ -711,6 +786,44 @@ function stopAnalyser(){
   localAn = null; remoteAn = null;
   [1,2].forEach(n => $("#seat"+n).classList.remove("speaking"));
 }
+
+/* ---------- فقاعات الكلام ---------- */
+function bubbleRef(n){ return db.ref(`${ROOM}/bubbles/${n}`); }
+
+function listenBubbles(){
+  [1,2].forEach(n => {
+    bubbleRef(n).on("value", s => {
+      const v = s.val();
+      const b = $("#seat"+n+" .bubble");
+      if(v && v.text){
+        b.querySelector(".bubbleTxt").textContent = v.text;
+        b.classList.remove("show"); void b.offsetWidth; // إعادة تشغيل الأنيميشن
+        b.classList.add("show");
+      }else{
+        b.classList.remove("show");
+      }
+    });
+  });
+}
+
+function sendBubble(){
+  const txt = $("#chatInput").value.trim();
+  if(!txt) return;
+  if(!mySeat){ toast("اجلس على مقعد أول عشان تطلع فقاعتك"); return; }
+  bubbleRef(mySeat).set({ text: txt, ts: Date.now() });
+  $("#chatInput").value = "";
+}
+$("#chatSend").onclick = sendBubble;
+$("#chatInput").addEventListener("keydown", e => { if(e.key === "Enter") sendBubble(); });
+
+// أي طرف يقدر يقفل أي فقاعة
+document.querySelectorAll(".bubbleClose").forEach(btn => {
+  btn.onclick = e => {
+    e.stopPropagation();
+    const seatEl = btn.closest(".seat");
+    if(db) bubbleRef(seatEl.dataset.seat).remove();
+  };
+});
 
 /* ---------- الشاشة المشتركة ---------- */
 function screenRef(){ return db.ref(`${ROOM}/screen`); }
@@ -785,16 +898,54 @@ function shareContent(obj){
   screenRef().child("content").set({ ...obj, by: me.name, ts: Date.now() });
 }
 
+/* تحويل روابط المنصات لصيغة قابلة للعرض داخل الشاشة */
+function toEmbed(u){
+  try{
+    const url = new URL(u);
+    const h = url.hostname.replace(/^www\.|^m\./,"");
+    // يوتيوب
+    if(h === "youtube.com" || h === "youtube-nocookie.com"){
+      if(url.pathname.startsWith("/watch") && url.searchParams.get("v"))
+        return "https://www.youtube.com/embed/" + url.searchParams.get("v") + "?playsinline=1";
+      if(url.pathname.startsWith("/shorts/"))
+        return "https://www.youtube.com/embed/" + url.pathname.split("/")[2] + "?playsinline=1";
+      if(url.pathname.startsWith("/embed/")) return u;
+    }
+    if(h === "youtu.be")
+      return "https://www.youtube.com/embed/" + url.pathname.slice(1).split("/")[0] + "?playsinline=1";
+    // تيكتوك
+    if(h === "tiktok.com"){
+      const m = url.pathname.match(/\/video\/(\d+)/);
+      if(m) return "https://www.tiktok.com/embed/v2/" + m[1];
+    }
+    // انستقرام
+    if(h === "instagram.com"){
+      const m = url.pathname.match(/\/(p|reel|reels)\/([A-Za-z0-9_-]+)/);
+      if(m) return "https://www.instagram.com/p/" + m[2] + "/embed/";
+    }
+    // بنترست
+    if(h.endsWith("pinterest.com")){
+      const m = url.pathname.match(/\/pin\/(\d+)/);
+      if(m) return "https://assets.pinterest.com/ext/embed.html?id=" + m[1];
+    }
+  }catch(e){}
+  return u; // أي رابط ثاني يمر كما هو
+}
+
 /* روابط */
 $("#loadShadow").onclick = () => {
   let u = $("#shadowUrl").value.trim();
   if(!u) return;
   if(!/^https?:\/\//i.test(u)) u = "https://" + u;
   localStorage.setItem("vr_shadow", u);
-  shareContent({ kind:"url", src:u });
+  const emb = toEmbed(u);
+  if(/pin\.it\//.test(u)){
+    toast("⚠️ روابط pin.it المختصرة ما تنعرض — افتح البن وانسخ الرابط الكامل pinterest.com/pin/...");
+  }
+  shareContent({ kind:"url", src:emb });
   setTimeout(()=>{
     const f = $("#shadowFrame");
-    if(f.style.display === "block")
+    if(f.style.display === "block" && emb === u)
       toast("إذا الشاشة بيضاء، الموقع يمنع التضمين — افتحه بزر نافذة");
   }, 4000);
 };
