@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>غرفة الصوت</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070709;
+  --panel:#111114;
+  --panel2:#17171b;
+  --line:#26262c;
+  --gold:#f2d21f;
+  --gold-soft:#c9ad35;
+  --text:#f4f2ea;
+  --dim:#8b8b93;
+  --danger:#ff5d5d;
+  --ok:#39d98a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Tajawal',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ---------- شاشة الدخول ---------- */
+#loginScreen{
+  position:fixed;inset:0;z-index:50;
+  background:radial-gradient(120% 90% at 50% 0%, #14140f 0%, var(--bg) 55%);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.loginCard{
+  width:100%;max-width:380px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:34px 28px;
+  text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.loginCard h1{
+  font-size:26px;font-weight:800;letter-spacing:.5px;
+  color:var(--gold);margin-bottom:6px;
+}
+.loginCard p{color:var(--dim);font-size:14px;margin-bottom:26px}
+#avatarPick{
+  width:110px;height:110px;border-radius:50%;
+  margin:0 auto 20px;cursor:pointer;position:relative;
+  border:2px dashed var(--gold-soft);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:var(--panel2);
+  transition:border-color .2s;
+}
+#avatarPick:hover{border-color:var(--gold)}
+#avatarPick img{width:100%;height:100%;object-fit:cover;display:none}
+#avatarPick span{color:var(--dim);font-size:13px;padding:0 10px}
+#nameInput{
+  width:100%;padding:14px 16px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);font-family:inherit;font-size:16px;text-align:center;
+  outline:none;margin-bottom:18px;transition:border-color .2s;
+}
+#nameInput:focus{border-color:var(--gold-soft)}
+#enterBtn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:var(--gold);color:#111;font-family:inherit;
+  font-size:17px;font-weight:800;cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+}
+#enterBtn:active{transform:scale(.97)}
+#enterBtn:disabled{opacity:.4;cursor:default}
+
+/* ---------- الغرفة ---------- */
+#room{display:none;min-height:100dvh;flex-direction:column;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+#room.show{display:flex}
+
+.roomHead{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:22px;
+}
+.roomHead .title{font-size:18px;font-weight:800;color:var(--gold)}
+.roomHead .me{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}
+.roomHead .me img{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+
+/* المقاعد */
+.seats{
+  display:flex;justify-content:center;gap:64px;
+  margin:8px 0 30px;
+}
+.seat{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:pointer;user-select:none;
+}
+.seatCircle{
+  width:104px;height:104px;border-radius:50%;
+  border:2.5px solid var(--gold);
+  background:var(--panel2);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:visible;
+  transition:box-shadow .18s, border-color .18s;
+}
+.seatCircle .inner{
+  width:100%;height:100%;border-radius:50%;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.seatCircle img{width:100%;height:100%;object-fit:cover;display:none}
+.seatCircle .micIcon{font-size:30px;opacity:.55}
+.seat.taken .micIcon{display:none}
+.seat.taken img{display:block}
+.seat.speaking .seatCircle{
+  box-shadow:0 0 0 5px rgba(242,210,31,.18), 0 0 26px rgba(242,210,31,.5);
+}
+.seat .muteBadge{
+  position:absolute;bottom:-2px;left:-2px;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--danger);color:#fff;
+  display:none;align-items:center;justify-content:center;font-size:14px;
+  border:2px solid var(--bg);
+}
+.seat.muted .muteBadge{display:flex}
+.seatName{font-size:14px;font-weight:700;color:var(--text);max-width:120px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat.empty .seatName{color:var(--dim);font-weight:500}
+
+/* أزرار التحكم */
+.controls{
+  display:flex;justify-content:center;gap:12px;margin-bottom:26px;min-height:48px;
+}
+.ctrlBtn{
+  padding:12px 22px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);color:var(--text);
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  display:none;align-items:center;gap:8px;
+  transition:background .15s, transform .1s;
+}
+.ctrlBtn:active{transform:scale(.96)}
+.ctrlBtn.show{display:inline-flex}
+#muteBtn.mutedState{background:var(--danger);border-color:var(--danger);color:#fff}
+#leaveBtn{border-color:rgba(255,93,93,.5);color:var(--danger)}
+.hint{text-align:center;color:var(--dim);font-size:13px;margin-bottom:20px}
+
+/* منطقة الشاشة المشتركة */
+.shadowWrap{
+  flex:1;display:flex;flex-direction:column;
+  border:2.5px solid var(--gold);
+  border-radius:18px;overflow:hidden;
+  background:#000;min-height:340px;
+  position:relative;
+}
+.shadowBar{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);
+}
+.shadowBar .lbl{font-size:14px;font-weight:800;color:var(--gold);white-space:nowrap}
+#shadowUrl{
+  flex:1;min-width:120px;padding:9px 12px;border-radius:9px;
+  border:1px solid var(--line);background:var(--panel2);
+  color:var(--text);font-family:inherit;font-size:13px;outline:none;
+  direction:ltr;text-align:left;
+}
+.shadowBar button{
+  padding:9px 13px;border-radius:9px;border:none;cursor:pointer;
+  font-family:inherit;font-weight:700;font-size:13px;white-space:nowrap;
+}
+#loadShadow{background:var(--gold);color:#111}
+#openShadow,#uploadBtn,#clearScreen{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+#clearScreen{color:var(--danger)}
+.volRow{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:0 2px;
+}
+.volRow span{font-size:15px}
+#volSlider{
+  flex:1;-webkit-appearance:none;appearance:none;height:5px;border-radius:99px;
+  background:var(--line);outline:none;
+}
+#volSlider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:var(--gold);cursor:pointer;
+}
+#volVal{font-size:12px;color:var(--dim);min-width:34px;text-align:center}
+.screenView{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#shadowFrame{width:100%;height:100%;border:none;background:#000;display:none}
+#screenImg{max-width:100%;max-height:100%;object-fit:contain;display:none}
+#screenVideo{width:100%;height:100%;object-fit:contain;background:#000;display:none}
+#screenAudio{width:92%;display:none}
+.fileCard{
+  display:none;flex-direction:column;align-items:center;gap:12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:26px 34px;max-width:85%;
+}
+.fileCard .fname{font-size:15px;font-weight:700;word-break:break-all;text-align:center}
+.fileCard a{
+  background:var(--gold);color:#111;text-decoration:none;font-weight:800;
+  padding:10px 24px;border-radius:10px;font-size:14px;
+}
+.shadowEmpty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--dim);font-size:14px;padding:20px;text-align:center;
+}
+.shadowEmpty .big{font-size:40px;opacity:.5}
+.sharedBy{
+  position:absolute;top:8px;right:8px;z-index:5;
+  background:rgba(0,0,0,.65);color:var(--gold);font-size:11px;
+  padding:4px 10px;border-radius:99px;display:none;
+}
+#fsBtn{
+  position:absolute;bottom:10px;left:10px;z-index:6;
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,.6);color:#fff;font-size:17px;cursor:pointer;
+}
+
+/* الوضع الأفقي: الشاشة تاخذ كامل الجهاز */
+body.landscape #room > :not(.shadowWrap){display:none !important}
+body.landscape #room{padding:0}
+body.landscape .shadowWrap{
+  position:fixed;inset:0;z-index:40;border:none;border-radius:0;min-height:100dvh;
+}
+body.landscape .shadowBar{display:none}
+body.landscape .shadowBar.open{
+  display:flex;position:absolute;top:0;left:0;right:0;z-index:7;
+  background:rgba(17,17,20,.94);
+}
+#barToggle{
+  display:none;position:absolute;top:10px;left:10px;z-index:8;
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,.6);color:var(--gold);font-size:17px;cursor:pointer;
+}
+body.landscape #barToggle{display:block}
+
+/* توست */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--panel);border:1px solid var(--line);color:var(--text);
+  padding:12px 20px;border-radius:12px;font-size:14px;z-index:99;
+  transition:transform .25s;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  max-width:90vw;text-align:center;
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+@media (max-width:420px){
+  .seats{gap:40px}
+  .seatCircle{width:92px;height:92px}
+}
+</style>
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="loginScreen">
+  <div class="loginCard">
+    <h1>غرفة الصوت</h1>
+    <p>سجّل دخولك بصورة واسم</p>
+    <div id="avatarPick">
+      <span>اضغط لاختيار صورة</span>
+      <img id="avatarPreview" alt="">
+    </div>
+    <input type="file" id="avatarFile" accept="image/*" hidden>
+    <input type="text" id="nameInput" placeholder="اكتب اسمك" maxlength="20">
+    <button id="enterBtn" disabled>دخول الغرفة</button>
+  </div>
+</div>
+
+<!-- الغرفة -->
+<div id="room">
+  <div class="roomHead">
+    <div class="title">غرفة الصوت</div>
+    <div class="me"><img id="meImg" alt=""><span id="meName"></span></div>
+  </div>
+
+  <div class="seats">
+    <div class="seat empty" id="seat1" data-seat="1">
+      <div class="seatCircle">
+        <div class="inner"><span class="micIcon">🎙️</span><img alt=""></div>
+        <div class="muteBadge">🔇</div>
+      </div>
+      <div class="seatName">مقعد فاضي</div>
+    </div>
+    <div class="seat empty" id="seat2" data-seat="2">
+      <div class="seatCircle">
+        <div class="inner"><span class="micIcon">🎙️</span><img alt=""></div>
+        <div class="muteBadge">🔇</div>
+      </div>
+      <div class="seatName">مقعد فاضي</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrlBtn" id="muteBtn">🎤 كتم</button>
+    <button class="ctrlBtn" id="leaveBtn">⬇️ نزول من المقعد</button>
+  </div>
+  <div class="hint" id="hintTxt">اضغط على مقعد فاضي عشان تفتح المايك</div>
+
+  <div class="shadowWrap" id="shadowWrap">
+    <button id="barToggle">⚙️</button>
+    <div class="shadowBar" id="shadowBar">
+      <span class="lbl">الشاشة</span>
+      <input id="shadowUrl" placeholder="حط رابط هنا https://..." value="https://shadow.tech">
+      <button id="loadShadow">فتح للطرفين</button>
+      <button id="openShadow">نافذة</button>
+      <button id="uploadBtn">📎 ملف</button>
+      <button id="castBtn">🖥️ بث شاشتي</button>
+      <button id="clearScreen">✖️ مسح</button>
+      <input type="file" id="screenFile" hidden>
+      <div class="volRow">
+        <span>🔊</span>
+        <input type="range" id="volSlider" min="0" max="100" value="100">
+        <span id="volVal">100%</span>
+      </div>
+    </div>
+    <div class="screenView">
+      <div class="sharedBy" id="sharedBy"></div>
+      <div class="shadowEmpty" id="shadowEmpty">
+        <div class="big">🖥️</div>
+        <div>حط رابط أو ارفع ملف/صورة — يشوفها الطرفين مباشرة<br>لف الجوال بالعرض والشاشة تكبر لحالها</div>
+      </div>
+      <iframe id="shadowFrame" allow="microphone; camera; gamepad; fullscreen; autoplay; clipboard-read; clipboard-write" allowfullscreen></iframe>
+      <video id="screenLive" autoplay playsinline style="display:none;width:100%;height:100%;object-fit:contain;background:#000"></video>
+      <img id="screenImg" alt="">
+      <video id="screenVideo" controls playsinline></video>
+      <audio id="screenAudio" controls></audio>
+      <div class="fileCard" id="fileCard">
+        <div style="font-size:36px">📄</div>
+        <div class="fname" id="fileName"></div>
+        <a id="fileDl" download>تحميل الملف</a>
+      </div>
+      <button id="fsBtn">⛶</button>
+    </div>
+  </div>
+</div>
+
+<audio id="remoteAudio" autoplay playsinline></audio>
+<div id="toast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ================================================================
+   ⚠️ حط إعدادات Firebase حقك هنا (نفس مشروعك السابق ينفع)
+   المهم: فعّل Realtime Database من لوحة Firebase
+   ================================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBMtpCtLjrlMveykmZwCx7mtmUQIlqfUKE",
+  authDomain: "motaim.firebaseapp.com",
+  databaseURL: "https://motaim-default-rtdb.firebaseio.com",
+  projectId: "motaim",
+  storageBucket: "motaim.firebasestorage.app",
+  messagingSenderId: "57026256362",
+  appId: "1:57026256362:web:83ec03f1e61372748ca693"
+};
+/* ================================================================ */
+
+let db = null;
+let dbError = "";
+if(typeof firebase === "undefined"){
+  dbError = "⚠️ ملفات Firebase محجوبة — افتح الصفحة من GitHub Pages مو من المعاينة";
+}else if(firebaseConfig.apiKey.includes("ضع")){
+  dbError = "⚠️ لازم تحط إعدادات Firebase داخل الملف أول";
+}else{
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  }catch(e){ dbError = "⚠️ إعدادات Firebase غير صحيحة"; console.error(e); }
+}
+
+const ROOM = "voiceRoom1";
+const myId = "u_" + Math.random().toString(36).slice(2,10);
+
+let me = { name:"", photo:"" };
+let mySeat = 0;              // 0 = مو جالس
+let localStream = null;
+let pc = null;
+let candListeners = [];
+let seatsCache = {};
+let analyserRAF = null;
+let trx = {};                       // قنوات البث الثابتة
+let liveStream = new MediaStream(); // شاشة الطرف الثاني
+let castStream = null;              // بثي أنا
+let currentContent = null;
+
+const $ = s => document.querySelector(s);
+const toast = msg => {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2600);
+};
+
+/* ---------- تسجيل الدخول ---------- */
+$("#avatarPick").onclick = () => $("#avatarFile").click();
+$("#avatarFile").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onerror = () => toast("⚠️ ما قدرت أقرأ الصورة، جرّب صورة ثانية");
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = () => toast("⚠️ صيغة الصورة غير مدعومة، جرّب JPG أو PNG");
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      const size = 128;
+      c.width = c.height = size;
+      const ctx = c.getContext("2d");
+      const min = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width-min)/2, (img.height-min)/2, min, min, 0, 0, size, size);
+      me.photo = c.toDataURL("image/jpeg", .75);
+      const p = $("#avatarPreview");
+      p.src = me.photo; p.style.display = "block";
+      $("#avatarPick span").style.display = "none";
+      checkLogin();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+};
+$("#nameInput").oninput = checkLogin;
+function checkLogin(){
+  $("#enterBtn").disabled = !($("#nameInput").value.trim() && me.photo);
+}
+$("#enterBtn").onclick = () => {
+  if(!db){ toast(dbError || "⚠️ Firebase غير جاهز"); return; }
+  me.name = $("#nameInput").value.trim();
+  localStorage.setItem("vr_me", JSON.stringify(me));
+  enterRoom();
+};
+
+// دخول سريع إذا مسجل قبل
+try{
+  const saved = JSON.parse(localStorage.getItem("vr_me"));
+  if(saved && saved.name && saved.photo){
+    me = saved;
+    $("#nameInput").value = me.name;
+    const p = $("#avatarPreview");
+    p.src = me.photo; p.style.display = "block";
+    $("#avatarPick span").style.display = "none";
+    checkLogin();
+  }
+}catch(e){}
+
+/* ---------- الغرفة ---------- */
+function enterRoom(){
+  $("#loginScreen").style.display = "none";
+  $("#room").classList.add("show");
+  $("#meImg").src = me.photo;
+  $("#meName").textContent = me.name;
+  listenSeats();
+  listenScreen();
+}
+
+function seatRef(n){ return db.ref(`${ROOM}/seats/${n}`); }
+function rtcRef(){ return db.ref(`${ROOM}/rtc`); }
+
+function listenSeats(){
+  db.ref(`${ROOM}/seats`).on("value", snap => {
+    seatsCache = snap.val() || {};
+    renderSeats();
+    handlePeering();
+  });
+}
+
+function renderSeats(){
+  [1,2].forEach(n => {
+    const el = $("#seat"+n);
+    const d = seatsCache[n];
+    const img = el.querySelector("img");
+    const nameEl = el.querySelector(".seatName");
+    if(d){
+      el.classList.add("taken"); el.classList.remove("empty");
+      el.classList.toggle("muted", !!d.muted);
+      img.src = d.photo || "";
+      nameEl.textContent = d.name + (d.id === myId ? " (أنت)" : "");
+    }else{
+      el.classList.remove("taken","muted","speaking");
+      el.classList.add("empty");
+      img.src = ""; nameEl.textContent = "مقعد فاضي";
+    }
+  });
+  const seated = mySeat > 0;
+  $("#muteBtn").classList.toggle("show", seated);
+  $("#leaveBtn").classList.toggle("show", seated);
+  $("#hintTxt").textContent = seated
+    ? "أنت على المقعد " + mySeat
+    : "اضغط على مقعد فاضي عشان تفتح المايك";
+}
+
+[1,2].forEach(n => {
+  $("#seat"+n).onclick = () => {
+    const d = seatsCache[n];
+    if(d && d.id !== myId){ toast("المقعد مشغول"); return; }
+    if(mySeat === n) return;
+    if(mySeat) leaveSeat(false);
+    joinSeat(n);
+  };
+});
+
+async function joinSeat(n){
+  try{
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        sampleRate:48000,
+        sampleSize:16,
+        channelCount:1
+      },
+      video:false
+    });
+    localStream.getAudioTracks().forEach(t => { try{ t.contentHint = "speech"; }catch(e){} });
+  }catch(e){
+    toast("⚠️ اسمح للمايك من إعدادات المتصفح");
+    return;
+  }
+  mySeat = n;
+  const ref = seatRef(n);
+  ref.set({ id: myId, name: me.name, photo: me.photo, muted:false });
+  ref.onDisconnect().remove();
+  rtcRef().onDisconnect().remove();
+  startLocalAnalyser();
+  toast("تم فتح المايك 🎤");
+}
+
+function leaveSeat(showMsg = true){
+  if(!mySeat) return;
+  seatRef(mySeat).remove();
+  seatRef(mySeat).onDisconnect().cancel();
+  mySeat = 0;
+  teardownPC();
+  rtcRef().remove();
+  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream = null; }
+  stopAnalyser();
+  if(showMsg) toast("نزلت من المقعد");
+  renderSeats();
+}
+$("#leaveBtn").onclick = () => leaveSeat();
+
+let isMuted = false;
+$("#muteBtn").onclick = () => {
+  if(!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  $("#muteBtn").textContent = isMuted ? "🔇 مكتوم" : "🎤 كتم";
+  $("#muteBtn").classList.toggle("mutedState", isMuted);
+  if(mySeat) seatRef(mySeat).update({ muted:isMuted });
+};
+
+/* ---------- WebRTC ---------- */
+function otherSeat(){ return mySeat === 1 ? 2 : 1; }
+
+function handlePeering(){
+  if(!mySeat) return;
+  const peer = seatsCache[otherSeat()];
+  if(peer && !pc){
+    setupPC();
+    if(mySeat === 1) makeOffer();   // مقعد 1 دايم هو المتصل
+  }
+  if(!peer && pc){
+    teardownPC();
+    rtcRef().remove();
+    toast("الطرف الثاني نزل");
+  }
+}
+
+/* رفع جودة Opus: بت ريت عالي + تصحيح فقدان الحزم + بدون DTX */
+function boostAudioSDP(sdp){
+  return sdp.replace(/a=fmtp:(\d+) (.*minptime.*)/g,
+    "a=fmtp:$1 $2;maxaveragebitrate=192000;maxplaybackrate=48000;stereo=1;sprop-stereo=1;useinbandfec=1;usedtx=0;cbr=1");
+}
+
+function setupPC(){
+  pc = new RTCPeerConnection({
+    iceServers:[
+      { urls:"stun:stun.l.google.com:19302" },
+      { urls:"stun:stun1.l.google.com:19302" },
+      // TURN مجاني — يمنع التقطيع وفشل الاتصال خلف الشبكات الصعبة
+      { urls:"turn:openrelay.metered.ca:80",  username:"openrelayproject", credential:"openrelayproject" },
+      { urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject" },
+      { urls:"turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject" }
+    ]
+  });
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  // قنوات ثابتة للبث: فيديو + صوت النظام (تنشط وقت البث بدون إعادة تفاوض)
+  trx.video = pc.addTransceiver("video", { direction:"sendrecv" });
+  trx.sysAudio = pc.addTransceiver("audio", { direction:"sendrecv" });
+
+  // أولوية عالية وبت ريت مرتفع للمرسل
+  pc.getSenders().forEach(sender => {
+    if(sender.track && sender.track.kind === "audio"){
+      try{
+        const p = sender.getParameters();
+        p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
+        p.encodings[0].maxBitrate = 192000;
+        p.encodings[0].priority = "high";
+        p.encodings[0].networkPriority = "high";
+        sender.setParameters(p);
+      }catch(e){}
+    }
+  });
+
+  pc.ontrack = e => {
+    if(e.transceiver === trx.video || e.transceiver === trx.sysAudio){
+      // مسارات البث (شاشة الطرف الثاني)
+      liveStream.addTrack(e.track);
+      if(currentContent && currentContent.kind === "live") attachLive();
+      return;
+    }
+    // مايك الطرف الثاني
+    try{ e.receiver.playoutDelayHint = 0.12; }catch(err){}
+    const a = $("#remoteAudio");
+    a.srcObject = e.streams[0];
+    a.play().catch(()=>{});
+    startRemoteAnalyser(e.streams[0]);
+  };
+  pc.onicecandidate = e => {
+    if(e.candidate) rtcRef().child("cand"+mySeat).push(JSON.stringify(e.candidate));
+  };
+  pc.onconnectionstatechange = () => {
+    if(pc && pc.connectionState === "connected") toast("✅ الصوت متصل");
+    if(pc && ["failed","disconnected"].includes(pc.connectionState)){
+      teardownPC();
+      handlePeering(); // إعادة محاولة
+    }
+  };
+  // استقبال مرشحات الطرف الثاني
+  const cRef = rtcRef().child("cand"+otherSeat());
+  const h = cRef.on("child_added", s => {
+    try{ pc && pc.addIceCandidate(new RTCIceCandidate(JSON.parse(s.val()))); }catch(e){}
+  });
+  candListeners.push([cRef, h]);
+
+  if(mySeat === 2){
+    const oRef = rtcRef().child("offer");
+    const oh = oRef.on("value", async s => {
+      const v = s.val();
+      if(v && pc && !pc.currentRemoteDescription){
+        await pc.setRemoteDescription(JSON.parse(v));
+        const ans = await pc.createAnswer();
+        ans.sdp = boostAudioSDP(ans.sdp);
+        await pc.setLocalDescription(ans);
+        rtcRef().child("answer").set(JSON.stringify(pc.localDescription));
+      }
+    });
+    candListeners.push([oRef, oh]);
+  }else{
+    const aRef = rtcRef().child("answer");
+    const ah = aRef.on("value", async s => {
+      const v = s.val();
+      if(v && pc && !pc.currentRemoteDescription){
+        await pc.setRemoteDescription(JSON.parse(v));
+      }
+    });
+    candListeners.push([aRef, ah]);
+  }
+}
+
+async function makeOffer(){
+  await rtcRef().remove(); // تنظيف أي جلسة قديمة
+  const offer = await pc.createOffer();
+  offer.sdp = boostAudioSDP(offer.sdp);
+  await pc.setLocalDescription(offer);
+  rtcRef().child("offer").set(JSON.stringify(pc.localDescription));
+}
+
+function teardownPC(){
+  stopCast();
+  candListeners.forEach(([r,h]) => r.off(undefined, h));
+  candListeners = [];
+  if(pc){ pc.close(); pc = null; }
+  trx = {};
+  liveStream = new MediaStream();
+  $("#screenLive").srcObject = null;
+  $("#remoteAudio").srcObject = null;
+}
+
+/* ---------- مؤشر التحدث ---------- */
+let audioCtx = null, localAn = null, remoteAn = null;
+function ensureCtx(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function makeAnalyser(stream){
+  ensureCtx();
+  const src = audioCtx.createMediaStreamSource(stream);
+  const an = audioCtx.createAnalyser();
+  an.fftSize = 256;
+  src.connect(an);
+  return an;
+}
+function startLocalAnalyser(){ try{ localAn = makeAnalyser(localStream); loopAnalyser(); }catch(e){} }
+function startRemoteAnalyser(stream){ try{ remoteAn = makeAnalyser(stream); loopAnalyser(); }catch(e){} }
+function level(an){
+  if(!an) return 0;
+  const d = new Uint8Array(an.frequencyBinCount);
+  an.getByteFrequencyData(d);
+  return d.reduce((a,b)=>a+b,0)/d.length;
+}
+function loopAnalyser(){
+  if(analyserRAF) return;
+  const tick = () => {
+    if(mySeat) $("#seat"+mySeat).classList.toggle("speaking", !isMuted && level(localAn) > 18);
+    if(pc){
+      const o = otherSeat();
+      const peer = seatsCache[o];
+      $("#seat"+o).classList.toggle("speaking", peer && !peer.muted && level(remoteAn) > 18);
+    }
+    analyserRAF = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopAnalyser(){
+  if(analyserRAF){ cancelAnimationFrame(analyserRAF); analyserRAF = null; }
+  localAn = null; remoteAn = null;
+  [1,2].forEach(n => $("#seat"+n).classList.remove("speaking"));
+}
+
+/* ---------- الشاشة المشتركة ---------- */
+function screenRef(){ return db.ref(`${ROOM}/screen`); }
+let applyingVol = false;
+
+function listenScreen(){
+  screenRef().child("content").on("value", s => renderScreen(s.val()));
+  screenRef().child("volume").on("value", s => {
+    const v = s.val();
+    if(v === null) return;
+    applyingVol = true;
+    $("#volSlider").value = v;
+    $("#volVal").textContent = v + "%";
+    ["#screenVideo","#screenAudio","#screenLive"].forEach(sel => { $(sel).volume = v/100; });
+    applyingVol = false;
+  });
+}
+
+function hideAllViews(){
+  ["#shadowFrame","#screenImg","#screenVideo","#screenAudio","#screenLive"].forEach(s => $(s).style.display = "none");
+  $("#fileCard").style.display = "none";
+  $("#shadowEmpty").style.display = "none";
+  $("#sharedBy").style.display = "none";
+  $("#shadowFrame").src = "about:blank";
+  $("#screenVideo").pause(); $("#screenVideo").removeAttribute("src"); $("#screenVideo").load();
+  $("#screenAudio").pause(); $("#screenAudio").removeAttribute("src");
+}
+
+function attachLive(){
+  const v = $("#screenLive");
+  v.style.display = "block";
+  v.srcObject = castStream || liveStream; // بثي أنا أشوفه محلياً، وإلا بث الطرف الثاني
+  v.muted = !!castStream;                 // ما أسمع صوت بثي أنا (يمنع الصدى)
+  v.volume = (+$("#volSlider").value || 100) / 100;
+  v.play().catch(()=>{});
+}
+
+function renderScreen(c){
+  currentContent = c;
+  hideAllViews();
+  if(!c){ $("#shadowEmpty").style.display = "flex"; return; }
+  if(c.kind === "live"){
+    if(c.by){ $("#sharedBy").textContent = "بث مباشر من: " + c.by; $("#sharedBy").style.display = "block"; }
+    attachLive();
+    return;
+  }
+  if(c.by){
+    $("#sharedBy").textContent = "من: " + c.by;
+    $("#sharedBy").style.display = "block";
+  }
+  const vol = (+$("#volSlider").value || 100) / 100;
+  if(c.kind === "url"){
+    $("#shadowUrl").value = c.src;
+    const f = $("#shadowFrame");
+    f.style.display = "block";
+    f.src = c.src;
+  }else if(c.kind === "image"){
+    const i = $("#screenImg"); i.src = c.src; i.style.display = "block";
+  }else if(c.kind === "video"){
+    const v = $("#screenVideo"); v.src = c.src; v.volume = vol; v.style.display = "block";
+  }else if(c.kind === "audio"){
+    const a = $("#screenAudio"); a.src = c.src; a.volume = vol; a.style.display = "block";
+  }else{
+    $("#fileName").textContent = c.name || "ملف";
+    const dl = $("#fileDl"); dl.href = c.src; dl.setAttribute("download", c.name || "file");
+    $("#fileCard").style.display = "flex";
+  }
+}
+
+function shareContent(obj){
+  if(!db){ toast(dbError); return; }
+  screenRef().child("content").set({ ...obj, by: me.name, ts: Date.now() });
+}
+
+/* روابط */
+$("#loadShadow").onclick = () => {
+  let u = $("#shadowUrl").value.trim();
+  if(!u) return;
+  if(!/^https?:\/\//i.test(u)) u = "https://" + u;
+  localStorage.setItem("vr_shadow", u);
+  shareContent({ kind:"url", src:u });
+  setTimeout(()=>{
+    const f = $("#shadowFrame");
+    if(f.style.display === "block")
+      toast("إذا الشاشة بيضاء، الموقع يمنع التضمين — افتحه بزر نافذة");
+  }, 4000);
+};
+$("#openShadow").onclick = () => {
+  let u = $("#shadowUrl").value.trim();
+  if(!u) return;
+  if(!/^https?:\/\//i.test(u)) u = "https://" + u;
+  window.open(u, "_blank");
+};
+const savedUrl = localStorage.getItem("vr_shadow");
+if(savedUrl) $("#shadowUrl").value = savedUrl;
+
+/* رفع ملفات وصور */
+const MAX_FILE = 8 * 1024 * 1024; // 8MB حد Firebase العملي
+$("#uploadBtn").onclick = () => $("#screenFile").click();
+$("#screenFile").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  e.target.value = "";
+  if(f.type.startsWith("image/")){
+    shareImage(f);
+  }else{
+    if(f.size > MAX_FILE){ toast("⚠️ الملف كبير — الحد 8MB"); return; }
+    const r = new FileReader();
+    r.onload = () => {
+      const kind = f.type.startsWith("video/") ? "video"
+                 : f.type.startsWith("audio/") ? "audio" : "file";
+      shareContent({ kind, src:r.result, name:f.name });
+      toast("تم رفع الملف للطرفين 📎");
+    };
+    r.onerror = () => toast("⚠️ ما قدرت أقرأ الملف");
+    r.readAsDataURL(f);
+  }
+};
+function shareImage(f){
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxSide = 1400;
+      let w = img.width, h = img.height;
+      if(Math.max(w,h) > maxSide){
+        const k = maxSide / Math.max(w,h);
+        w = Math.round(w*k); h = Math.round(h*k);
+      }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      shareContent({ kind:"image", src:c.toDataURL("image/jpeg", .82), name:f.name });
+      toast("تم عرض الصورة للطرفين 🖼️");
+    };
+    img.onerror = () => toast("⚠️ صيغة الصورة غير مدعومة");
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+}
+
+/* بث شاشتي (يشتغل من كمبيوتر أو أندرويد) */
+$("#castBtn").onclick = async () => {
+  if(castStream){ stopCast(); return; }
+  if(!mySeat){ toast("اجلس على مقعد أول عشان يكون فيه اتصال"); return; }
+  if(!pc){ toast("انتظر الطرف الثاني يجلس عشان يبدأ البث"); return; }
+  if(!navigator.mediaDevices.getDisplayMedia){
+    toast("⚠️ الآيفون ما يدعم بث الشاشة من المتصفح — ابث من كمبيوتر أو أندرويد");
+    return;
+  }
+  try{
+    castStream = await navigator.mediaDevices.getDisplayMedia({
+      video:{ frameRate:{ ideal:30 }, width:{ ideal:1920 } },
+      audio:true
+    });
+  }catch(e){ castStream = null; return; }
+
+  const vTrack = castStream.getVideoTracks()[0];
+  const aTrack = castStream.getAudioTracks()[0] || null;
+  try{ vTrack.contentHint = "detail"; }catch(e){} // وضوح النصوص داخل التطبيق
+  await trx.video.sender.replaceTrack(vTrack);
+  if(aTrack) await trx.sysAudio.sender.replaceTrack(aTrack);
+  try{
+    const vp = trx.video.sender.getParameters();
+    vp.encodings = vp.encodings && vp.encodings.length ? vp.encodings : [{}];
+    vp.encodings[0].maxBitrate = 3500000; // 3.5Mbps لوضوح النص
+    vp.degradationPreference = "maintain-resolution";
+    await trx.video.sender.setParameters(vp);
+  }catch(e){}
+
+  vTrack.onended = stopCast; // لما يوقف البث من المتصفح نفسه
+  shareContent({ kind:"live" });
+  $("#castBtn").textContent = "⏹️ إيقاف البث";
+  toast("بدأ بث شاشتك 🔴");
+};
+
+function stopCast(){
+  if(!castStream) return;
+  castStream.getTracks().forEach(t => t.stop());
+  castStream = null;
+  if(trx.video) trx.video.sender.replaceTrack(null).catch(()=>{});
+  if(trx.sysAudio) trx.sysAudio.sender.replaceTrack(null).catch(()=>{});
+  $("#castBtn").textContent = "🖥️ بث شاشتي";
+  if(db && currentContent && currentContent.kind === "live" && currentContent.by === me.name)
+    screenRef().child("content").remove();
+}
+
+/* مسح الشاشة */
+$("#clearScreen").onclick = () => {
+  if(!db) return;
+  screenRef().child("content").remove();
+  toast("تم مسح الشاشة");
+};
+
+/* صوت الشاشة (مزامن للطرفين) */
+$("#volSlider").oninput = () => {
+  const v = +$("#volSlider").value;
+  $("#volVal").textContent = v + "%";
+  ["#screenVideo","#screenAudio","#screenLive"].forEach(sel => { $(sel).volume = v/100; });
+  if(!applyingVol && db) screenRef().child("volume").set(v);
+};
+
+/* الوضع الأفقي + ملء الشاشة */
+function checkOrientation(){
+  const land = window.matchMedia("(orientation: landscape)").matches && window.innerHeight < 520;
+  document.body.classList.toggle("landscape", land);
+  if(!land) $("#shadowBar").classList.remove("open");
+}
+window.addEventListener("resize", checkOrientation);
+window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 120));
+checkOrientation();
+
+$("#barToggle").onclick = () => $("#shadowBar").classList.toggle("open");
+$("#fsBtn").onclick = () => {
+  const el = $("#shadowWrap");
+  if(document.fullscreenElement){ document.exitFullscreen(); return; }
+  if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else toast("لف الجوال بالعرض والشاشة تكبر لحالها");
+};
+
+/* تنظيف عند إغلاق الصفحة */
+window.addEventListener("beforeunload", () => { if(mySeat) leaveSeat(false); });
+</script>
+</body>
+</html>
