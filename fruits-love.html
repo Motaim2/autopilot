@@ -88,7 +88,7 @@ input:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--
 .jnum{font-family:'Lalezar';font-size:clamp(23px,6.8vw,32px);color:var(--gold);letter-spacing:.06em;
  text-shadow:0 2px 0 #7A4A00,0 0 18px #FFC93C99}
 .reels{display:flex;justify-content:center;margin-top:6px}
-.reelbox{display:flex;gap:5px;background:linear-gradient(180deg,#F2E9FB,#C0A9DC);padding:5px;border-radius:9px;
+.reelbox{direction:ltr;display:flex;gap:5px;background:linear-gradient(180deg,#F2E9FB,#C0A9DC);padding:5px;border-radius:9px;
  border:3px solid var(--gold);box-shadow:0 4px 0 #A8760F}
 .reel{width:45px;height:35px;background:linear-gradient(180deg,#FDFAFF,#D6C4EA);border-radius:5px;
  display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -3px 6px #00000022}
@@ -120,15 +120,22 @@ input:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--
 .t10,.t20{background:linear-gradient(160deg,var(--purp),var(--purp2))}
 .t40{background:linear-gradient(160deg,var(--cherry),var(--cherry2))}
 .t40::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#FFD9F866,transparent 60%)}
-.fruit{position:relative;width:74px;height:54px;display:flex;align-items:center;justify-content:center}
+.fruit{position:relative;width:78px;height:56px;display:flex;align-items:center;justify-content:center}
 .fruit .em{font-size:38px;line-height:1;filter:drop-shadow(0 4px 5px #000A);position:relative;z-index:2}
-.coin{position:absolute;width:17px;height:17px;border-radius:50%;
- background:radial-gradient(circle at 34% 28%,#9BEDC2,#2E9E6B 60%,#175E40);
- border:1px solid #10452F;display:flex;align-items:center;justify-content:center;
- font-family:'Lalezar';font-size:6.5px;color:#08301F;z-index:3;box-shadow:0 1px 3px #0007}
-.coin.big{width:20px;height:20px;font-size:6.5px;
- background:radial-gradient(circle at 34% 28%,#FFE79A,#F0A80E 60%,#A96C00);border-color:#7A4F00;color:#442A00}
-.coin.pink{background:radial-gradient(circle at 34% 28%,#F8C2EC,#C455B0 60%,#7E2670);border-color:#5C1751;color:#33062B}
+.pile{position:absolute;inset:0;z-index:3;pointer-events:none}
+.coin{position:absolute;width:19px;height:19px;border-radius:50%;
+ display:flex;align-items:center;justify-content:center;
+ font-family:'Lalezar';font-size:6.5px;box-shadow:0 2px 4px #0008;border:1px solid #0006}
+@media (prefers-reduced-motion:no-preference){
+ .coin{animation:drop .28s cubic-bezier(.2,1.5,.4,1) both}
+ @keyframes drop{from{opacity:0;transform:translateY(-14px) scale(.5)}to{opacity:1;transform:none}}}
+.c100{background:radial-gradient(circle at 34% 28%,#9BEDC2,#2E9E6B 60%,#175E40);border-color:#10452F;color:#08301F}
+.c1k {background:radial-gradient(circle at 34% 28%,#A8D4FF,#2F6FD8 60%,#12408F);border-color:#0C2E68;color:#FFFFFF}
+.c10k{background:radial-gradient(circle at 34% 28%,#FFE79A,#F0A80E 60%,#A96C00);border-color:#7A4F00;color:#442A00;
+ width:22px;height:22px;font-size:7px}
+.c50k{background:radial-gradient(circle at 34% 28%,#FFB0C4,#E0295C 60%,#8E0F33);border-color:#5E0A22;color:#FFFFFF;
+ width:23px;height:23px;font-size:7px}
+.pmore{position:absolute;font-family:'Lalezar';font-size:9px;color:#FFFFFFCC;text-shadow:0 1px 3px #000}
 .times{font-family:'Lalezar';font-size:15px;color:#FFF;text-shadow:0 2px 4px #000B;margin-top:1px;position:relative;z-index:2}
 .mybet{position:absolute;top:4px;left:4px;background:linear-gradient(180deg,#FF87A4,#CE1E39);color:#FFF;
  font-family:'Lalezar';font-size:11px;padding:2px 7px;border-radius:20px;z-index:5;
@@ -156,7 +163,7 @@ input:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--
 .led{font-family:'Lalezar';font-size:44px;color:var(--led);line-height:1;letter-spacing:.07em;
  text-shadow:0 0 5px #FFD52E,0 0 20px #FF9500,0 2px 0 #7A5E00}
 
-.strip{background:linear-gradient(180deg,#6B3FA8,#472681);border:2px solid #9B72DC;border-radius:11px;
+.strip{direction:ltr;background:linear-gradient(180deg,#6B3FA8,#472681);border:2px solid #9B72DC;border-radius:11px;
  margin-top:6px;padding:6px 9px;display:flex;align-items:center;gap:7px}
 .strip b{font-size:11px;color:#E8D5FF;flex:none}
 .strip .hs{display:flex;gap:5px;overflow-x:auto;flex:1}
@@ -528,11 +535,9 @@ const F = [
 ];
 const LAYOUT = [0,1,2, 3,-1,4, 5,6,7];
 const CHIPS  = [100,1000,10000,50000];
-const COINSETS = {
-  few:  [[6,30],[52,26],[58,42],[30,44]],
-  many: [[2,26],[20,20],[40,24],[56,30],[10,42],[30,46],[50,44],[64,38]],
-  rich: [[4,28],[22,22],[42,26],[58,32],[12,44],[32,48],[52,46]]
-};
+const CHIPCLS = {100:"c100",1000:"c1k",10000:"c10k",50000:"c50k"};
+const CHIPLBL = {100:"100",1000:"1K",10000:"10K",50000:"50K"};
+const PILE = [[4,4],[26,0],[48,6],[60,20],[2,24],[22,28],[44,30],[14,14],[38,16],[58,34]];
 const W = F.map(f=>1/f.m), WS = W.reduce((a,b)=>a+b,0);
 const pickRandom = ()=>{ let r=Math.random()*WS,c=0; for(let i=0;i<8;i++){c+=W[i];if(r<c)return i;} return 7; };
 
@@ -583,11 +588,19 @@ const toast = m=>{ const t=document.createElement("div"); t.className="toast"; t
   document.body.appendChild(t); setTimeout(()=>t.remove(),2500); };
 
 /* ═════════ ⑤ بناء ═════════ */
-const coinHTML = k=>(COINSETS[k]||COINSETS.few).map((p,i)=>{
-  const big = k==="rich" && i===1;
-  const cls = big?"coin big":(i%4===1?"coin pink":"coin");
-  return '<span class="'+cls+'" style="left:'+p[0]+'px;top:'+p[1]+'px">'+(big?"10K":"100")+'</span>';
-}).join("");
+const pileHTML = amt=>{
+  if(!amt) return "";
+  let rest=amt; const out=[];
+  [50000,10000,1000,100].forEach(d=>{
+    let n=Math.floor(rest/d); rest-=n*d;
+    while(n-->0) out.push(d);
+  });
+  const vis=out.slice(0,PILE.length), extra=out.length-vis.length;
+  let h=vis.map((d,i)=>'<span class="coin '+CHIPCLS[d]+'" style="left:'+PILE[i][0]+'px;top:'+PILE[i][1]+'px">'
+    +CHIPLBL[d]+'</span>').join("");
+  if(extra>0) h+='<span class="pmore" style="left:2px;bottom:-1px">+'+extra+'</span>';
+  return h;
+};
 
 const buildGrid = ()=>{
   const g=$("grid"); g.innerHTML="";
@@ -596,7 +609,7 @@ const buildGrid = ()=>{
     const f=F[i], d=document.createElement("div");
     d.className="tile "+f.cls; d.dataset.i=i;
     d.innerHTML='<span class="mybet hide" data-bet></span><span class="allbet hide" data-all></span>'
-      +'<div class="fruit">'+coinHTML(f.c)+'<span class="em">'+f.e+'</span></div>'
+      +'<div class="fruit"><span class="pile" data-pile></span><span class="em">'+f.e+'</span></div>'
       +'<div class="times">'+f.m+' times</div>';
     d.addEventListener("click",()=>bet(i));
     g.appendChild(d);
