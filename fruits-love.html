@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>فواكه الحظ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#120A16; --deep:#1B0E22; --panel:#26123010; --tile:#2A1436; --tile2:#1F0F29;
+  --bezel:#3A1B48; --gold:#E8B84B; --gold2:#FFDC8A; --rose:#FF6B8A; --rose2:#FF9DB4;
+  --ink:#F7EDE6; --mut:#A88BB4; --win:#5CE0A0; --line:#3A1B48;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;min-height:100vh;
+ background-image:radial-gradient(ellipse 70% 40% at 50% 0%,#4A1F5A55,transparent 70%);
+ padding-bottom:env(safe-area-inset-bottom)}
+.hide{display:none !important}
+.wrap{max-width:520px;margin:0 auto;padding:14px}
+
+/* ===== GATE ===== */
+.gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px}
+.logo{font-family:'Lalezar';font-size:clamp(38px,11vw,62px);line-height:1;
+ background:linear-gradient(180deg,var(--gold2),var(--gold) 55%,#B8862B);
+ -webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 3px 0 #6B4A12) drop-shadow(0 0 22px #E8B84B55);text-align:center}
+.tag{color:var(--rose2);font-size:15px;margin-bottom:14px;letter-spacing:.05em}
+.gbtn{width:100%;max-width:300px;padding:16px;border-radius:16px;border:none;cursor:pointer;
+ font-family:'Lalezar';font-size:21px;letter-spacing:.02em}
+.g1{background:linear-gradient(180deg,var(--rose2),var(--rose));color:#3D0716;box-shadow:0 6px 0 #B33B57}
+.g2{background:transparent;color:var(--gold2);border:2px solid var(--gold);box-shadow:none}
+.gbtn:active{transform:translateY(3px);box-shadow:0 3px 0 #B33B57}
+
+/* ===== FORMS ===== */
+.field{width:100%;max-width:300px}
+label{display:block;font-size:13px;color:var(--mut);margin:0 0 6px 2px}
+input[type=text],input[type=password],input[type=number],select{width:100%;background:#0D0611;border:1.5px solid var(--line);
+ border-radius:12px;color:var(--ink);font-family:'Tajawal';font-weight:700;font-size:17px;padding:12px 14px;-webkit-appearance:none}
+input:focus,select:focus{outline:2px solid var(--rose);outline-offset:1px;border-color:var(--rose)}
+.avatarpick{width:104px;height:104px;border-radius:50%;border:3px dashed var(--line);margin:0 auto 6px;
+ display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:#0D0611;position:relative}
+.avatarpick img{width:100%;height:100%;object-fit:cover}
+.avatarpick span{font-size:12px;color:var(--mut);text-align:center;padding:0 8px}
+
+/* ===== HEADER ===== */
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:linear-gradient(180deg,#2A1436,#1B0E22);
+ border:1px solid var(--line);border-radius:16px;margin-bottom:12px}
+.ava{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex:none;background:#0D0611}
+.who{flex:1;min-width:0}
+.who b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who small{color:var(--mut);font-size:11.5px}
+.bal{text-align:left;flex:none}
+.bal .n{font-family:'Lalezar';font-size:23px;color:var(--gold2);line-height:1}
+.bal .l{font-size:10.5px;color:var(--mut)}
+.xbtn{background:none;border:1px solid var(--line);color:var(--mut);border-radius:9px;padding:6px 9px;font-size:12px;font-family:'Tajawal';cursor:pointer}
+
+/* ===== JACKPOT ===== */
+.jack{background:linear-gradient(180deg,#4A1F5A,#2A1436);border:2px solid var(--gold);border-radius:16px 16px 0 0;
+ padding:10px 12px 12px;text-align:center;position:relative;overflow:hidden}
+.jack::before{content:"";position:absolute;inset:0;background:
+ repeating-linear-gradient(90deg,#FFDC8A33 0 6px,transparent 6px 20px);opacity:.35;pointer-events:none}
+.jack h3{font-family:'Lalezar';font-size:26px;letter-spacing:.14em;
+ background:linear-gradient(180deg,#FFF3C4,var(--gold) 60%,#A8760F);-webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 2px 0 #5C3C05)}
+.jnum{font-family:'Lalezar';font-size:30px;color:#FFF;background:#1B0E22;border:2px solid var(--gold2);
+ border-radius:10px;padding:3px 16px;display:inline-block;margin-top:4px;letter-spacing:.04em;
+ text-shadow:0 0 14px var(--gold)}
+.reels{display:flex;gap:7px;justify-content:center;margin-top:8px}
+.reel{width:52px;height:38px;background:linear-gradient(180deg,#F3E6F7,#C9B0D4);border-radius:7px;
+ display:flex;align-items:center;justify-content:center;font-family:'Lalezar';font-size:19px;color:#3D0716;
+ border:2px solid var(--gold);box-shadow:inset 0 -3px 6px #00000033}
+
+/* ===== MACHINE ===== */
+.cab{background:linear-gradient(180deg,#3A1B48,#26122F);border:3px solid var(--gold);border-top:none;
+ border-radius:0 0 20px 20px;padding:12px;position:relative}
+.bulbs{position:absolute;inset:5px;border-radius:14px;pointer-events:none;
+ background:
+  repeating-linear-gradient(90deg,var(--gold2) 0 5px,transparent 5px 18px) top/100% 2px no-repeat,
+  repeating-linear-gradient(90deg,var(--gold2) 0 5px,transparent 5px 18px) bottom/100% 2px no-repeat;
+ opacity:.5}
+@media (prefers-reduced-motion:no-preference){.bulbs{animation:blink 1.4s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:linear-gradient(180deg,var(--tile),var(--tile2));border:2px solid var(--bezel);border-radius:13px;
+ padding:9px 5px 7px;text-align:center;cursor:pointer;position:relative;transition:transform .1s,border-color .15s;min-height:96px;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.tile:active{transform:scale(.95)}
+.tile .fr{font-size:34px;line-height:1;filter:drop-shadow(0 3px 5px #0008)}
+.tile .mx{font-family:'Lalezar';font-size:15px;color:var(--gold2);letter-spacing:.03em}
+.tile .mybet{position:absolute;top:5px;inset-inline-start:5px;background:var(--rose);color:#3D0716;
+ font-family:'Lalezar';font-size:12px;padding:2px 7px;border-radius:20px;min-width:26px}
+.tile.sel{border-color:var(--rose);box-shadow:0 0 0 2px #FF6B8A55,0 0 18px #FF6B8A66}
+.tile.won{border-color:var(--gold2);box-shadow:0 0 0 3px var(--gold),0 0 30px var(--gold)}
+@media (prefers-reduced-motion:no-preference){.tile.won{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}}
+.timerbox{background:#340B12;border:3px solid #8E1B2C;border-radius:13px;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;box-shadow:inset 0 0 26px #FF2E4D55}
+.timerbox .t{font-family:'Lalezar';font-size:42px;color:#FF4D66;line-height:1;text-shadow:0 0 16px #FF2E4D}
+.timerbox .s{font-size:10px;color:#FF9DB4;margin-top:1px}
+
+/* ===== STRIP ===== */
+.strip{background:#1B0E22;border:2px solid var(--bezel);border-radius:12px;margin-top:8px;padding:7px 9px;
+ display:flex;align-items:center;gap:6px;overflow:hidden}
+.strip b{font-size:11.5px;color:var(--mut);flex:none}
+.strip .hs{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}
+.strip .hs::-webkit-scrollbar{display:none}
+.strip .hs span{font-size:20px;flex:none}
+
+/* ===== CHIPS ===== */
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.chip{background:linear-gradient(180deg,#2A1436,#1B0E22);border:2px solid var(--bezel);border-radius:30px;
+ padding:11px 4px;font-family:'Lalezar';font-size:16px;color:var(--ink);cursor:pointer;transition:transform .1s}
+.chip:active{transform:scale(.94)}
+.chip.on{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#3D0716;border-color:#FFF3C4;
+ box-shadow:0 0 20px #E8B84B77}
+
+/* ===== ACTIONS ===== */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.act{padding:14px 8px;border:none;border-radius:14px;font-family:'Lalezar';font-size:17px;cursor:pointer}
+.act:active{transform:translateY(2px)}
+.a-rose{background:linear-gradient(180deg,var(--rose2),var(--rose));color:#3D0716;box-shadow:0 4px 0 #B33B57}
+.a-line{background:transparent;color:var(--mut);border:2px solid var(--line)}
+.a-gold{grid-column:1/-1;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#3D0716;box-shadow:0 4px 0 #A8760F}
+
+/* ===== BANNER ===== */
+.banner{margin-top:10px;border-radius:14px;padding:12px;text-align:center;font-family:'Lalezar';font-size:19px;
+ border:2px solid var(--line);background:#1B0E22;color:var(--mut)}
+.banner.w{border-color:var(--win);color:var(--win);background:#0E2A1E;box-shadow:0 0 24px #5CE0A044}
+.banner.l{border-color:#6B2436;color:var(--rose2);background:#2A0E16}
+
+/* ===== ADMIN ===== */
+.card{background:linear-gradient(180deg,#26122F,#1B0E22);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h2{font-family:'Lalezar';font-size:18px;color:var(--gold2);margin-bottom:11px;display:flex;align-items:center;gap:9px}
+.card h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.frgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.frbtn{background:#1B0E22;border:2px solid var(--line);border-radius:11px;padding:9px 4px;cursor:pointer;color:var(--ink);font-family:'Tajawal'}
+.frbtn .e{font-size:26px;display:block}
+.frbtn .m{font-size:11px;color:var(--mut)}
+.frbtn.on{border-color:var(--rose);background:#3A1428;box-shadow:0 0 16px #FF6B8A55}
+.frbtn.on .m{color:var(--rose2)}
+.row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.row button{padding:12px 18px;border:none;border-radius:11px;font-family:'Lalezar';font-size:16px;cursor:pointer;
+ background:linear-gradient(180deg,var(--gold2),var(--gold));color:#3D0716}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.kv:last-child{border:none}
+.kv b{font-family:'Lalezar';color:var(--gold2);font-size:16px}
+.req{background:#1B0E22;border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px}
+.req .t{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.req .t b{font-family:'Lalezar';font-size:19px;color:var(--rose2)}
+.req .t small{color:var(--mut);font-size:11.5px}
+.req button{width:100%;padding:9px;border:none;border-radius:9px;background:var(--win);color:#062B1A;
+ font-family:'Lalezar';font-size:14.5px;cursor:pointer}
+.empty{color:var(--mut);font-size:13.5px;text-align:center;padding:14px 0}
+.note{font-size:12.5px;color:var(--mut);line-height:1.75;margin-top:9px}
+
+/* ===== MODAL ===== */
+.mask{position:fixed;inset:0;background:#000000CC;backdrop-filter:blur(6px);display:flex;align-items:center;
+ justify-content:center;padding:22px;z-index:50}
+.modal{background:linear-gradient(180deg,#2A1436,#1B0E22);border:2px solid var(--gold);border-radius:20px;
+ padding:20px;width:100%;max-width:340px;text-align:center}
+.modal h3{font-family:'Lalezar';font-size:22px;color:var(--gold2);margin-bottom:6px}
+.modal p{font-size:13.5px;color:var(--mut);margin-bottom:14px;line-height:1.7}
+.toast{position:fixed;bottom:22px;inset-inline:0;margin:auto;width:max-content;max-width:88%;
+ background:#2A1436;border:1.5px solid var(--gold);color:var(--ink);padding:11px 20px;border-radius:30px;
+ font-size:14px;z-index:80;box-shadow:0 8px 30px #000A}
+</style>
+</head>
+<body>
+
+<!-- ============ GATE ============ -->
+<div id="gate" class="gate">
+  <div class="logo">فواكه الحظ</div>
+  <div class="tag">لعبتنا الخاصة 💕</div>
+  <button class="gbtn g1" id="goPlayer">دخول اللاعبة</button>
+  <button class="gbtn g2" id="goAdmin">دخول المشرف</button>
+</div>
+
+<!-- ============ PLAYER LOGIN ============ -->
+<div id="plogin" class="gate hide">
+  <div class="logo" style="font-size:34px">أهلًا فيك</div>
+  <div class="avatarpick" id="avaPick"><span>اضغطي لاختيار صورتك</span></div>
+  <input type="file" id="avaFile" accept="image/*" class="hide">
+  <div class="field"><label>اسمك</label><input type="text" id="pname" placeholder="اكتبي اسمك" maxlength="20"></div>
+  <button class="gbtn g1" id="pgo" style="margin-top:6px">ابدأي اللعب</button>
+  <button class="gbtn g2" id="pback" style="font-size:15px;padding:10px">رجوع</button>
+</div>
+
+<!-- ============ ADMIN LOGIN ============ -->
+<div id="alogin" class="gate hide">
+  <div class="logo" style="font-size:34px">لوحة المشرف</div>
+  <div class="field"><label>كلمة المرور</label><input type="password" id="apass" placeholder="••••"></div>
+  <button class="gbtn g1" id="ago" style="margin-top:6px">دخول</button>
+  <button class="gbtn g2" id="aback" style="font-size:15px;padding:10px">رجوع</button>
+</div>
+
+<!-- ============ PLAYER ============ -->
+<div id="player" class="wrap hide">
+  <div class="topbar">
+    <img class="ava" id="pAva" alt="">
+    <div class="who"><b id="pWho">—</b><small id="pRound">الجولة —</small></div>
+    <div class="bal"><div class="n" id="pBal">0</div><div class="l">كونز</div></div>
+    <button class="xbtn" id="pExit">خروج</button>
+  </div>
+
+  <div class="jack">
+    <h3>JACKPOT</h3>
+    <div class="jnum" id="jNum">0</div>
+    <div class="reels"><div class="reel">+2</div><div class="reel">×2</div><div class="reel">+1</div></div>
+  </div>
+
+  <div class="cab">
+    <div class="bulbs"></div>
+    <div class="grid" id="grid"></div>
+    <div class="strip"><b>النتائج</b><div class="hs" id="hist"></div></div>
+    <div class="chips" id="chips"></div>
+    <div class="acts">
+      <button class="act a-rose" id="repeatBet">كرري آخر رهان</button>
+      <button class="act a-line" id="clearBet">مسح الرهان</button>
+      <button class="act a-gold" id="cashout">استبدلي كونزاتك في هوى</button>
+    </div>
+    <div class="banner" id="banner">اختاري الرقاقة ثم الفواكه</div>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div id="admin" class="wrap hide">
+  <div class="topbar">
+    <img class="ava" id="aAva" alt="">
+    <div class="who"><b id="aWho">لا يوجد لاعبة بعد</b><small id="aRound">الجولة —</small></div>
+    <div class="bal"><div class="n" id="aBal">0</div><div class="l">رصيدها</div></div>
+    <button class="xbtn" id="aExit">خروج</button>
+  </div>
+
+  <div class="card">
+    <h2>🎯 الفاكهة القادمة</h2>
+    <div class="frgrid" id="aFruits"></div>
+    <div class="acts" style="margin-top:10px">
+      <button class="act a-line" id="aRandom">اتركها عشوائية</button>
+      <button class="act a-rose" id="aJack">اهدها الجاكبوت</button>
+    </div>
+    <p class="note" id="aForcedNote">الحالي: عشوائي</p>
+  </div>
+
+  <div class="card">
+    <h2>💰 شحن الرصيد</h2>
+    <div class="row">
+      <div><label>المبلغ</label><input type="number" id="aAmt" value="10000" step="1000"></div>
+      <button id="aAdd">أضف</button>
+    </div>
+    <div class="acts" style="margin-top:9px">
+      <button class="act a-line" id="aSet">تعيين رصيد محدد</button>
+      <button class="act a-line" id="aZero">تصفير</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>👀 رهاناتها الآن</h2>
+    <div id="aBets"><div class="empty">ما راهنت بعد في هالجولة</div></div>
+  </div>
+
+  <div class="card">
+    <h2>💌 طلبات الاستبدال</h2>
+    <div id="aReqs"><div class="empty">ما فيه طلبات</div></div>
+  </div>
+
+  <div class="card">
+    <h2>📜 آخر الجولات</h2>
+    <div id="aLog"><div class="empty">ما فيه جولات بعد</div></div>
+  </div>
+</div>
+
+<script type="module">
+/* ══════════════════════════════════════════════════════
+   ①  الإعدادات — عدّلها هنا
+   ══════════════════════════════════════════════════════ */
+const ADMIN_PASS = "1234";          // ⚠️ غيّرها
+
+// للمزامنة بين جهازك وجهازها: حط بيانات Firebase Realtime Database
+// اتركها فاضية = اللعبة تشتغل على نفس الجهاز/المتصفح فقط (للتجربة)
+const FIREBASE = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: ""
+};
+const ROOM = "room1";               // لو سويت أكثر من غرفة غيّر الاسم
+
+const BET_SECONDS   = 20;           // مدة الرهان
+const RESULT_SECONDS= 7;            // مدة عرض النتيجة
+
+/* ══════════════════════════════════════════════════════
+   ②  الفواكه (نفس ترتيب اللعبة)
+   ══════════════════════════════════════════════════════ */
+const F = [
+  {e:"🍋", n:"ليمون",  m:5 },
+  {e:"🫐", n:"توت",    m:5 },
+  {e:"🥝", n:"كيوي",   m:5 },
+  {e:"🍒", n:"كرز",    m:40},
+  {e:"🍑", n:"برقوق",  m:5 },
+  {e:"🍉", n:"بطيخ",   m:20},
+  {e:"🍌", n:"موز",    m:10},
+  {e:"🍓", n:"فراولة", m:10}
+];
+// ترتيب العرض في الشبكة (الوسط = المؤقت)
+const LAYOUT = [0,1,2, 3,-1,4, 5,6,7];
+const CHIPS = [100,1000,10000,50000];
+
+const WEIGHTS = F.map(f=>1/f.m);
+const WSUM = WEIGHTS.reduce((a,b)=>a+b,0);
+const pickRandom = ()=>{
+  let r = Math.random()*WSUM, c=0;
+  for(let i=0;i<F.length;i++){ c+=WEIGHTS[i]; if(r<c) return i; }
+  return F.length-1;
+};
+
+/* ══════════════════════════════════════════════════════
+   ③  طبقة التخزين — Firebase أو محلي
+   ══════════════════════════════════════════════════════ */
+let DB;
+const initDB = async ()=>{
+  if(FIREBASE.databaseURL){
+    const app = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const db  = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js");
+    const a = app.initializeApp(FIREBASE);
+    const d = db.getDatabase(a);
+    const base = "games/"+ROOM;
+    DB = {
+      watch:(cb)=>db.onValue(db.ref(d, base), s=>cb(s.val()||{})),
+      write:(v)=>db.set(db.ref(d, base), v),
+      online:true
+    };
+  } else {
+    const KEY = "fruitsLove_"+ROOM;
+    let watchers=[], last="";
+    const read = ()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ return {}; } };
+    setInterval(()=>{
+      const raw = localStorage.getItem(KEY)||"{}";
+      if(raw!==last){ last=raw; const v=read(); watchers.forEach(w=>w(v)); }
+    },400);
+    DB = {
+      watch:(cb)=>{ watchers.push(cb); cb(read()); },
+      write:(v)=>{ const raw=JSON.stringify(v); last=raw; localStorage.setItem(KEY,raw); watchers.forEach(w=>w(v)); },
+      online:false
+    };
+  }
+};
+
+/* ══════════════════════════════════════════════════════
+   ④  الحالة
+   ══════════════════════════════════════════════════════ */
+let S = null;          // الحالة المشتركة
+let role = null;       // "player" | "admin"
+let chip = CHIPS[0];
+let lastBets = {};
+
+const blank = ()=>({
+  player:{name:"", photo:"", balance:0},
+  round:{n:1, endsAt:Date.now()+BET_SECONDS*1000, winner:null, resultUntil:0, forced:null},
+  bets:{}, history:[], log:[], requests:[], jackpot:1000000
+});
+
+const save = ()=>DB.write(S);
+const $ = id=>document.getElementById(id);
+const fmt = n=>Math.round(n||0).toLocaleString("en-US");
+const show = id=>{ ["gate","plogin","alogin","player","admin"].forEach(x=>$(x).classList.add("hide")); $(id).classList.remove("hide"); };
+const toast = (msg)=>{
+  const t=document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2600);
+};
+
+/* ══════════════════════════════════════════════════════
+   ⑤  بناء الواجهات
+   ══════════════════════════════════════════════════════ */
+const buildGrid = ()=>{
+  const g = $("grid"); g.innerHTML="";
+  LAYOUT.forEach(idx=>{
+    if(idx===-1){
+      g.insertAdjacentHTML("beforeend",
+        '<div class="tile timerbox"><div class="t" id="tick">--</div><div class="s" id="tickLbl">ثانية</div></div>');
+      return;
+    }
+    const f=F[idx];
+    const d=document.createElement("div");
+    d.className="tile"; d.dataset.i=idx;
+    d.innerHTML='<span class="mybet hide" data-bet></span>'
+      +'<div class="fr">'+f.e+'</div><div class="mx">'+f.m+' أضعاف</div>';
+    d.addEventListener("click",()=>placeBet(idx));
+    g.appendChild(d);
+  });
+};
+
+const buildChips = ()=>{
+  const c=$("chips"); c.innerHTML="";
+  CHIPS.forEach(v=>{
+    const b=document.createElement("button");
+    b.className="chip"+(v===chip?" on":"");
+    b.textContent = v>=1000 ? (v/1000)+"K" : v;
+    b.addEventListener("click",()=>{ chip=v; buildChips(); });
+    c.appendChild(b);
+  });
+};
+
+const buildAdminFruits = ()=>{
+  const g=$("aFruits"); g.innerHTML="";
+  F.forEach((f,i)=>{
+    const b=document.createElement("button");
+    b.className="frbtn"+(S && S.round.forced===i?" on":"");
+    b.innerHTML='<span class="e">'+f.e+'</span><span class="m">'+f.n+' · ×'+f.m+'</span>';
+    b.addEventListener("click",()=>{ S.round.forced=i; save(); toast("الجولة الجاية: "+f.n); });
+    g.appendChild(b);
+  });
+};
+
+/* ══════════════════════════════════════════════════════
+   ⑥  اللعب
+   ══════════════════════════════════════════════════════ */
+const placeBet = (i)=>{
+  if(role!=="player") return;
+  if(S.round.winner!==null){ toast("انتظري الجولة الجاية"); return; }
+  if(S.player.balance < chip){ toast("رصيدك ما يكفي"); return; }
+  S.player.balance -= chip;
+  S.bets[i] = (S.bets[i]||0) + chip;
+  save(); render();
+};
+
+const clearBets = ()=>{
+  if(S.round.winner!==null) return;
+  let back=0;
+  Object.keys(S.bets).forEach(k=>back+=S.bets[k]);
+  S.player.balance += back; S.bets={}; save(); render();
+};
+
+const repeatBets = ()=>{
+  if(S.round.winner!==null){ toast("انتظري الجولة الجاية"); return; }
+  const keys=Object.keys(lastBets);
+  if(!keys.length){ toast("ما فيه رهان سابق"); return; }
+  let total=0; keys.forEach(k=>total+=lastBets[k]);
+  if(S.player.balance<total){ toast("رصيدك ما يكفي"); return; }
+  S.player.balance-=total;
+  keys.forEach(k=>S.bets[k]=(S.bets[k]||0)+lastBets[k]);
+  save(); render();
+};
+
+const resolve = ()=>{
+  const r = S.round;
+  const win = (r.forced!==null && r.forced!==undefined) ? r.forced : pickRandom();
+  r.winner = win; r.forced = null;
+  r.resultUntil = Date.now() + RESULT_SECONDS*1000;
+
+  const staked = Object.keys(S.bets).reduce((a,k)=>a+S.bets[k],0);
+  const payout = (S.bets[win]||0) * F[win].m;
+  S.player.balance += payout;
+  S.jackpot += Math.round(staked*0.05);
+
+  lastBets = Object.assign({}, S.bets);
+  S.history.unshift(win); S.history = S.history.slice(0,24);
+  S.log.unshift({n:r.n, w:win, staked, payout, t:Date.now()});
+  S.log = S.log.slice(0,20);
+  save();
+};
+
+const nextRound = ()=>{
+  S.round = {n:S.round.n+1, endsAt:Date.now()+BET_SECONDS*1000, winner:null, resultUntil:0, forced:S.round.forced||null};
+  S.bets = {};
+  save();
+};
+
+/* ══════════════════════════════════════════════════════
+   ⑦  حلقة الوقت
+   ══════════════════════════════════════════════════════ */
+setInterval(()=>{
+  if(!S || !role) return;
+  const now=Date.now(), r=S.round;
+  if(r.winner===null){
+    const left = Math.max(0, Math.ceil((r.endsAt-now)/1000));
+    const t=$("tick"); if(t){ t.textContent = String(left).padStart(2,"0"); }
+    if(now > r.endsAt) resolve();
+  } else {
+    const t=$("tick"); if(t){ t.textContent="🎉"; }
+    if(now > r.resultUntil) nextRound();
+  }
+  render();
+},350);
+
+/* ══════════════════════════════════════════════════════
+   ⑧  الرسم
+   ══════════════════════════════════════════════════════ */
+const render = ()=>{
+  if(!S) return;
+  if(role==="player") renderPlayer();
+  if(role==="admin")  renderAdmin();
+};
+
+const renderPlayer = ()=>{
+  $("pAva").src = S.player.photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+  $("pWho").textContent = S.player.name || "—";
+  $("pBal").textContent = fmt(S.player.balance);
+  $("pRound").textContent = "الجولة "+S.round.n;
+  $("jNum").textContent = fmt(S.jackpot);
+
+  document.querySelectorAll("#grid .tile[data-i]").forEach(el=>{
+    const i=+el.dataset.i, b=S.bets[i]||0, tag=el.querySelector("[data-bet]");
+    el.classList.toggle("sel", b>0);
+    el.classList.toggle("won", S.round.winner===i);
+    if(b>0){ tag.classList.remove("hide"); tag.textContent = b>=1000?(b/1000)+"K":b; }
+    else tag.classList.add("hide");
+  });
+
+  $("hist").innerHTML = S.history.map(i=>"<span>"+F[i].e+"</span>").join("");
+
+  const bn=$("banner");
+  if(S.round.winner!==null){
+    const w=S.round.winner, pay=(S.bets[w]||0)*F[w].m;
+    if(pay>0){ bn.className="banner w"; bn.textContent = F[w].e+" ربحتِ "+fmt(pay)+" كونز 🎉"; }
+    else { bn.className="banner l"; bn.textContent = F[w].e+" هالجولة راحت — حظ أوفر"; }
+  } else {
+    const st=Object.keys(S.bets).reduce((a,k)=>a+S.bets[k],0);
+    bn.className="banner";
+    bn.textContent = st>0 ? "رهانك الآن "+fmt(st)+" كونز" : "اختاري الرقاقة ثم الفواكه";
+  }
+};
+
+const renderAdmin = ()=>{
+  $("aAva").src = S.player.photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+  $("aWho").textContent = S.player.name || "لا يوجد لاعبة بعد";
+  $("aBal").textContent = fmt(S.player.balance);
+  $("aRound").textContent = "الجولة "+S.round.n+(S.round.winner!==null?" · النتيجة "+F[S.round.winner].e:" · جاري الرهان");
+
+  const fn = (S.round.forced!==null && S.round.forced!==undefined)
+    ? "الحالي: "+F[S.round.forced].n+" "+F[S.round.forced].e+" — بينزل بالجولة الجاية"
+    : "الحالي: عشوائي";
+  $("aForcedNote").textContent = fn;
+  document.querySelectorAll("#aFruits .frbtn").forEach((b,i)=>b.classList.toggle("on", S.round.forced===i));
+
+  const keys=Object.keys(S.bets);
+  $("aBets").innerHTML = keys.length
+    ? keys.map(k=>'<div class="kv"><span>'+F[k].e+" "+F[k].n+' · ×'+F[k].m+'</span><b>'+fmt(S.bets[k])+'</b></div>').join("")
+    : '<div class="empty">ما راهنت بعد في هالجولة</div>';
+
+  const pend=(S.requests||[]).filter(r=>r.status==="pending");
+  $("aReqs").innerHTML = pend.length
+    ? pend.map((r,i)=>'<div class="req"><div class="t"><b>'+fmt(r.amount)+' كونز</b><small>'
+        +new Date(r.ts).toLocaleString("ar-SA")+'</small></div><button data-req="'+r.ts+'">✓ حوّلتها في هوى</button></div>').join("")
+    : '<div class="empty">ما فيه طلبات</div>';
+  document.querySelectorAll("#aReqs button[data-req]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      const ts=+b.dataset.req, r=S.requests.find(x=>x.ts===ts);
+      if(!r) return;
+      r.status="done";
+      S.player.balance = Math.max(0, S.player.balance - r.amount);
+      save(); toast("تم — انخصم "+fmt(r.amount)+" من رصيدها");
+    });
+  });
+
+  $("aLog").innerHTML = (S.log||[]).length
+    ? S.log.map(l=>'<div class="kv"><span>جولة '+l.n+' · '+F[l.w].e+'</span><b style="color:'
+        +(l.payout>=l.staked?"var(--win)":"var(--rose2)")+'">'+(l.payout>=l.staked?"+":"")+fmt(l.payout-l.staked)+'</b></div>').join("")
+    : '<div class="empty">ما فيه جولات بعد</div>';
+};
+
+/* ══════════════════════════════════════════════════════
+   ⑨  الأحداث
+   ══════════════════════════════════════════════════════ */
+$("goPlayer").addEventListener("click",()=>{
+  if(S.player.name){ role="player"; show("player"); render(); return; }
+  show("plogin");
+});
+$("goAdmin").addEventListener("click",()=>show("alogin"));
+$("pback").addEventListener("click",()=>show("gate"));
+$("aback").addEventListener("click",()=>show("gate"));
+$("pExit").addEventListener("click",()=>{ role=null; show("gate"); });
+$("aExit").addEventListener("click",()=>{ role=null; show("gate"); });
+
+let avaData="";
+$("avaPick").addEventListener("click",()=>$("avaFile").click());
+$("avaFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement("canvas"); c.width=c.height=220;
+      const x=c.getContext("2d");
+      const s=Math.min(img.width,img.height);
+      x.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,220,220);
+      avaData=c.toDataURL("image/jpeg",0.75);
+      $("avaPick").innerHTML='<img src="'+avaData+'" alt="">';
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+});
+
+$("pgo").addEventListener("click",()=>{
+  const n=$("pname").value.trim();
+  if(!n){ toast("اكتبي اسمك"); return; }
+  S.player.name=n; if(avaData) S.player.photo=avaData;
+  save(); role="player"; show("player"); render();
+});
+
+$("ago").addEventListener("click",()=>{
+  if($("apass").value!==ADMIN_PASS){ toast("كلمة المرور غلط"); return; }
+  role="admin"; buildAdminFruits(); show("admin"); render();
+});
+
+$("clearBet").addEventListener("click",clearBets);
+$("repeatBet").addEventListener("click",repeatBets);
+
+$("cashout").addEventListener("click",()=>{
+  if(S.player.balance<1000){ toast("لازم 1000 كونز على الأقل"); return; }
+  const m=document.createElement("div");
+  m.className="mask";
+  m.innerHTML='<div class="modal"><h3>استبدال في هوى</h3>'
+    +'<p>رصيدك '+fmt(S.player.balance)+' كونز. اكتبي كم تبين تستبدلين وبيوصله الطلب.</p>'
+    +'<input type="number" id="coAmt" value="'+S.player.balance+'" step="1000">'
+    +'<div class="acts"><button class="act a-line" id="coNo">إلغاء</button>'
+    +'<button class="act a-rose" id="coYes">أرسلي الطلب</button></div></div>';
+  document.body.appendChild(m);
+  m.querySelector("#coNo").addEventListener("click",()=>m.remove());
+  m.querySelector("#coYes").addEventListener("click",()=>{
+    const v=+m.querySelector("#coAmt").value;
+    if(!v||v>S.player.balance){ toast("مبلغ غير صحيح"); return; }
+    S.requests=S.requests||[];
+    S.requests.push({amount:v, ts:Date.now(), status:"pending"});
+    save(); m.remove(); toast("وصله طلبك 💌");
+  });
+});
+
+$("aRandom").addEventListener("click",()=>{ S.round.forced=null; save(); toast("رجعت عشوائية"); });
+$("aJack").addEventListener("click",()=>{
+  S.player.balance += S.jackpot;
+  toast("أهديتها "+fmt(S.jackpot)+" كونز 🎁");
+  S.jackpot = 1000000; save();
+});
+$("aAdd").addEventListener("click",()=>{
+  const v=+$("aAmt").value||0; S.player.balance+=v; save(); toast("أضفت "+fmt(v));
+});
+$("aSet").addEventListener("click",()=>{
+  const v=+$("aAmt").value||0; S.player.balance=v; save(); toast("صار رصيدها "+fmt(v));
+});
+$("aZero").addEventListener("click",()=>{ S.player.balance=0; save(); toast("صفّرت الرصيد"); });
+
+/* ══════════════════════════════════════════════════════
+   ⑩  الإقلاع
+   ══════════════════════════════════════════════════════ */
+(async ()=>{
+  await initDB();
+  buildGrid(); buildChips();
+  DB.watch(v=>{
+    if(!v || !v.round){ S = blank(); save(); }
+    else { S = v; S.bets=S.bets||{}; S.history=S.history||[]; S.log=S.log||[]; S.requests=S.requests||[]; }
+    render();
+  });
+  if(!DB.online){
+    setTimeout(()=>toast("وضع التجربة — للمزامنة بينكم ضيفي بيانات Firebase"),1200);
+  }
+})();
+</script>
+</body>
+</html>
