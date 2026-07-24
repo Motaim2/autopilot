@@ -659,6 +659,26 @@
   <div class="resetbar"><button class="resetBtn" data-r="board" onclick="doReset('board',this)">تصفير اللوحة</button></div>
 </div>
 
+<!-- ============ تبويب 12: تقفيل ملف ============ -->
+<div class="pane" id="pane12">
+  <div class="stage stg-ship">
+    <h2>&#128274; ملف الحسابات (معرف · كنية · جاذبية)</h2>
+    <input type="file" id="tq_f1" accept=".xlsx,.xls,.csv" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div id="tq_opts1"></div>
+  </div>
+  <div id="tq_res1"></div>
+  <div class="stage stg-agency">
+    <h2>&#128181; ملف ثاني — راتب الوكيل (المجموع فقط)</h2>
+    <input type="file" id="tq_f2" accept=".xlsx,.xls,.csv" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div id="tq_opts2"></div>
+    <div class="hero" style="margin-top:9px;background:rgba(255,255,255,.07);box-shadow:none;padding:12px;border-color:var(--gold);display:none" id="tq_wkBox">
+      <div class="l">راتب الوكيل — المجموع</div>
+      <div class="big2" id="tq_wk" style="font-size:28px;color:#FFD37E">$0</div>
+      <div class="s" id="tq_wkSub"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
 <canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
@@ -674,6 +694,7 @@
 <!-- شريط التبويبات -->
 <div class="tabbar">
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
+  <div class="tb" data-p="pane12" onclick="switchTab('pane12',this)"><span class="i">&#128274;</span>تقفيل ملف</div>
   <div class="tb" data-p="pane2" onclick="switchTab('pane2',this)"><span class="i">&#129518;</span>حاسبة روم</div>
   <div class="tb" data-p="pane3" onclick="switchTab('pane3',this)"><span class="i">&#128273;</span>فك وكاس</div>
   <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)"><span class="i">&#128276;</span>تنبيهات</div>
@@ -1471,6 +1492,133 @@ function renderPlan(){
   lg.innerHTML=lh||'<div class="empty">ابدأ: حوّل دولاراتك \u2190 اشحن حساب \u2190 ارمِ بروم</div>';
 }
 
+/* ===== تقفيل ملف ===== */
+var TQ={f1:null,f2:null,page:0};
+function tqRead(file,slot){
+  if(typeof XLSX==="undefined"){ alert("مكتبة قراءة الملفات ما حمّلت — تحتاج إنترنت."); return; }
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:"array"});
+      TQ[slot]={wb:wb,sheet:wb.SheetNames[0]};
+      tqLoad(slot);
+    }catch(err){ alert("تعذّر قراءة الملف: "+err.message); }
+  };
+  r.readAsArrayBuffer(file);
+}
+function tqLoad(slot){
+  var o=TQ[slot]; if(!o)return;
+  var rows=XLSX.utils.sheet_to_json(o.wb.Sheets[o.sheet],{header:1,defval:""}).filter(function(r){return r.join("").trim()!=="";});
+  var hi=flPickHeader(rows);
+  if(hi>=0){ o.header=rows[hi].map(function(x){return String(x).trim();}); o.rows=rows.slice(hi+1); }
+  else { var w=0; for(var r0=0;r0<Math.min(rows.length,20);r0++)w=Math.max(w,rows[r0].length);
+    o.header=[]; for(var c0=0;c0<w;c0++)o.header.push("عمود "+(c0+1)); o.rows=rows; }
+  o.idCol=flDetect(o,/معرف|ايدي|أيدي|\bid\b|uid|رقم/i,function(v){return /^\d{3,}$/.test(flClean(v));});
+  o.knCol=flDetectOpt(o,/كنية|كنيه|اسم|numa|name|لقب/i);
+  o.jazCol=flDetect(o,/سحر|جاذبي/i,function(v){return flNum(v)>=10000;});
+  if(slot==="f2")o.wkCol=flDetectOpt(o,/وكيل/i);
+  TQ.page=0;
+  tqOpts(slot); tqRender();
+}
+function tqSel(id,header,cur,opt){
+  var h='<select id="'+id+'" onchange="tqOpt(this)">';
+  if(opt)h+='<option value="-1"'+(cur<0||cur===undefined?" selected":"")+'>— بدون —</option>';
+  for(var i=0;i<header.length;i++)h+='<option value="'+i+'"'+(i===cur?" selected":"")+'>'+(header[i]||("عمود "+(i+1)))+'</option>';
+  return h+'</select>';
+}
+function tqOpts(slot){
+  var o=TQ[slot]; var el=$(slot==="f1"?"tq_opts1":"tq_opts2"); if(!el||!o)return;
+  var sheets=o.wb.SheetNames;
+  var h='<div class="note">تم التحميل: '+o.rows.length+' صف</div><div class="flsel">';
+  h+='<div class="f"><label>الشيت</label><select id="tqs_'+slot+'_sheet" onchange="tqOpt(this)">';
+  for(var si=0;si<sheets.length;si++)h+='<option value="'+si+'"'+(sheets[si]===o.sheet?" selected":"")+'>'+sheets[si]+'</option>';
+  h+='</select></div>';
+  h+='<div class="f"><label>عمود المعرف/الأيدي</label>'+tqSel("tqs_"+slot+"_id",o.header,o.idCol)+'</div>';
+  if(slot==="f1"){
+    h+='<div class="f"><label>عمود الاسم/الكنية</label>'+tqSel("tqs_"+slot+"_kn",o.header,o.knCol===undefined?-1:o.knCol,true)+'</div>';
+    h+='<div class="f"><label>عمود الجاذبية</label>'+tqSel("tqs_"+slot+"_jaz",o.header,o.jazCol)+'</div>';
+  } else {
+    h+='<div class="f"><label>عمود الجاذبية</label>'+tqSel("tqs_"+slot+"_jaz",o.header,o.jazCol)+'</div>';
+    h+='<div class="f"><label>عمود راتب الوكيل (إن وجد)</label>'+tqSel("tqs_"+slot+"_wk",o.header,o.wkCol===undefined?-1:o.wkCol,true)+'</div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+function tqOpt(sel){
+  var id=sel.id, v=parseInt(sel.value,10);
+  var slot=id.indexOf("_f1_")>0?"f1":"f2"; var o=TQ[slot]; if(!o)return;
+  if(id.indexOf("_sheet")>0){ o.sheet=o.wb.SheetNames[v]; tqLoad(slot); return; }
+  if(id.indexOf("_id")>0)o.idCol=v;
+  if(id.indexOf("_kn")>0)o.knCol=v;
+  if(id.indexOf("_jaz")>0)o.jazCol=v;
+  if(id.indexOf("_wk")>0)o.wkCol=v;
+  TQ.page=0; tqRender();
+}
+function tqPage(pg){ TQ.page=pg; tqRender(); }
+function tqRender(){
+  // ملف 1: جدول التقفيل
+  var el=$("tq_res1");
+  if(el){
+    var o=TQ.f1;
+    if(!o||o.idCol===undefined||o.idCol<0||o.jazCol===undefined||o.jazCol<0){ el.innerHTML=""; }
+    else{
+      var rows=[];
+      for(var r=0;r<o.rows.length;r++){
+        var id=flClean(o.rows[r][o.idCol]); if(!/^\d{3,}$/.test(id))continue;
+        var jaz=flNum(o.rows[r][o.jazCol]);
+        var kn=(o.knCol!==undefined&&o.knCol>=0)?String(o.rows[r][o.knCol]||"").trim():"";
+        var tg=tgOf(jaz);
+        rows.push({id:id,kn:kn,jaz:jaz,tg:tg.cur?tg.cur.lv:0,nx:tg.next?tg.next.lv:0,need:tg.need});
+      }
+      rows.sort(function(a,b){return b.jaz-a.jaz;});
+      var totJaz=0; for(var t0=0;t0<rows.length;t0++)totJaz+=rows[t0].jaz;
+      var PSZ=25, pages=Math.max(Math.ceil(rows.length/PSZ),1);
+      if(TQ.page>=pages)TQ.page=pages-1;
+      var pr=rows.slice(TQ.page*PSZ,TQ.page*PSZ+PSZ);
+      var h='<div class="stage stg-log"><h2>&#128203; الحسابات ('+rows.length+')</h2>';
+      h+='<div class="sumgrid" style="margin-top:6px"><div class="c"><div class="l">عدد الحسابات</div><div class="v n-blue">'+fmt(rows.length)+'</div></div>'+
+         '<div class="c"><div class="l">\u03A3 الجاذبية</div><div class="v n-green">'+fmt(totJaz)+'</div></div></div>';
+      h+='<div class="fltwrap"><table class="fltab"><tr><th>الأيدي</th><th>الاسم</th><th>الجاذبية</th><th>تارقته</th><th>الجاي</th><th>ناقصه للتارقت الجاي</th></tr>';
+      for(var i=0;i<pr.length;i++){ var q=pr[i];
+        h+='<tr><td class="flid" onclick="copyId(\''+q.id+'\')">'+q.id+'</td>'+
+           '<td style="color:#9fc7ee">'+(q.kn||"\u2014")+'</td>'+
+           '<td style="color:#5EE3A6;font-weight:800">'+fmt(q.jaz)+'</td>'+
+           '<td style="color:#BBAEFF;font-weight:800">'+(q.tg||"\u2014")+'</td>'+
+           '<td style="color:#FFD37E">'+(q.nx||"\u2713")+'</td>'+
+           '<td style="color:#FF8A80;font-weight:800">'+(q.nx?fmt(q.need):"أعلى مستوى")+'</td></tr>';
+      }
+      h+='</table></div>';
+      if(pages>1){
+        h+='<div class="chips" style="justify-content:center;margin-top:8px">';
+        if(TQ.page>0)h+='<span class="chip" onclick="tqPage('+(TQ.page-1)+')">\u2039</span>';
+        var ws2=Math.max(0,TQ.page-3), we=Math.min(pages,ws2+7); if(we-ws2<7)ws2=Math.max(0,we-7);
+        for(var pg=ws2;pg<we;pg++)h+='<span class="chip f'+(pg===TQ.page?" on":"")+'" onclick="tqPage('+pg+')">'+(pg+1)+'</span>';
+        if(TQ.page<pages-1)h+='<span class="chip" onclick="tqPage('+(TQ.page+1)+')">\u203A</span>';
+        h+='</div><div class="note" style="text-align:center">صفحة '+(TQ.page+1)+' من '+pages+'</div>';
+      }
+      h+='<div class="note" style="margin-top:4px">اضغط الأيدي ينسخ \u2713 \u00B7 ناقصه = كم جاذبية يحتاج للتارقت الجاي</div></div>';
+      el.innerHTML=h;
+    }
+  }
+  // ملف 2: مجموع راتب الوكيل فقط
+  var box=$("tq_wkBox");
+  if(box){
+    var o2=TQ.f2;
+    if(!o2||o2.idCol===undefined){ box.style.display="none"; }
+    else{
+      var tot=0, cnt=0, src=(o2.wkCol!==undefined&&o2.wkCol>=0)?"من عمود الوكيل بالملف":"من جدول التارقت حسب الجاذبية";
+      for(var r2=0;r2<o2.rows.length;r2++){
+        var id2=flClean(o2.rows[r2][o2.idCol]); if(!/^\d{3,}$/.test(id2))continue;
+        cnt++;
+        if(o2.wkCol!==undefined&&o2.wkCol>=0){ tot+=flNum(o2.rows[r2][o2.wkCol]); }
+        else if(o2.jazCol!==undefined&&o2.jazCol>=0){ var tg2=tgOf(flNum(o2.rows[r2][o2.jazCol])); tot+=tg2.cur?(tg2.cur.wakeel||0):0; }
+      }
+      box.style.display="";
+      $("tq_wk").textContent="$"+fmt(Math.round(tot));
+      $("tq_wkSub").textContent=cnt+" حساب \u00B7 "+src;
+    }
+  }
+}
 /* ===== مطابقة الملفات ===== */
 var FL={master:null,upd:null,res:null,view:null};
 function flReadFile(file,slot){
@@ -2269,6 +2417,8 @@ for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("
 load(); render();
 (function(){
   var fm=$("fl_master"); if(fm)fm.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"master"); });
+  var t1=$("tq_f1"); if(t1)t1.addEventListener("change",function(){ if(this.files[0])tqRead(this.files[0],"f1"); });
+  var t2=$("tq_f2"); if(t2)t2.addEventListener("change",function(){ if(this.files[0])tqRead(this.files[0],"f2"); });
   var fu=$("fl_upd"); if(fu)fu.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"upd"); });
 })();
 </script>
