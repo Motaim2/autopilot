@@ -1516,6 +1516,7 @@ function tqLoad(slot){
   o.idCol=flDetect(o,/معرف|ايدي|أيدي|\bid\b|uid|رقم/i,function(v){return /^\d{3,}$/.test(flClean(v));});
   o.knCol=flDetectOpt(o,/كنية|كنيه|اسم|numa|name|لقب/i);
   o.jazCol=flDetect(o,/سحر|جاذبي/i,function(v){return flNum(v)>=10000;});
+  o.almCol=flDetectOpt(o,/ألماس|الماس|ماس/i);
   if(slot==="f2")o.wkCol=flDetectOpt(o,/وكيل/i);
   TQ.page=0;
   tqOpts(slot); tqRender();
@@ -1557,18 +1558,19 @@ function tqOpt(sel){
 function tqPage(pg){ TQ.page=pg; tqRender(); }
 function tqSelRow(id){ if(!TQ.sel)TQ.sel={}; if(TQ.sel[id])delete TQ.sel[id]; else TQ.sel[id]=1; tqRender(); }
 function tqSelAll(on){ if(!TQ.sel)TQ.sel={}; if(on){ var rs=TQ._rows||[]; for(var i=0;i<rs.length;i++)TQ.sel[rs[i].id]=1; } else TQ.sel={}; tqRender(); }
+function tqInfo(id){ TQ.info=(TQ.info===id)?null:id; tqRender(); }
 function tqExport(){
   if(typeof XLSX==="undefined"){ alert("تصدير Excel يحتاج إنترنت."); return; }
   var rs=TQ._rows||[]; if(!rs.length){ alert("حمّل الملف أول."); return; }
   var selN=0; if(TQ.sel)for(var k in TQ.sel)selN++;
   var src=[]; for(var i=0;i<rs.length;i++){ if(selN){ if(TQ.sel[rs[i].id])src.push(rs[i]); } else src.push(rs[i]); }
   if(!src.length){ alert("ما فيه صفوف محددة."); return; }
-  var aoa=[["الأيدي","الاسم","الجاذبية","تارقته","الجاي","ناقصه للتارقت الجاي","راتب الوكيل الآن $","راتب الوكيل بعد التقفيل $"]];
-  var t={jaz:0,need:0,wc:0,wn:0};
+  var aoa=[["الأيدي","الاسم","الجاذبية","ألماس","تارقته","الجاي","ناقصه للتارقت الجاي","راتب الوكيل الآن $","راتب الوكيل بعد التقفيل $","فرق الوكيل \u00D71950 كونز","جاذبيته بعد الفك","تارقته بعد الفك","ناقصه بعد الفك","وكيل بعد الفك $","راتب الحساب قبل الفك $","راتب الحساب بعد الفك $"]];
+  var t={jaz:0,alm:0,need:0,wc:0,wn:0,fwk:0,ab:0,aa:0};
   for(var r=0;r<src.length;r++){ var q=src[r];
-    aoa.push([q.id,q.kn||"",q.jaz,q.tg||"",q.nx||"",q.nx?q.need:0,q.wkC,q.wkN]);
-    t.jaz+=q.jaz; t.need+=q.nx?q.need:0; t.wc+=q.wkC; t.wn+=q.wkN; }
-  aoa.push(["المجموع","",t.jaz,"","",t.need,t.wc,t.wn]);
+    aoa.push([q.id,q.kn||"",q.jaz,q.alm||0,q.tg||"",q.nx||"",q.nx?q.need:0,q.wkC,q.wkN,(q.wkN-q.wkC)*cfg().rateBuy,q.fj,q.ftg||"",q.fneed,q.fwk,q.accB,q.accA]);
+    t.jaz+=q.jaz; t.alm+=(q.alm||0); t.need+=q.nx?q.need:0; t.wc+=q.wkC; t.wn+=q.wkN; t.fwk+=q.fwk; t.ab+=q.accB; t.aa+=q.accA; }
+  aoa.push(["المجموع","",t.jaz,t.alm,"","",t.need,t.wc,t.wn,(t.wn-t.wc)*cfg().rateBuy,"","","",t.fwk,t.ab,t.aa]);
   var ws=XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"]=aoa[0].map(function(c){return {wch:Math.max(12,String(c).length+4)};});
   var wb=XLSX.utils.book_new();
@@ -1576,6 +1578,7 @@ function tqExport(){
   XLSX.writeFile(wb,"تقفيل_كونز.xlsx");
 }
 function tqRender(){
+  var c=cfg();
   // ملف 1: جدول التقفيل
   var el=$("tq_res1");
   if(el){
@@ -1588,16 +1591,20 @@ function tqRender(){
         var jaz=flNum(o.rows[r][o.jazCol]);
         var kn=(o.knCol!==undefined&&o.knCol>=0)?String(o.rows[r][o.knCol]||"").trim():"";
         var tg=tgOf(jaz);
-        rows.push({id:id,kn:kn,jaz:jaz,tg:tg.cur?tg.cur.lv:0,nx:tg.next?tg.next.lv:0,need:tg.need,wkC:tg.cur?(tg.cur.wakeel||0):0,wkN:tg.next?(tg.next.wakeel||0):(tg.cur?(tg.cur.wakeel||0):0)});
+        var alm=(o.almCol!==undefined&&o.almCol>=0)?flNum(o.rows[r][o.almCol]):0;
+        var nj=jaz+alm; var tg2=tgOf(nj);
+        rows.push({id:id,kn:kn,jaz:jaz,alm:alm,tg:tg.cur?tg.cur.lv:0,nx:tg.next?tg.next.lv:0,need:tg.need,
+          wkC:tg.cur?(tg.cur.wakeel||0):0,wkN:tg.next?(tg.next.wakeel||0):(tg.cur?(tg.cur.wakeel||0):0),
+          fj:nj,ftg:tg2.cur?tg2.cur.lv:0,fnx:tg2.next?tg2.next.lv:0,fneed:tg2.need,
+          fwk:tg2.cur?(tg2.cur.wakeel||0):0,fjz:tg2.cur?(tg2.cur.jazSal||0):0,
+          accB:(tg.cur?(tg.cur.jazSal||0):0)+tgAlmSal(alm),accA:tg2.cur?(tg2.cur.jazSal||0):0});
       }
       rows.sort(function(a,b){return b.jaz-a.jaz;});
       TQ._rows=rows;
       if(!TQ.sel)TQ.sel={};
       var selN=0; for(var sk3 in TQ.sel){ if(TQ.sel[sk3])selN++; }
       var totJaz=0,totNeed=0; for(var t0=0;t0<rows.length;t0++){ totJaz+=rows[t0].jaz; totNeed+=rows[t0].nx?rows[t0].need:0; }
-      var PSZ=25, pages=Math.max(Math.ceil(rows.length/PSZ),1);
-      if(TQ.page>=pages)TQ.page=pages-1;
-      var pr=rows.slice(TQ.page*PSZ,TQ.page*PSZ+PSZ);
+      var pr=rows; // صفحة وحدة — كل الأسماء
       var h='<div class="stage stg-log"><h2>&#128203; الحسابات ('+rows.length+')</h2>';
       h+='<div class="sumgrid" style="margin-top:6px"><div class="c"><div class="l">عدد الحسابات</div><div class="v n-blue">'+fmt(rows.length)+'</div></div>'+
          '<div class="c"><div class="l">\u03A3 الجاذبية</div><div class="v n-green">'+fmt(totJaz)+'</div></div>'+
@@ -1609,9 +1616,9 @@ function tqRender(){
          (selN?'<span class="chip f on">محدد: '+selN+'</span>':'')+
          '</div>';
       if(selN>0){
-        var st2={jaz:0,need:0,wc:0,wn:0};
+        var st2={jaz:0,need:0,wc:0,wn:0,ab:0,aa:0};
         for(var s3=0;s3<rows.length;s3++){ var z3=rows[s3]; if(!TQ.sel[z3.id])continue;
-          st2.jaz+=z3.jaz; st2.need+=z3.nx?z3.need:0; st2.wc+=z3.wkC; st2.wn+=z3.wkN; }
+          st2.jaz+=z3.jaz; st2.need+=z3.nx?z3.need:0; st2.wc+=z3.wkC; st2.wn+=z3.wkN; st2.ab+=z3.accB; st2.aa+=z3.accA; }
         h+='<div class="sumgrid" style="margin-top:7px;border:1px solid rgba(94,227,166,.4);border-radius:12px;padding:7px">'+
            '<div class="c"><div class="l">المحدد</div><div class="v n-blue">'+selN+'</div></div>'+
            '<div class="c"><div class="l">الاحتياج الكامل للتقفيل</div><div class="v v-red" style="font-size:14px">'+fmt(st2.need)+'</div></div>'+
@@ -1619,9 +1626,12 @@ function tqRender(){
            '<div class="c"><div class="l">راتب الوكيل الآن</div><div class="v v-gold">$'+fmt(st2.wc)+'</div></div>'+
            '<div class="c"><div class="l">راتب الوكيل بعد التقفيل</div><div class="v n-green">$'+fmt(st2.wn)+'</div></div>'+
            '<div class="c"><div class="l">الزيادة</div><div class="v n-vio">+$'+fmt(st2.wn-st2.wc)+'</div></div>'+
+           '<div class="c"><div class="l">فرق الوكيل \u00D71950 كونز</div><div class="v n-blue" style="font-size:13px">'+fmt((st2.wn-st2.wc)*c.rateBuy)+'</div></div>'+
+           '<div class="c"><div class="l">راتب الحساب قبل الفك</div><div class="v v-gold">$'+fmt(st2.ab)+'</div></div>'+
+           '<div class="c"><div class="l">راتب الحساب بعد الفك</div><div class="v n-green">$'+fmt(st2.aa)+'</div></div>'+
            '</div>';
       }
-      h+='<div class="fltwrap"><table class="fltab"><tr><th style="cursor:pointer" onclick="tqSelAll('+(selN<rows.length?1:0)+')">\u2611</th><th>الأيدي</th><th>الاسم</th><th>الجاذبية</th><th>تارقته</th><th>الجاي</th><th>ناقصه للتارقت الجاي</th><th>وكيل الآن</th><th>وكيل بعد</th></tr>';
+      h+='<div class="fltwrap"><table class="fltab"><tr><th style="cursor:pointer" onclick="tqSelAll('+(selN<rows.length?1:0)+')">\u2611</th><th>الأيدي</th><th>الاسم</th><th>الجاذبية</th><th>ألماس</th><th>تارقته</th><th>الجاي</th><th>ناقصه للتارقت الجاي</th><th>وكيل الآن</th><th>وكيل بعد</th><th>نبذة</th></tr>';
       for(var i=0;i<pr.length;i++){ var q=pr[i];
         var isS=!!TQ.sel[q.id];
         h+='<tr'+(isS?' style="background:rgba(94,227,166,.08)"':'')+'>'+
@@ -1629,21 +1639,30 @@ function tqRender(){
            '<td class="flid" onclick="copyId(\''+q.id+'\')">'+q.id+'</td>'+
            '<td style="color:#9fc7ee">'+(q.kn||"\u2014")+'</td>'+
            '<td style="color:#5EE3A6;font-weight:800">'+fmt(q.jaz)+'</td>'+
+           '<td style="color:#7CBBFF">'+(q.alm?fmt(q.alm):"\u2014")+'</td>'+
            '<td style="color:#BBAEFF;font-weight:800">'+(q.tg||"\u2014")+'</td>'+
            '<td style="color:#FFD37E">'+(q.nx||"\u2713")+'</td>'+
            '<td style="color:#FF8A80;font-weight:800">'+(q.nx?fmt(q.need):"أعلى مستوى")+'</td>'+
            '<td style="color:#FFD37E">$'+fmt(q.wkC)+'</td>'+
-           '<td style="color:#5EE3A6">$'+fmt(q.wkN)+'</td></tr>';
+           '<td style="color:#5EE3A6">$'+fmt(q.wkN)+'</td>'+
+           '<td onclick="tqInfo(\''+q.id+'\')" style="cursor:pointer;color:'+(TQ.info===q.id?"#FFC96B":"#7CBBFF")+';font-weight:900">'+(TQ.info===q.id?"\u25BC":"\u2139")+'</td></tr>';
+        if(TQ.info===q.id){
+          var lift=q.ftg>q.tg;
+          var advice;
+          if(q.alm<=0){ advice="ما عنده ألماس — كمّله شحن عادي: ناقصه "+fmt(q.need)+" كونز للتارقت "+q.nx+" (يرفع الوكيل +$"+fmt(q.wkN-q.wkC)+")."; }
+          else if(lift){ advice="\u2B50 الأفضل: فكّ ألماسه — يرتفع فورًا من تارقت "+q.tg+" إلى "+q.ftg+" ويزيد راتب الوكيل +$"+fmt(q.fwk-q.wkC)+" بدون أي شحن."; }
+          else { advice="فكّ ألماسه ما يرفع تارقته (يظل "+q.tg+") لكنه الأقرب: الناقص ينزل من "+fmt(q.need)+" إلى "+fmt(q.fneed)+" — فكّه ثم كمّل الفرق شحن."; }
+          var boost=(q.fwk-q.wkC)>0?("اللي يزود راتب الوكيل: الفك (+$"+fmt(q.fwk-q.wkC)+")"):("اللي يزود راتب الوكيل: الوصول للتارقت "+q.nx+" (+$"+fmt(q.wkN-q.wkC)+")");
+          h+='<tr><td colspan="11" style="background:rgba(255,201,107,.07);padding:9px 10px;text-align:right;white-space:normal">'+
+             '<div style="font-size:10px;line-height:1.9;color:rgba(255,255,255,.85)">'+
+             '<b style="color:#BBAEFF">الحين:</b> تارقت '+(q.tg||"\u2014")+' \u00B7 وكيل $'+fmt(q.wkC)+' \u00B7 ناقصه '+fmt(q.need)+' للتارقت '+(q.nx||"\u2713")+'<br>'+
+             '<b style="color:#5EE3A6">لو فكّ ألماسه ('+fmt(q.alm)+'):</b> جاذبيته تصير '+fmt(q.fj)+' \u2190 تارقت '+(q.ftg||"\u2014")+' \u00B7 وكيل $'+fmt(q.fwk)+' (فرقه +$'+fmt(q.fwk-q.wkC)+' = '+fmt((q.fwk-q.wkC)*c.rateBuy)+' كونز \u00D71950) \u00B7 ناقصه '+fmt(q.fneed)+' للتارقت '+(q.fnx||"\u2713")+'<br>'+
+             '<b style="color:#FFD37E">راتب الحساب كامل (جاذبية + ألماس، بدون وكيل):</b> قبل الفك $'+fmt(q.accB)+' \u2190 بعد الفك $'+fmt(q.accA)+' ('+((q.accA-q.accB)>=0?'+':'\u2212')+'$'+fmt(Math.abs(q.accA-q.accB))+')<br>'+
+             '<b style="color:#FFC96B">\uD83D\uDCA1 '+advice+'</b><br>'+boost+
+             '</div></td></tr>';
+        }
       }
       h+='</table></div>';
-      if(pages>1){
-        h+='<div class="chips" style="justify-content:center;margin-top:8px">';
-        if(TQ.page>0)h+='<span class="chip" onclick="tqPage('+(TQ.page-1)+')">\u2039</span>';
-        var ws2=Math.max(0,TQ.page-3), we=Math.min(pages,ws2+7); if(we-ws2<7)ws2=Math.max(0,we-7);
-        for(var pg=ws2;pg<we;pg++)h+='<span class="chip f'+(pg===TQ.page?" on":"")+'" onclick="tqPage('+pg+')">'+(pg+1)+'</span>';
-        if(TQ.page<pages-1)h+='<span class="chip" onclick="tqPage('+(TQ.page+1)+')">\u203A</span>';
-        h+='</div><div class="note" style="text-align:center">صفحة '+(TQ.page+1)+' من '+pages+'</div>';
-      }
       h+='<div class="note" style="margin-top:4px">اضغط الأيدي ينسخ \u2713 \u00B7 ناقصه = كم جاذبية يحتاج للتارقت الجاي</div></div>';
       el.innerHTML=h;
     }
