@@ -247,6 +247,11 @@
   .ptab input{width:100%;background:rgba(255,255,255,.13);border:none;border-radius:6px;color:var(--ink);font-size:10.5px;padding:5px 3px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
   .pcell.on{outline:2px solid #5EE3A6;border-radius:6px}
   .pdot{width:16px;height:16px;border-radius:50%;cursor:pointer;flex:none;border:2px solid rgba(255,255,255,.3)}
+  .nbz{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:5px 0 2px}
+  .nbz .b{background:rgba(255,255,255,.06);border-radius:9px;padding:6px 3px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+  .nbz .l{font-size:8.5px;color:rgba(255,255,255,.55);margin-bottom:2px;line-height:1.3}
+  .nbz .v{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.35}
+  .nbt{font-size:9.5px;font-weight:900;margin-top:7px;letter-spacing:.2px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -1565,18 +1570,19 @@ function tqExport(){
   var selN=0; if(TQ.sel)for(var k in TQ.sel)selN++;
   var src=[]; for(var i=0;i<rs.length;i++){ if(selN){ if(TQ.sel[rs[i].id])src.push(rs[i]); } else src.push(rs[i]); }
   if(!src.length){ alert("ما فيه صفوف محددة."); return; }
-  var aoa=[["الأيدي","الاسم","الجاذبية","ألماس","تارقته","الجاي","ناقصه للتارقت الجاي","راتب الوكيل الآن $","راتب الوكيل بعد التقفيل $","فرق الوكيل \u00D71950 كونز","جاذبيته بعد الفك","تارقته بعد الفك","ناقصه بعد الفك","وكيل بعد الفك $","راتب الحساب قبل الفك $","راتب الحساب بعد الفك $","ألماسه بالحلقة (\u00F70.7)","يقفل بنفسه؟","أقل دعم مع الفك الحلقي","مكسب للطرفين؟"]];
-  var t={jaz:0,alm:0,need:0,wc:0,wn:0,fwk:0,ab:0,aa:0,ms:0};
+  var aoa=[["الأيدي","الاسم","الجاذبية","ألماس","تارقته","الجاي","ناقصه للتارقت الجاي","راتب الوكيل الآن $","راتب الوكيل بعد التقفيل $","فرق الوكيل \u00D71950 كونز","جاذبيته بعد الفك","تارقته بعد الفك","ناقصه بعد الفك","وكيل بعد الفك $","راتب الحساب قبل الفك $","راتب الحساب بعد الفك $","ألماسه بالحلقة (\u00F70.7)","يقفل بنفسه؟","أقل دعم مع الفك الحلقي","تكلفة الدعم \u2248 $","ربح الوكيل الصافي $","مكسب للطرفين؟"]];
+  var t={jaz:0,alm:0,need:0,wc:0,wn:0,fwk:0,ab:0,aa:0,ms:0,s$:0,pf:0};
   for(var r=0;r<src.length;r++){ var q=src[r];
-    aoa.push([q.id,q.kn||"",q.jaz,q.alm||0,q.tg||"",q.nx||"",q.nx?q.need:0,q.wkC,q.wkN,(q.wkN-q.wkC)*cfg().rateBuy,q.fj,q.ftg||"",q.fneed,q.fwk,q.accB,q.accA,q.aEff,q.selfClose?"نعم":"لا",q.minSup,q.winWin?"نعم":"لا"]);
-    t.jaz+=q.jaz; t.alm+=(q.alm||0); t.need+=q.nx?q.need:0; t.wc+=q.wkC; t.wn+=q.wkN; t.fwk+=q.fwk; t.ab+=q.accB; t.aa+=q.accA; t.ms+=q.minSup; }
-  aoa.push(["المجموع","",t.jaz,t.alm,"","",t.need,t.wc,t.wn,(t.wn-t.wc)*cfg().rateBuy,"","","",t.fwk,t.ab,t.aa,"","",t.ms,""]);
+    aoa.push([q.id,q.kn||"",q.jaz,q.alm||0,q.tg||"",q.nx||"",q.nx?q.need:0,q.wkC,q.wkN,(q.wkN-q.wkC)*cfg().rateBuy,q.fj,q.ftg||"",q.fneed,q.fwk,q.accB,q.accA,q.aEff,q.selfClose?"نعم":"لا",q.minSup,q.sup$,q.prof,q.winWin?"نعم":"لا"]);
+    t.jaz+=q.jaz; t.alm+=(q.alm||0); t.need+=q.nx?q.need:0; t.wc+=q.wkC; t.wn+=q.wkN; t.fwk+=q.fwk; t.ab+=q.accB; t.aa+=q.accA; t.ms+=q.minSup; t.s$+=q.sup$; t.pf+=q.prof; }
+  aoa.push(["المجموع","",t.jaz,t.alm,"","",t.need,t.wc,t.wn,(t.wn-t.wc)*cfg().rateBuy,"","","",t.fwk,t.ab,t.aa,"","",t.ms,t.s$,t.pf,""]);
   var ws=XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"]=aoa[0].map(function(c){return {wch:Math.max(12,String(c).length+4)};});
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"التقفيل");
   XLSX.writeFile(wb,"تقفيل_كونز.xlsx");
 }
+function q0Need(tg){ return tg&&tg.next?1:0; }
 function tqRender(){
   var c=cfg();
   // ملف 1: جدول التقفيل
@@ -1610,10 +1616,16 @@ function tqRender(){
         Q.accL=rlRow?(rlRow.jazSal||0):Q.accA;            // راتب الحساب بعد الوصول (ألماسه صار 0)
         Q.wkL=rlRow?(rlRow.wakeel||0):Q.wkN;
         Q.winWin=((Q.wkL>Q.wkC)&&(Q.accL>=Q.accB))?1:0;
+        Q.sup$=Math.ceil(Q.minSup/c.rateBuy);            // تكلفة أقل دعم بالدولار شراء
+        Q.supNo$=q0Need(tg)?Math.ceil(tg.need/c.rateBuy):0;
+        Q.prof=Q.nx?((Q.wkL-Q.wkC)-Q.sup$):0;            // ربح الوكيل الصافي بعد دفع الدعم
+        Q.profOk=(Q.nx&&Q.prof>0)?1:0;
       }
       rows.sort(function(a,b){return b.jaz-a.jaz;});
-      var winN=0; for(var w0=0;w0<rows.length;w0++)winN+=rows[w0].winWin;
+      var winN=0,profN=0; for(var w0=0;w0<rows.length;w0++){ winN+=rows[w0].winWin; profN+=rows[w0].profOk; }
       if(TQ.winF){ var fr=[]; for(var w1=0;w1<rows.length;w1++){ if(rows[w1].winWin)fr.push(rows[w1]); } rows=fr; }
+      if(TQ.profF){ var fr2=[]; for(var w2=0;w2<rows.length;w2++){ if(rows[w2].profOk)fr2.push(rows[w2]); } rows=fr2;
+        rows.sort(function(a,b){return b.prof-a.prof;}); }
       TQ._rows=rows;
       if(!TQ.sel)TQ.sel={};
       var selN=0; for(var sk3 in TQ.sel){ if(TQ.sel[sk3])selN++; }
@@ -1628,12 +1640,13 @@ function tqRender(){
          '<span class="chip" onclick="tqSelAll(0)">\u2716 إزالة</span>'+
          '<span class="chip" onclick="tqExport()" style="color:#5EE3A6;border-color:rgba(94,227,166,.4)">\u2B07 تحميل Excel</span>'+
          '<span class="chip'+(TQ.winF?" f on":"")+'" onclick="TQ.winF=!TQ.winF;TQ.sel={};tqRender()" style="'+(TQ.winF?"":"color:#5EE3A6;border-color:rgba(94,227,166,.4)")+'">\uD83D\uDC9A مكسب للطرفين ('+winN+')</span>'+
+         '<span class="chip'+(TQ.profF?" f on":"")+'" onclick="TQ.profF=!TQ.profF;TQ.sel={};tqRender()" style="'+(TQ.profF?"":"color:#FFD37E;border-color:rgba(255,211,126,.4)")+'">\uD83D\uDCB0 ربح صافي للوكيل ('+profN+')</span>'+
          (selN?'<span class="chip f on">محدد: '+selN+'</span>':'')+
          '</div>';
       if(selN>0){
-        var st2={jaz:0,need:0,wc:0,wn:0,ab:0,aa:0,ms:0};
+        var st2={jaz:0,need:0,wc:0,wn:0,ab:0,aa:0,ms:0,pf:0};
         for(var s3=0;s3<rows.length;s3++){ var z3=rows[s3]; if(!TQ.sel[z3.id])continue;
-          st2.jaz+=z3.jaz; st2.need+=z3.nx?z3.need:0; st2.wc+=z3.wkC; st2.wn+=z3.wkN; st2.ab+=z3.accB; st2.aa+=z3.accA; st2.ms+=z3.minSup; }
+          st2.jaz+=z3.jaz; st2.need+=z3.nx?z3.need:0; st2.wc+=z3.wkC; st2.wn+=z3.wkN; st2.ab+=z3.accB; st2.aa+=z3.accA; st2.ms+=z3.minSup; st2.pf+=z3.prof; }
         h+='<div class="sumgrid" style="margin-top:7px;border:1px solid rgba(94,227,166,.4);border-radius:12px;padding:7px">'+
            '<div class="c"><div class="l">المحدد</div><div class="v n-blue">'+selN+'</div></div>'+
            '<div class="c"><div class="l">الاحتياج الكامل للتقفيل</div><div class="v v-red" style="font-size:14px">'+fmt(st2.need)+'</div></div>'+
@@ -1645,6 +1658,7 @@ function tqRender(){
            '<div class="c"><div class="l">راتب الحساب قبل الفك</div><div class="v v-gold">$'+fmt(st2.ab)+'</div></div>'+
            '<div class="c"><div class="l">راتب الحساب بعد الفك</div><div class="v n-green">$'+fmt(st2.aa)+'</div></div>'+
            '<div class="c"><div class="l">أقل دعم مع الفك الحلقي</div><div class="v n-blue" style="font-size:13px">'+fmt(st2.ms)+'</div></div>'+
+           '<div class="c"><div class="l">ربح الوكيل الصافي بعد الدعم</div><div class="v '+(st2.pf>=0?"n-green":"v-red")+'">'+(st2.pf>=0?"+":"")+'$'+fmt(st2.pf)+'</div></div>'+
            '</div>';
       }
       h+='<div class="fltwrap"><table class="fltab"><tr><th style="cursor:pointer" onclick="tqSelAll('+(selN<rows.length?1:0)+')">\u2611</th><th>الأيدي</th><th>الاسم</th><th>الجاذبية</th><th>ألماس</th><th>تارقته</th><th>الجاي</th><th>ناقصه للتارقت الجاي</th><th>وكيل الآن</th><th>وكيل بعد</th><th>نبذة</th></tr>';
@@ -1663,23 +1677,37 @@ function tqRender(){
            '<td style="color:#5EE3A6">$'+fmt(q.wkN)+'</td>'+
            '<td onclick="tqInfo(\''+q.id+'\')" style="cursor:pointer;color:'+(TQ.info===q.id?"#FFC96B":"#7CBBFF")+';font-weight:900">'+(TQ.info===q.id?"\u25BC":"\u2139")+'</td></tr>';
         if(TQ.info===q.id){
-          var lift=q.ftg>q.tg;
           var advice;
           if(!q.nx){ advice="أعلى مستوى — ما يحتاج شي."; }
-          else if(q.selfClose){ advice="\u2B50 الأنسب والأسرع والأقل: يفك ويقفل لنفسه بالحلقة — يقفل الجاي بدون أي دعم خارجي."; }
-          else if(q.alm<=0){ advice="ما عنده ألماس — الأقل: ادعمه "+fmt(q.minSup)+" مع الفك الحلقي (بدل "+fmt(q.need)+" بدون) — الحلقة توفر 30%."; }
-          else { advice="الأقل تكلفة: يفك ألماسه بالحلقة + دعم خارجي "+fmt(q.minSup)+" فقط (بدل "+fmt(q.need)+") \u2190 يقفل الجاي."; }
-          var boost=(q.fwk-q.wkC)>0?("اللي يزود راتب الوكيل: الفك (+$"+fmt(q.fwk-q.wkC)+")"):("اللي يزود راتب الوكيل: الوصول للتارقت "+q.nx+" (+$"+fmt(q.wkN-q.wkC)+")");
-          h+='<tr><td colspan="11" style="background:rgba(255,201,107,.07);padding:9px 10px;text-align:right;white-space:normal">'+
-             '<div style="font-size:10px;line-height:1.9;color:rgba(255,255,255,.85)">'+
-             '<b style="color:#BBAEFF">الحين:</b> تارقت '+(q.tg||"\u2014")+' \u00B7 وكيل $'+fmt(q.wkC)+' \u00B7 ناقصه '+fmt(q.need)+' للتارقت '+(q.nx||"\u2713")+'<br>'+
-             '<b style="color:#5EE3A6">لو فكّ ألماسه ('+fmt(q.alm)+'):</b> جاذبيته تصير '+fmt(q.fj)+' \u2190 تارقت '+(q.ftg||"\u2014")+' \u00B7 وكيل $'+fmt(q.fwk)+' (فرقه +$'+fmt(q.fwk-q.wkC)+' = '+fmt((q.fwk-q.wkC)*c.rateBuy)+' كونز \u00D71950) \u00B7 ناقصه '+fmt(q.fneed)+' للتارقت '+(q.fnx||"\u2713")+'<br>'+
-             '<b style="color:#FFD37E">راتب الحساب كامل (جاذبية + ألماس، بدون وكيل):</b> قبل الفك $'+fmt(q.accB)+' \u2190 بعد الفك $'+fmt(q.accA)+' ('+((q.accA-q.accB)>=0?'+':'\u2212')+'$'+fmt(Math.abs(q.accA-q.accB))+')<br>'+
-             '<b style="color:#7CBBFF">حلقة الفك (كل رمي يرجّع 30% ألماس):</b> ألماسه '+fmt(q.alm)+' يعطيه فعليًا '+fmt(q.aEff)+' جاذبية \u2190 يوصل '+fmt(q.lJaz)+' (تارقت '+(q.lTg||"\u2014")+')'+
-             (q.selfClose?(' \u00B7 <b style="color:#5EE3A6">يقفل الجاي بنفسه \u2713 ويفضل له '+fmt(q.surplus)+'</b>'):(q.nx?(' \u00B7 ناقصه بعد الحلقة '+fmt(Math.max(0,q.need-q.aEff))+' \u2190 <b style="color:#FFD37E">أقل دعم خارجي: '+fmt(q.minSup)+' فقط (بدل '+fmt(q.need)+' \u2014 توفير '+fmt(q.need-q.minSup)+')</b>'):''))+'<br>'+
-             '<b style="color:#F5A0BC">بعد الوصول:</b> وكيل $'+fmt(q.wkL)+' (\u0394 +$'+fmt(q.wkL-q.wkC)+') \u00B7 راتب الحساب $'+fmt(q.accL)+' ('+((q.accL-q.accB)>=0?'+':'\u2212')+'$'+fmt(Math.abs(q.accL-q.accB))+')'+(q.winWin?' \u00B7 <b style="color:#5EE3A6">\uD83D\uDC9A مكسب للطرفين</b>':'')+'<br>'+
-             '<b style="color:#FFC96B">\uD83D\uDCA1 '+advice+'</b><br>'+boost+
-             '</div></td></tr>';
+          else if(q.selfClose){ advice="\u2B50 الأنسب والأسرع والأقل: يفك ويقفل لنفسه بالحلقة — صفر دعم."; }
+          else if(q.prof>0){ advice="\uD83D\uDCB0 الوكيل يدعمه "+fmt(q.minSup)+" مع الفك (\u2248 $"+fmt(q.sup$)+") ويربح صافي +$"+fmt(q.prof)+" من فرق راتبه."; }
+          else if(q.alm>0){ advice="الأقل تكلفة: فك بالحلقة + دعم "+fmt(q.minSup)+" فقط (بدل "+fmt(q.need)+")."; }
+          else { advice="ما عنده ألماس — ادعمه "+fmt(q.minSup)+" مع الفك الحلقي (توفير 30%)."; }
+          var nb='';
+          function bx(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
+          nb+='<div class="nbt" style="color:#BBAEFF">\u23F1 الحين</div><div class="nbz">'
+            +bx('تارقته',q.tg||'\u2014','#BBAEFF')
+            +bx('راتب الوكيل','$'+fmt(q.wkC),'#FFD37E')
+            +bx('ناقصه للتارقت '+(q.nx||'\u2713'),q.nx?fmt(q.need):'\u2014','#FF8A80')+'</div>';
+          nb+='<div class="nbt" style="color:#7CBBFF">\uD83D\uDD13 فك فقط \u2014 حلقة 30%</div><div class="nbz">'
+            +bx('ألماسه بالحلقة \u00F70.7',fmt(q.aEff),'#7CBBFF')
+            +bx('يوصل جاذبية',fmt(q.lJaz)+' \u00B7 تارقت '+(q.lTg||'\u2014'),'#5EE3A6')
+            +(q.selfClose?bx('يقفل بنفسه \u2713 وفائض',fmt(q.surplus),'#5EE3A6'):bx('ناقصه بعد الحلقة',q.nx?fmt(Math.max(0,q.need-q.aEff)):'\u2014','#FF8A80'))+'</div>';
+          if(q.nx&&!q.selfClose){
+            nb+='<div class="nbt" style="color:#FFD37E">\uD83D\uDE9A لو دعمه الوكيل</div><div class="nbz">'
+              +bx('بدون فك: يدفع',fmt(q.need)+' \u2248 $'+fmt(q.supNo$),'#FF8A80')
+              +bx('مع الفك: يدفع',fmt(q.minSup)+' \u2248 $'+fmt(q.sup$),'#5EE3A6')
+              +bx('التوفير',fmt(q.need-q.minSup)+' كونز','#FFD37E')+'</div>';
+          }
+          nb+='<div class="nbt" style="color:#F5A0BC">\uD83C\uDFC1 بعد الوصول (تارقت '+(q.reachLv||'\u2014')+')</div><div class="nbz">'
+            +bx('راتب الوكيل','$'+fmt(q.wkL)+' (+$'+fmt(q.wkL-q.wkC)+')','#5EE3A6')
+            +bx('راتب الحساب','$'+fmt(q.accL)+' ('+((q.accL-q.accB)>=0?'+':'\u2212')+'$'+fmt(Math.abs(q.accL-q.accB))+')',(q.accL>=q.accB?'#5EE3A6':'#FF8A80'))
+            +bx('ربح الوكيل الصافي',(q.prof>=0?'+':'')+'$'+fmt(q.prof)+(q.profOk?' \uD83D\uDCB0':''),(q.prof>=0?'#5EE3A6':'#FF8A80'))+'</div>';
+          h+='<tr><td colspan="11" style="background:rgba(255,201,107,.06);padding:8px 9px;text-align:right;white-space:normal">'
+             +nb
+             +'<div style="font-size:10px;margin-top:7px;line-height:1.7"><b style="color:#FFC96B">\uD83D\uDCA1 '+advice+'</b>'
+             +(q.winWin?' <span style="color:#5EE3A6">\u00B7 \uD83D\uDC9A مكسب للطرفين</span>':'')
+             +'</div></td></tr>';
         }
       }
       h+='</table></div>';
