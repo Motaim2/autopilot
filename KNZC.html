@@ -682,6 +682,16 @@
       <div class="s" id="tq_wkSub"></div>
     </div>
   </div>
+  <div class="stage stg-room">
+    <h2>&#129518; حاسبة حساب واحد — اكتب وشوف كل الطرق</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <div><label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">الجاذبية الآن</label>
+      <input id="tqm_jaz" type="number" inputmode="numeric" placeholder="0"></div>
+      <div><label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">الألماس الآن</label>
+      <input id="tqm_alm" type="number" inputmode="numeric" placeholder="0"></div>
+    </div>
+    <div id="tqm_out"></div>
+  </div>
 </div>
 
 <div class="toast" id="copyToast">✓</div>
@@ -935,7 +945,7 @@ function fmt1(n){ return (Math.round(n*10)/10).toLocaleString("en-US"); }
 function $(id){ return document.getElementById(id); }
 function num(id){ var e=$(id); if(!e)return 0; var v=String(e.value).replace(/[،,\s]/g,""); return +v||0; }
 
-var BOX_TIERS=[{usd:5000,konz:80000},{usd:10000,konz:93730},{usd:20000,konz:192920},{usd:30000,konz:297570},{usd:50000,konz:514150},{usd:70000,konz:764400}];
+var BOX_TIERS=[{usd:5000,konz:80000},{usd:10000,konz:165000},{usd:20000,konz:340000},{usd:30000,konz:524000},{usd:50000,konz:907000},{usd:70000,konz:1348000}];
 
 var EDIT=null;
 var S={
@@ -1583,6 +1593,56 @@ function tqExport(){
   XLSX.writeFile(wb,"تقفيل_كونز.xlsx");
 }
 function q0Need(tg){ return tg&&tg.next?1:0; }
+function tqmCalc(){
+  var el=$("tqm_out"); if(!el)return;
+  var c=cfg();
+  var J=num("tqm_jaz"), A=num("tqm_alm");
+  if(J<=0&&A<=0){ el.innerHTML=""; return; }
+  function bx(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
+  var tg=tgOf(J);
+  var cur=tg.cur?tg.cur.lv:0, nx=tg.next?tg.next.lv:0, N=tg.need;
+  var wkC=tg.cur?(tg.cur.wakeel||0):0;
+  var accNow=(tg.cur?(tg.cur.jazSal||0):0)+tgAlmSal(A);
+  var direct=J+A; var td=tgOf(direct);                     // فك مباشر
+  var aEff=Math.floor(A/0.7); var lJaz=J+aEff; var tl=tgOf(lJaz); // الحلقة
+  var selfClose=nx&&aEff>=N;
+  var minSup=nx?Math.max(0,Math.ceil(0.7*N-A)):0;
+  var sup$=Math.ceil(minSup/c.rateBuy);
+  var supNo$=nx?Math.ceil(N/c.rateBuy):0;
+  var reachLv=selfClose?(tl.cur?tl.cur.lv:cur):nx;
+  var rl=null; for(var i=0;i<TARGET_TABLE.length;i++){ if(TARGET_TABLE[i].lv===reachLv)rl=TARGET_TABLE[i]; }
+  var wkL=rl?(rl.wakeel||0):wkC, accL=rl?(rl.jazSal||0):0;
+  var prof=nx?((wkL-wkC)-sup$):0;
+  var h='';
+  h+='<div class="nbt" style="color:#BBAEFF">\u23F1 وضعه الحين</div><div class="nbz">'
+    +bx('تارقته',cur||'\u2014','#BBAEFF')
+    +bx('باقي له ويقفل للتارقت '+(nx||'\u2713'),nx?fmt(N):'أعلى مستوى','#FF8A80')
+    +bx('راتب الوكيل الآن','$'+fmt(wkC),'#FFD37E')+'</div>';
+  h+='<div class="nbt" style="color:#7CBBFF">\uD83D\uDD13 لو فكّينا الألماس ('+fmt(A)+')</div><div class="nbz">'
+    +bx('فك مباشر: يوصل',fmt(direct)+' \u00B7 ت'+(td.cur?td.cur.lv:'\u2014'),'#7CBBFF')
+    +bx('بطريقتنا (حلقة 30% \u00F70.7)',fmt(lJaz)+' \u00B7 ت'+(tl.cur?tl.cur.lv:'\u2014'),'#5EE3A6')
+    +(selfClose?bx('يقفل بنفسه \u2713 ويبقى له',fmt(aEff-N),'#5EE3A6'):bx('يبقى ناقصه بعد الحلقة',nx?fmt(Math.max(0,N-aEff)):'\u2014','#FF8A80'))+'</div>';
+  if(nx&&!selfClose){
+    h+='<div class="nbt" style="color:#FFD37E">\uD83E\uDD1D المساعدة الخارجية (دعم \u2190 ألماسه \u2190 فك \u2190 قفل)</div><div class="nbz">'
+      +bx('نحتاج كونز دعم',fmt(minSup),'#FFC96B')
+      +bx('من راتب الوكيل \u2248','$'+fmt(sup$),'#FFD37E')
+      +bx('بدل '+fmt(N)+' بدون فك',';توفير '.replace(';','')+fmt(N-minSup),'#5EE3A6')+'</div>';
+  }
+  h+='<div class="nbt" style="color:#F5A0BC">\uD83D\uDCB5 الرواتب قبل \u2190 بعد (تارقت '+(reachLv||'\u2014')+')</div><div class="nbz">'
+    +bx('راتب الحساب بدون فك (الحين)','$'+fmt(accNow),'#FFD37E')
+    +bx('راتب الحساب بالفك (بعد)','$'+fmt(accL)+' ('+((accL-accNow)>=0?'+':'\u2212')+'$'+fmt(Math.abs(accL-accNow))+')',(accL>=accNow?'#5EE3A6':'#FF8A80'))
+    +bx('راتب الوكيل قبل \u2190 بعد','$'+fmt(wkC)+' \u2190 $'+fmt(wkL)+' (+$'+fmt(wkL-wkC)+')','#5EE3A6')+'</div>';
+  var plan='', badge='';
+  if(!nx){ plan='أعلى مستوى — ما يحتاج شي.'; }
+  else if(selfClose){ badge='\u2B50 الأسرع والأخف والأقل';
+    plan='1\u20E3 افك ألماسه '+fmt(A)+' وارمه لنفسه \u00B7 2\u20E3 كل رمية ترجّع 30% ألماس — افكه وارمه \u00B7 3\u20E3 يقفل التارقت '+nx+' بدون أي دعم ويبقى له '+fmt(aEff-N)+'.'; }
+  else{ badge=(prof>0?'\uD83D\uDCB0 الأقل تكلفة والوكيل رابح':'\uD83D\uDCA1 الأقل تكلفة');
+    plan='1\u20E3 افك ألماسه '+fmt(A)+' وارمه \u00B7 2\u20E3 ادعمه '+fmt(minSup)+' كونز (\u2248 $'+fmt(sup$)+' من راتب الوكيل) \u00B7 3\u20E3 خذ ألماس الدعم (30%) وافكه وارمه وكرر \u00B7 4\u20E3 يقفل التارقت '+nx+' — دفعت '+fmt(minSup)+' بدل '+fmt(N)+(prof>0?' والوكيل يربح صافي +$'+fmt(prof):'')+'.'; }
+  h+='<div style="background:rgba(94,227,166,.1);border:1px solid rgba(94,227,166,.35);border-radius:11px;padding:9px 10px;margin-top:8px">'
+    +(badge?'<div style="font-size:11px;font-weight:900;color:#5EE3A6;margin-bottom:4px">'+badge+'</div>':'')
+    +'<div style="font-size:10.5px;line-height:2;color:rgba(255,255,255,.9)">'+plan+'</div></div>';
+  el.innerHTML=h;
+}
 function tqRender(){
   var c=cfg();
   // ملف 1: جدول التقفيل
@@ -2534,6 +2594,7 @@ load(); render();
   var fm=$("fl_master"); if(fm)fm.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"master"); });
   var t1=$("tq_f1"); if(t1)t1.addEventListener("change",function(){ if(this.files[0])tqRead(this.files[0],"f1"); });
   var t2=$("tq_f2"); if(t2)t2.addEventListener("change",function(){ if(this.files[0])tqRead(this.files[0],"f2"); });
+  ["tqm_jaz","tqm_alm"].forEach(function(mid){ var me=$(mid); if(me)me.addEventListener("input",tqmCalc); });
   var fu=$("fl_upd"); if(fu)fu.addEventListener("change",function(){ if(this.files[0])flReadFile(this.files[0],"upd"); });
 })();
 </script>
