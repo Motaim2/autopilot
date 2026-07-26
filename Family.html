@@ -123,6 +123,18 @@ body{
 .sheet .big-photo{width:150px;height:150px;border-radius:50%;object-fit:cover;margin:0 auto 14px;display:block;border:3px solid var(--gold-dim)}
 .sheet p{color:var(--muted);margin:6px 0;font-size:14.5px}
 .sheet .years{font-family:"Amiri",serif;font-size:44px;color:var(--gold);margin:6px 0 0}
+.kids-title{font-family:"Amiri",serif;color:var(--gold-soft);font-size:19px;margin:18px 0 10px;
+  display:flex;align-items:center;gap:10px;justify-content:center}
+.kids-title:before,.kids-title:after{content:"";height:1px;width:40px;background:linear-gradient(90deg,transparent,var(--gold-dim))}
+.kids-title:after{background:linear-gradient(90deg,var(--gold-dim),transparent)}
+.kids{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:4px}
+.kid{width:86px;cursor:pointer;transition:.2s}
+.kid:hover{transform:translateY(-3px)}
+.kid img{width:66px;height:66px;border-radius:50%;object-fit:cover;display:block;margin:0 auto;
+  border:2px solid var(--kc,var(--gold-dim));background:#1a1f2a;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+.kid b{display:block;font-family:"Amiri",serif;font-size:14.5px;color:var(--pearl);margin-top:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.kid span{display:block;font-size:11px;color:var(--kc,var(--gold));text-align:center;margin-top:1px}
 #playerBox video,#playerBox img{width:100%;max-height:72vh;border-radius:12px;background:#000;display:block}
 
 /* forms */
@@ -235,6 +247,9 @@ input[type=file]{padding:9px}
       <div class="field"><label>التصنيف</label>
         <select id="fCat"><option value="sons">الأبناء</option><option value="grands">الأحفاد</option></select>
       </div>
+      <div class="field" id="fParentWrap" style="display:none"><label>والده (من الأبناء)</label>
+        <select id="fParent"><option value="">— اختر الأب —</option></select>
+      </div>
       <div class="field"><label>تاريخ الميلاد (الأدق — العمر يتحدث تلقائياً)</label><input type="date" id="fBirth"></div>
       <div class="field"><label>أو العمر بالسنوات</label><input type="number" id="fAge" min="0" max="120" placeholder="مثال: 34"></div>
       <div class="prog" id="prog1"><i></i></div>
@@ -284,7 +299,11 @@ input[type=file]{padding:9px}
   <img class="big-photo" id="pmPhoto" alt="">
   <h3 id="pmName"></h3><div class="years" id="pmYears"></div>
   <p id="pmSub"></p><p id="pmBirth"></p>
-  <button class="btn sec" id="pmClose">إغلاق</button>
+  <div id="pmKidsWrap" style="display:none">
+    <div class="kids-title">أبناؤه</div>
+    <div class="kids" id="pmKids"></div>
+  </div>
+  <button class="btn sec" id="pmClose" style="margin-top:14px">إغلاق</button>
 </div></div>
 
 <div class="overlay" id="playOverlay"><div class="sheet big">
@@ -517,6 +536,27 @@ function renderChart(){
   }
 }
 function findPerson(id){ for(var i=0;i<people.length;i++){ if(people[i].id===id) return people[i]; } return null; }
+function kidsOf(id){
+  var out=[];
+  for(var i=0;i<people.length;i++){ if(people[i].parent===id) out.push(people[i]); }
+  out.sort(function(a,b){ return ageDays(b)-ageDays(a); });
+  return out;
+}
+function fillParents(selected){
+  var sel=$("fParent"), sons=listOf("sons");
+  sel.innerHTML="<option value=''>— اختر الأب —</option>";
+  for(var i=0;i<sons.length;i++){
+    var o=document.createElement("option");
+    o.value=sons[i].id; o.textContent=sons[i].name;
+    if(selected && selected===sons[i].id) o.selected=true;
+    sel.appendChild(o);
+  }
+}
+function toggleParent(){
+  var isG = $("fCat").value==="grands";
+  $("fParentWrap").style.display = isG ? "block" : "none";
+  if(isG) fillParents($("fParent").value);
+}
 function openPerson(){
   var p=findPerson(this.getAttribute("data-id")); if(!p) return;
   $("pmPhoto").src=p.photo||BLANK;
@@ -525,6 +565,26 @@ function openPerson(){
   $("pmYears").textContent=arNum(ageYears(p));
   $("pmSub").textContent=ageText(p)+((ageYears(p)&&ageMonths(p))?(" و "+ageMonths(p)+" شهر"):"");
   $("pmBirth").textContent=p.birth?("تاريخ الميلاد: "+p.birth):"";
+  var kids = kidsOf(p.id);
+  var wrap=$("pmKidsWrap"), grid=$("pmKids");
+  grid.innerHTML="";
+  if(kids.length){
+    wrap.style.display="block";
+    for(var k=0;k<kids.length;k++){
+      var c=kids[k];
+      var d=document.createElement("div");
+      d.className="kid";
+      d.style.setProperty("--kc", c.color||"#c9a44c");
+      d.setAttribute("data-id", c.id);
+      d.innerHTML="<img alt='' src='"+(c.photo||BLANK)+"'><b></b><span></span>";
+      d.querySelector("b").textContent=c.name;
+      d.querySelector("span").textContent=ageText(c);
+      d.onclick=function(e){ e.stopPropagation(); openPerson.call(this); };
+      grid.appendChild(d);
+    }
+  }else{
+    wrap.style.display="none";
+  }
   $("personOverlay").classList.add("on");
 }
 
@@ -594,6 +654,11 @@ function renderPeople(){
     var sp=d.querySelector("span"); sp.textContent=ageText(p);
     var chip=document.createElement("span"); chip.className="chip";
     chip.textContent=(p.cat==="sons")?"الأبناء":"الأحفاد"; sp.appendChild(chip);
+    if(p.cat==="grands" && p.parent){
+      var fa=findPerson(p.parent);
+      if(fa){ var chip2=document.createElement("span"); chip2.className="chip";
+        chip2.textContent="بن "+fa.name; sp.appendChild(chip2); }
+    }
     var b=d.querySelectorAll("button");
     b[0].setAttribute("data-id",p.id); b[1].setAttribute("data-id",p.id);
     b[0].onclick=startEdit; b[1].onclick=removePerson;
@@ -606,6 +671,7 @@ function startEdit(){
   var p=findPerson(this.getAttribute("data-id")); if(!p) return;
   editId=p.id; pendingPhoto=null; pendingColor=p.color; pendingKind=p.kind||"img";
   $("fName").value=p.name; $("fCat").value=p.cat;
+  toggleParent(); if(p.cat==="grands") fillParents(p.parent||"");
   $("fBirth").value=p.birth||""; $("fAge").value=p.birth?"":(p.age||"");
   $("preview").src=p.photo||BLANK;
   $("formTitle").textContent="تعديل: "+p.name;
@@ -629,6 +695,7 @@ function resetForm(){
   $("formTitle").textContent="إضافة فرد جديد";
   $("saveBtn").textContent="حفظ";
   $("cancelEdit").style.display="none";
+  toggleParent();
 }
 var pendingBlob=null;
 function savePerson(){
@@ -639,6 +706,7 @@ function savePerson(){
 
   var finish = function(photoUrl){
     var rec={ name:name, cat:cat, birth:birth||null, age:birth?null:Number(age),
+              parent:(cat==="grands" ? ($("fParent").value||null) : null),
               color:pendingColor||"#c9a44c", kind:pendingKind, updatedAt:Date.now() };
     if(photoUrl) rec.photo=photoUrl;
     if(LIVE){
@@ -651,6 +719,7 @@ function savePerson(){
         for(var i=0;i<people.length;i++){ if(people[i].id===editId){
           people[i].name=name; people[i].cat=cat; people[i].birth=birth||null;
           people[i].age=birth?null:Number(age);
+          people[i].parent=(cat==="grands" ? ($("fParent").value||null) : null);
           if(photoUrl){ people[i].photo=photoUrl; people[i].color=pendingColor||people[i].color; people[i].kind=pendingKind; }
         }}
         toast("تم التعديل");
@@ -794,7 +863,7 @@ house.addEventListener("mouseleave",function(){ clearTimeout(pressTimer); });
 
 function askPin(){ $("pinInput").value=""; $("pinOverlay").classList.add("on"); setTimeout(function(){ $("pinInput").focus(); },100); }
 $("pinOk").onclick=function(){
-  if($("pinInput").value===pin){ $("pinOverlay").classList.remove("on"); resetForm(); renderPeople(); renderMediaAdmin(); show("view-admin"); }
+  if($("pinInput").value===pin){ $("pinOverlay").classList.remove("on"); resetForm(); fillParents(""); renderPeople(); renderMediaAdmin(); show("view-admin"); }
   else toast("الرمز غير صحيح");
 };
 $("pinInput").onkeydown=function(e){ if(e.key==="Enter") $("pinOk").click(); };
@@ -809,6 +878,7 @@ $("fPhoto").onchange=function(){
 };
 $("saveBtn").onclick=savePerson;
 $("cancelEdit").onclick=resetForm;
+$("fCat").onchange=toggleParent;
 $("filterCat").onchange=renderPeople;
 $("mSave").onclick=saveMedia;
 
