@@ -2715,7 +2715,7 @@ function render(){
       // 1) المصروف
       var buy$=K5/c.rateBuy;                        // اللي بدفعه فعليًا
       var ship$=K5/c.rateApp;                       // كم تنحسب الشحنة بالدولار
-      var box5=0; for(var b5i=0;b5i<BOX_TIERS.length;b5i++){ if(ship$>=BOX_TIERS[b5i].usd)box5=BOX_TIERS[b5i].konz; }
+      var box5=0; for(var b5i=0;b5i<BOX_TIERS.length;b5i++){ if(ship$>=BOX_TIERS[b5i].usd)box5+=BOX_TIERS[b5i].konz; }
       // 2) التقفيل
       var n5=Math.floor(K5/thr5), rest5=K5-n5*thr5;
       // 3) العوائد
@@ -2744,20 +2744,50 @@ function render(){
         +b5('كاس الروم ('+fmt(roomVal)+' من '+fmt(roomBase)+')',fmt(cup5),'#FFD37E')
         +b5('مجموع العوائد',fmt(R5)+' (\u2248 $'+fmt(Math.round(ret$))+')','#5EE3A6')+'</div>';
       h5+='<div class="nbt" style="color:#5EE3A6">\uD83D\uDD01 العوائد تقفل زيادة (مع الفك)</div><div class="nbz">'
-        +b5('حسابات إضافية',fmt(nX),'#5EE3A6')
-        +b5('الفايض النهائي',fmt(leftK)+' (\u2248 $'+fmt(Math.floor(leftK/c.rateBuy))+')','#FFC96B')
-        +b5('إجمالي المقفلة',fmt(nAll),'#7CBBFF')+'</div>';
-      h5+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCB5 الرواتب الشهرية</div><div class="nbz">'
-        +b5('لكل حساب (بعد الفك + وكيل)','$'+fmt(perSal),'#FFD37E')
-        +b5('\u00D7'+fmt(nAll)+' حساب','$'+fmt(salM)+' شهريًا','#5EE3A6')
-        +b5('وكيل \u00B7 حسابات','$'+fmt((t5r?t5r.wakeel:30)*nAll)+' \u00B7 $'+fmt((t5r?t5r.jazSal:80)*nAll),'#BBAEFF')+'</div>';
+        +b5('حسابات إضافية ('+fmt(thr5)+')',fmt(nX),'#5EE3A6')
+        +b5('فايض العوائد',fmt(leftK),'#FFC96B')
+        +b5('+ الباقي من الشحنة',fmt(rest5),'#FFD37E')+'</div>';
+      var pool=rest5+leftK;
+      var poolStart=pool;
+      var closes=[];
+      var minCost=Math.ceil(0.7*TARGET_TABLE[0].jaz);
+      var guard=0;
+      while(pool>=minCost&&guard<30){
+        var pick=null;
+        for(var pi=TARGET_TABLE.length-1;pi>=0;pi--){
+          if(Math.ceil(0.7*TARGET_TABLE[pi].jaz)<=pool){ pick=TARGET_TABLE[pi]; break; } }
+        if(!pick)break;
+        closes.push(pick); pool-=Math.ceil(0.7*pick.jaz); guard++;
+      }
+      var extraSal=0, cnt={};
+      for(var ci5=0;ci5<closes.length;ci5++){ var lv5=closes[ci5].lv; cnt[lv5]=(cnt[lv5]||0)+1; extraSal+=(closes[ci5].jazSal||0)+(closes[ci5].wakeel||0); }
+      var parts=[]; for(var ck5 in cnt)parts.push(cnt[ck5]+' \u00D7 تارقت '+ck5);
+      var closeTxt=parts.length?parts.join(' + '):'\u2014 (قليل)';
+      var nTot=nAll+closes.length;
+      salM=nAll*perSal+extraSal;
+      h5+='<div class="nbt" style="color:#FFC96B">\uD83E\uDDE9 نجمع الفايضين ونقفل أقرب تارقت</div><div class="nbz">'
+        +b5('الفايضين مع بعض',fmt(poolStart),'#FFC96B')
+        +b5('نقفل فيها (دعم+فك)',closeTxt,'#5EE3A6')
+        +b5('المتبقي النهائي',fmt(pool)+' (\u2248 $'+fmt(Math.floor(pool/c.rateBuy))+')','#9fc7ee')+'</div>';
+      var left$=pool/c.rateBuy;
+      var back$=salM+left$;              // اللي يرجع لي دولار فعليًا
+      var net5=back$-buy$;
+      h5+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCB5 اللي يرجع لي دولار</div><div class="nbz">'
+        +b5('رواتب '+fmt(nAll)+' حساب \u00D7$'+fmt(perSal),'$'+fmt(nAll*perSal),'#FFD37E')
+        +b5('+ رواتب حسابات الفايض ('+closes.length+')','$'+fmt(extraSal),'#5EE3A6')
+        +b5('+ المتبقي كونز '+fmt(pool),'\u2248 $'+fmt(Math.round(left$)),'#9fc7ee')+'</div>';
+      h5+='<div class="nbz" style="grid-template-columns:1fr">'
+        +b5('مجموع الراجع لي','$'+fmt(Math.round(back$))+' (رواتب $'+fmt(salM)+' + متبقي $'+fmt(Math.round(left$))+')','#5EE3A6')+'</div>';
       var vTxt5, vCol5;
-      if(deficit<=0){ vCol5='#5EE3A6';
-        vTxt5='\u2705 <b>ما فيه عجز</b>: دفعت $'+fmt(Math.round(buy$))+' والعوائد رجّعت $'+fmt(Math.round(ret$))+' — زايد <b>+$'+fmt(Math.round(-deficit))+'</b> وفوقه رواتب <b>$'+fmt(salM)+' شهريًا</b>.'; }
-      else{ var months=salM>0?(deficit/salM):0;
-        vCol5='#FFC96B';
-        vTxt5='<b style="font-size:12px">\u26A0 العجز النهائي: $'+fmt(Math.round(deficit))+'</b><br>دفعت $'+fmt(Math.round(buy$))+' \u2212 عوائد $'+fmt(Math.round(ret$))+' = عجز $'+fmt(Math.round(deficit))+'<br>الرواتب الجديدة ($'+fmt(salM)+' شهريًا) تغطيه خلال <b>'+(months<1?'أقل من شهر':Math.ceil(months)+' شهر')+'</b> \u2014 وبعدها كله ربح صافي.'; }
-      h5+='<div style="background:'+(deficit<=0?'rgba(94,227,166,.1)':'rgba(255,201,107,.12)')+';border:1.5px solid '+vCol5+'77;border-radius:11px;padding:10px 11px;margin-top:8px;font-size:10.5px;line-height:2;color:rgba(255,255,255,.95)">'+vTxt5+'</div>';
+      if(net5>=0){ vCol5='#5EE3A6';
+        vTxt5='<b style="font-size:17px;color:#5EE3A6">+$'+fmt(Math.round(net5))+' كسبنا</b><br>'
+          +'دفعت $'+fmt(Math.round(buy$))+' \u2190 رجع لي $'+fmt(Math.round(back$))+'<br>'
+          +'<span style="color:rgba(255,255,255,.6);font-size:9.5px">والرواتب ($'+fmt(salM)+') تتكرر كل شهر ما دامت الحسابات مقفلة</span>'; }
+      else{ vCol5='#FF8A80';
+        vTxt5='<b style="font-size:17px;color:#FF8A80">\u2212$'+fmt(Math.round(Math.abs(net5)))+' خسرنا</b><br>'
+          +'دفعت $'+fmt(Math.round(buy$))+' \u2190 رجع لي $'+fmt(Math.round(back$))+' (رواتب $'+fmt(salM)+' + متبقي $'+fmt(Math.round(left$))+')<br>'
+          +'<span style="color:rgba(255,255,255,.6);font-size:9.5px">هذا صافي الدورة الوحدة \u2014 والرواتب تتكرر شهريًا ما دامت الحسابات مقفلة، فالشهر الثاني يقلبها ربح</span>'; }
+      h5+='<div style="background:'+(net5>=0?'rgba(94,227,166,.1)':'rgba(255,138,128,.1)')+';border:1.5px solid '+vCol5+'77;border-radius:11px;padding:11px 12px;margin-top:8px;font-size:10.5px;line-height:2.1;color:rgba(255,255,255,.95);text-align:center">'+vTxt5+'</div>';
       v5.innerHTML=h5;
     }
   }
