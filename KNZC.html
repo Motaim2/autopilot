@@ -2846,7 +2846,9 @@ function render(){
       // الجائزة تقفل كذلك
       var nX6=Math.floor(cup6/thr6), leftCup6=cup6-nX6*thr6;
       var pool6=rest6+leftCup6;
-      var nAll6=n6+nX6;
+      var nP6=Math.floor(pool6/thr6);          // الفايضين يقفلون كذلك
+      var fin6=pool6-nP6*thr6;                 // الفايض النهائي الحقيقي
+      var nAll6=n6+nX6+nP6;
       var newSal=nAll6*perSal6;
       var alm$=K6/c.rateBuy;
       var dSal=newSal-oldAlmSal;
@@ -2862,7 +2864,18 @@ function render(){
       h6+='<div class="nbt" style="color:#F5A0BC">\uD83C\uDFC6 جائزة الروم وتقفيلها</div><div class="nbz">'
         +b6('جائزة الروم',fmt(cup6),'#FFD37E')
         +b6('نقفل فيها كذلك',fmt(nX6)+' حساب','#5EE3A6')
-        +b6('الفايض النهائي',fmt(pool6)+' (\u2248 $'+fmt(Math.floor(pool6/c.rateBuy))+')','#9fc7ee')+'</div>';
+        +b6('فايض الجائزة + باقي الفك',fmt(pool6),'#FFC96B')+'</div>';
+      h6+='<div class="nbz">'
+        +b6('الفايضين يقفلون كذلك',fmt(nP6)+' حساب','#5EE3A6')
+        +b6('الفايض النهائي',fmt(fin6)+' (\u2248 $'+fmt(Math.floor(fin6/c.rateBuy))+')','#9fc7ee')
+        +b6('إجمالي المقفلة',fmt(nAll6),'#7CBBFF')+'</div>';
+      var needFin=fin6>0?(thr6-fin6):0;
+      if(fin6>0){
+        h6+='<div class="nbt" style="color:#9fc7ee">\uD83E\uDE99 الفايض ما يضيع \u2014 نرميه على حساب ونكمله بعدين</div><div class="nbz">'
+          +b6('نرمي الفايض على حساب',fmt(fin6),'#9fc7ee')
+          +b6('ناقصه ليقفل ('+fmt(thr6)+')',fmt(needFin)+' (\u2248 $'+fmt(Math.ceil(needFin/c.rateBuy))+' شراء)','#FF8A80')
+          +b6('لو كمّلته: الإجمالي',fmt(nAll6+1)+' حساب \u00B7 رواتب $'+fmt((nAll6+1)*perSal6),'#5EE3A6')+'</div>';
+      }
       h6+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCB5 رواتب الألماس قبل وبعد</div><div class="nbz">'
         +b6('رواتب الألماس قبل (بالمحفظة)','$'+fmt(oldAlmSal),'#FFD37E')
         +b6('بعد أخذ الألماس','$0 \u2014 راح راتبها','#FF8A80')
@@ -2878,7 +2891,7 @@ function render(){
         :(newSal>=alm$?'ومع كذا الرواتب الجديدة ($'+fmt(newSal)+') تغطي قيمة الألماس (\u2248 $'+fmt(Math.round(alm$))+') من أول شهر'
         :'وقيمة الألماس (\u2248 $'+fmt(Math.round(alm$))+') ما ترجع من رواتب \u2014 العملية مو مجدية بهالتوزيعة');
       h6+='<div style="background:'+(dSal>=0?'rgba(94,227,166,.1)':'rgba(255,138,128,.1)')+';border:1.5px solid '+vC6+'77;border-radius:11px;padding:11px 12px;margin-top:8px;font-size:10.5px;line-height:2.1;color:rgba(255,255,255,.95);text-align:center">'+vT6
-        +'<span style="color:rgba(255,255,255,.75);font-size:9.5px">'+back6+' \u00B7 وجوايز الكاس داخلة بالحسبة</span></div>';
+        +'<span style="color:rgba(255,255,255,.75);font-size:9.5px">'+back6+' \u00B7 وجوايز الكاس داخلة بالحسبة'+(fin6>0?' \u00B7 والفايض '+fmt(fin6)+' على حساب: كمّله بـ'+fmt(needFin)+' (\u2248 $'+fmt(Math.ceil(needFin/c.rateBuy))+') يصير '+fmt(nAll6+1)+' حساب ورواتبك $'+fmt((nAll6+1)*perSal6):'')+'</span></div>';
       v6.innerHTML=h6;
     }
   }
