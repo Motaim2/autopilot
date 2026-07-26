@@ -186,6 +186,14 @@ input[type=file]{padding:9px}
 .prog{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px;display:none}
 .prog.on{display:block}
 .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-soft));transition:width .2s}
+.sent{ text-align:center;padding:40px 10px }
+.sent .mark{width:84px;height:84px;border-radius:50%;border:2px solid var(--gold);color:var(--gold);
+  font-size:38px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+  box-shadow:0 0 34px rgba(201,164,76,.3)}
+.sent h3{font-family:"Amiri",serif;color:var(--gold-soft);font-size:26px;margin:0 0 8px}
+.sent p{color:var(--muted);line-height:2}
+.inbox-badge{display:inline-block;min-width:22px;text-align:center;background:var(--gold);color:#20180a;
+  border-radius:20px;font-size:12.5px;font-weight:700;padding:1px 8px;margin-inline-start:6px}
 .toast{position:fixed;bottom:24px;right:50%;transform:translateX(50%) translateY(20px);background:#151a24;
   border:1px solid var(--gold-dim);color:var(--gold-soft);padding:12px 22px;border-radius:10px;z-index:99;
   opacity:0;transition:.3s;pointer-events:none;font-size:14px;max-width:88vw;text-align:center}
@@ -254,6 +262,30 @@ input[type=file]{padding:9px}
     <div class="album" id="albumGrid"></div>
   </section>
 
+  <!-- ============ SUBMIT (رابط عام) ============ -->
+  <section id="view-submit" class="view">
+    <div class="frame" style="text-align:center">
+      <p class="eyebrow">عائلة محمد المسعر</p>
+      <div class="rule"><i></i><b>❖</b><i></i></div>
+      <div id="submitForm">
+        <h2 class="page-title" style="margin-bottom:6px">أضف نفسك لشجرة العائلة</h2>
+        <p class="hint" style="margin-bottom:16px">عبّي بياناتك وأرسلها، وبيراجعها المشرف ويضيفك بمكانك.</p>
+        <img class="preview" id="sPreview" alt="" style="width:110px;height:110px">
+        <div class="field"><label>صورتك</label><input type="file" id="sPhoto" accept="image/*,image/gif"></div>
+        <div class="field"><label>الاسم</label><input type="text" id="sName" placeholder="اكتب اسمك"></div>
+        <div class="field"><label>تاريخ الميلاد (الأفضل)</label><input type="date" id="sBirth"></div>
+        <div class="field"><label>أو العمر بالسنوات</label><input type="number" id="sAge" min="0" max="120" placeholder="مثال: 25"></div>
+        <button class="btn" id="sSend">إرسال للمشرف</button>
+      </div>
+      <div id="submitDone" class="sent" style="display:none">
+        <div class="mark">✓</div>
+        <h3>وصلت بياناتك</h3>
+        <p>شكراً لك، المشرف بيراجعها ويضيفك<br>لشجرة العائلة قريباً بإذن الله.</p>
+        <button class="btn sec" id="sAgain" style="max-width:240px;margin:14px auto 0">إرسال شخص آخر</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ ADMIN ============ -->
   <section id="view-admin" class="view">
     <div class="bar">
@@ -286,6 +318,12 @@ input[type=file]{padding:9px}
         <select id="filterCat"><option value="all">الكل</option><option value="sons">الأبناء</option><option value="grands">الأحفاد</option></select>
       </div>
       <div class="people" id="peopleList"></div>
+    </div>
+
+    <div class="card">
+      <h4>الطلبات الواردة<span class="inbox-badge" id="inboxCnt">0</span></h4>
+      <p class="hint" style="text-align:right;margin:0 0 10px">اللي يرسلون بياناتهم من رابط الإضافة تطلع هنا — اقبلها وحدد مكانها أو ارفضها.</p>
+      <div class="people" id="inboxList"></div>
     </div>
 
     <div class="card">
@@ -360,6 +398,8 @@ var LIVE = false, fdb = null, fst = null;
 var KEY = "almusaar_family_v2";
 var people = [], album = [], pin = "1234";
 var editId = null, pendingPhoto = null, pendingColor = null, pendingKind = "img";
+var inbox = [], inboxEditId = null;
+var sPendingPhoto = null, sPendingColor = null;
 var currentCat = "sons", clickCount = 0, clickTimer = null, pressTimer = null;
 var BLANK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='96' height='96' fill='%231a1f2a'/><text x='48' y='60' font-size='34' text-anchor='middle' fill='%23c9a44c'>؟</text></svg>";
 
@@ -458,14 +498,14 @@ function videoThumb(file, done){
 
 /* ---------- storage layer (سحابي أو محلي) ---------- */
 function localSave(){
-  try{ localStorage.setItem(KEY, JSON.stringify({pin:pin, people:people, album:album})); return true; }
+  try{ localStorage.setItem(KEY, JSON.stringify({pin:pin, people:people, album:album, inbox:inbox})); return true; }
   catch(e){ toast("المساحة ممتلئة — احفظ نسخة واحذف بعض الملفات"); return false; }
 }
 function cacheMirror(){
   try{ localStorage.setItem(KEY+"_cache", JSON.stringify({people:people, album:album})); }catch(e){}
 }
 function localLoad(){
-  try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); people=o.people||[]; album=o.album||[]; pin=o.pin||"1234"; } }catch(e){}
+  try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); people=o.people||[]; album=o.album||[]; inbox=o.inbox||[]; pin=o.pin||"1234"; } }catch(e){}
 }
 function upload(path, blobOrFile, progEl, done, fail){
   var task = fst.ref().child(path).put(blobOrFile);
@@ -516,6 +556,12 @@ function boot(){
           album.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
           cacheMirror();
           renderAlbum(); renderMediaAdmin(); renderCounts();
+        });
+
+        fdb.collection("inbox").onSnapshot(function(snap){
+          inbox=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; inbox.push(o); });
+          inbox.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+          renderInbox();
         });
 
         fdb.collection("settings").doc("main").onSnapshot(function(d){ if(d.exists && d.data().pin) pin=d.data().pin; });
@@ -785,9 +831,20 @@ function resetForm(){
   editId=null; pendingPhoto=null; pendingColor=null; pendingKind="img";
   $("fName").value=""; $("fBirth").value=""; $("fAge").value=""; $("fPhoto").value="";
   $("preview").src=BLANK;
+$("sPreview").src=BLANK;
+$("sPhoto").onchange=function(){
+  if(!this.files || !this.files[0]) return;
+  processImage(this.files[0], function(dataUrl,color){
+    sPendingPhoto=dataUrl; sPendingColor=color;
+    $("sPreview").src=dataUrl; $("sPreview").style.borderColor=color;
+  });
+};
+$("sSend").onclick=sendSubmission;
+$("sAgain").onclick=resetSubmit;
   $("formTitle").textContent="إضافة فرد جديد";
   $("saveBtn").textContent="حفظ";
   $("cancelEdit").style.display="none";
+  inboxEditId=null;
   toggleParent();
 }
 var pendingBlob=null;
@@ -807,6 +864,7 @@ function savePerson(){
       var op = editId ? fdb.collection("family").doc(editId).set(rec,{merge:true})
                       : fdb.collection("family").doc(uid()).set(rec);
       op.catch(function(err){ toast("تنبيه: لم يصل للسحابة ("+(err&&err.code||"؟")+") — تحقق من قواعد Firestore"); });
+      clearInboxAfterSave();
       toast(editId?"تم التعديل":"تمت الإضافة");
       resetForm(); $("saveBtn").disabled=false;
     }else{
@@ -821,6 +879,7 @@ function savePerson(){
       }else{
         rec.id=uid(); rec.photo=photoUrl||null; people.push(rec); toast("تمت الإضافة");
       }
+      clearInboxAfterSave();
       localSave(); resetForm(); renderPeople(); renderCounts(); $("saveBtn").disabled=false;
     }
   };
@@ -929,8 +988,102 @@ function saveMedia(){
   });
 }
 
+/* ---------- inbox (الطلبات الواردة) ---------- */
+function findInbox(id){ for(var i=0;i<inbox.length;i++){ if(inbox[i].id===id) return inbox[i]; } return null; }
+function renderInbox(){
+  var box=$("inboxList"); if(!box) return;
+  $("inboxCnt").textContent=arNum(inbox.length);
+  box.innerHTML="";
+  if(!inbox.length){ box.innerHTML="<div class='empty' style='padding:18px'>ما فيه طلبات جديدة.</div>"; return; }
+  for(var i=0;i<inbox.length;i++){
+    var q=inbox[i];
+    var d=document.createElement("div"); d.className="pcard";
+    d.innerHTML="<img alt='' src='"+(q.photo||BLANK)+"'><div class='meta'><b></b><span></span></div>"+
+      "<button class='icobtn' title='قبول'>✓</button><button class='icobtn del' title='رفض'>✕</button>";
+    d.querySelector("b").textContent=q.name;
+    d.querySelector("span").textContent = q.birth ? ("مواليد "+q.birth) : ((q.age||"؟")+" سنة");
+    var b=d.querySelectorAll("button");
+    b[0].setAttribute("data-id",q.id); b[1].setAttribute("data-id",q.id);
+    b[0].onclick=acceptInbox; b[1].onclick=rejectInbox;
+    box.appendChild(d);
+  }
+}
+function acceptInbox(){
+  var q=findInbox(this.getAttribute("data-id")); if(!q) return;
+  resetForm();
+  inboxEditId=q.id;
+  pendingPhoto=q.photo||null; pendingColor=q.color||"#c9a44c"; pendingKind=q.kind||"img";
+  $("fName").value=q.name||"";
+  $("fBirth").value=q.birth||""; $("fAge").value=q.birth?"":(q.age||"");
+  $("preview").src=q.photo||BLANK;
+  $("formTitle").textContent="قبول طلب: "+(q.name||"");
+  $("cancelEdit").style.display="block";
+  toast("حدد التصنيف (والأب لو حفيد) ثم اضغط حفظ");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function rejectInbox(){
+  var q=findInbox(this.getAttribute("data-id")); if(!q) return;
+  if(!confirm("رفض طلب "+(q.name||"")+" وحذفه؟")) return;
+  if(LIVE){ fdb.collection("inbox").doc(q.id).delete(); }
+  else{
+    var out=[]; for(var i=0;i<inbox.length;i++){ if(inbox[i].id!==q.id) out.push(inbox[i]); }
+    inbox=out; localSave(); renderInbox();
+  }
+  toast("تم الرفض");
+}
+function clearInboxAfterSave(){
+  if(!inboxEditId) return;
+  var iid=inboxEditId; inboxEditId=null;
+  if(LIVE){ fdb.collection("inbox").doc(iid).delete(); }
+  else{
+    var out=[]; for(var i=0;i<inbox.length;i++){ if(inbox[i].id!==iid) out.push(inbox[i]); }
+    inbox=out; localSave(); renderInbox();
+  }
+}
+
+/* ---------- صفحة الإرسال العامة ---------- */
+function sendSubmission(){
+  var name=$("sName").value.trim(), birth=$("sBirth").value, age=$("sAge").value;
+  if(!name){ toast("اكتب اسمك أول"); return; }
+  if(!birth && !age){ toast("اكتب تاريخ الميلاد أو العمر"); return; }
+  if(sPendingPhoto && sPendingPhoto.length>950000){ toast("الصورة كبيرة — اختر صورة أصغر"); return; }
+  $("sSend").disabled=true;
+  var rec={ name:name, birth:birth||null, age:birth?null:Number(age),
+            photo:sPendingPhoto||null, color:sPendingColor||"#c9a44c", createdAt:Date.now() };
+  var after=function(){
+    $("submitForm").style.display="none";
+    $("submitDone").style.display="block";
+    $("sSend").disabled=false;
+  };
+  if(LIVE){
+    fdb.collection("inbox").doc(uid()).set(rec)
+      .catch(function(err){ toast("تنبيه: لم يصل ("+(err&&err.code||"؟")+")"); });
+    after();
+  }else{
+    rec.id=uid(); inbox.unshift(rec);
+    if(localSave()){ renderInbox(); after(); } else $("sSend").disabled=false;
+  }
+}
+function resetSubmit(){
+  sPendingPhoto=null; sPendingColor=null;
+  $("sName").value=""; $("sBirth").value=""; $("sAge").value=""; $("sPhoto").value="";
+  $("sPreview").src=BLANK;
+  $("submitDone").style.display="none";
+  $("submitForm").style.display="block";
+}
+
 /* ---------- wiring ---------- */
 $("preview").src=BLANK;
+$("sPreview").src=BLANK;
+$("sPhoto").onchange=function(){
+  if(!this.files || !this.files[0]) return;
+  processImage(this.files[0], function(dataUrl,color){
+    sPendingPhoto=dataUrl; sPendingColor=color;
+    $("sPreview").src=dataUrl; $("sPreview").style.borderColor=color;
+  });
+};
+$("sSend").onclick=sendSubmission;
+$("sAgain").onclick=resetSubmit;
 var gates=document.querySelectorAll(".gate[data-go]");
 for(var g=0;g<gates.length;g++){ gates[g].onclick=function(){ openChart(this.getAttribute("data-go")); }; }
 $("albumGate").onclick=function(){ renderAlbum(); show("view-album"); };
@@ -1015,6 +1168,11 @@ $("pinBtn").onclick=function(){
 window.addEventListener("resize",function(){ if($("view-chart").classList.contains("on")) renderChart(); });
 
 boot();
+/* رابط الإضافة العام: Family.html#send */
+try{
+  var hh = decodeURIComponent(location.hash||"");
+  if(hh==="#send" || hh==="#ارسال" || hh==="#اضافة"){ resetSubmit(); show("view-submit"); }
+}catch(e){ if(location.hash==="#send"){ resetSubmit(); show("view-submit"); } }
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
 </script>
 </body>
