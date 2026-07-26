@@ -346,6 +346,13 @@ input[type=file]{padding:9px}
     </div>
 
     <div class="card">
+      <h4>حالة الاتصال بالسحابة</h4>
+      <p class="hint" style="text-align:right;margin:0 0 10px">لو الناس ما يشوفون البيانات، اضغط الفحص وبيقول لك وين المشكلة بالضبط.</p>
+      <button class="btn sec" id="diagBtn">فحص الاتصال الآن</button>
+      <div id="diagOut" style="text-align:right;font-size:13.5px;line-height:2;color:var(--pearl);margin-top:12px"></div>
+    </div>
+
+    <div class="card">
       <h4>النسخ الاحتياطي والرمز</h4>
       <div class="row2">
         <button class="btn sec" id="exportBtn">حفظ نسخة</button>
@@ -397,7 +404,7 @@ input[type=file]{padding:9px}
 <div class="toast" id="toast"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 <script>
 /* ============================================================
@@ -415,7 +422,8 @@ var FIREBASE_CONFIG = {
   measurementId: "G-018LN176MW"
 };
 
-var LIVE = false, fdb = null, fst = null;
+var LIVE = false, rdb = null, fst = null;
+var cloudHadPeople = false, cloudHadAlbum = false;
 var KEY = "almusaar_family_v2";
 var people = [], album = [], pin = "1234";
 var editId = null, pendingPhoto = null, pendingColor = null, pendingKind = "img";
@@ -546,51 +554,45 @@ function upload(path, blobOrFile, progEl, done, fail){
 
 /* ---------- init ---------- */
 function boot(){
-  if(FIREBASE_CONFIG.apiKey){
+  if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL){
     try{
       firebase.initializeApp(FIREBASE_CONFIG);
-      fdb = firebase.firestore();
+      rdb = firebase.database();
       try{ fst = firebase.storage(); }catch(e0){ fst = null; }
+      LIVE = true;
 
-      /* شبكات الجوال أحيانا تحجب قناة الاتصال الافتراضية — هذا يحلها */
-      try{ fdb.settings({ experimentalAutoDetectLongPolling: true, merge: true }); }catch(e1){}
+      /* اعرض آخر نسخة محفوظة بالجهاز فورا قبل وصول السحابة */
+      try{
+        var c = localStorage.getItem(KEY+"_cache");
+        if(c){ var o=JSON.parse(c); people=o.people||[]; album=o.album||[];
+          renderCounts(); renderPeople(); renderAlbum(); renderMediaAdmin(); }
+      }catch(e2){}
 
-      /* تخزين دائم داخل المتصفح: أي إضافة تنحفظ فورا حتى بدون نت وترتفع للسحابة أول ما يرجع الاتصال */
-      var start = function(){
-        LIVE = true;
+      rdb.ref("family").on("value", function(snap){
+        var arr=[]; snap.forEach(function(ch){ var v=ch.val()||{}; v.id=ch.key; arr.push(v); });
+        if(arr.length){ cloudHadPeople=true; }
+        /* لا تمسح البيانات المحلية لو السحابة فاضية ولم يسبق أن أرسلت شيئا */
+        if(arr.length || cloudHadPeople || !people.length){ people=arr; cacheMirror(); }
+        renderCounts(); renderPeople(); if($("view-chart").classList.contains("on")) renderChart();
+      }, function(err){ toast("تعذر الاتصال بقاعدة البيانات ("+(err&&err.code||"؟")+")"); });
 
-        /* اعرض آخر نسخة محفوظة فورا قبل وصول السحابة */
-        try{
-          var c = localStorage.getItem(KEY+"_cache");
-          if(c){ var o=JSON.parse(c); people=o.people||[]; album=o.album||[];
-            renderCounts(); renderPeople(); renderAlbum(); renderMediaAdmin(); }
-        }catch(e2){}
+      rdb.ref("album").on("value", function(snap){
+        var arr=[]; snap.forEach(function(ch){ var v=ch.val()||{}; v.id=ch.key; arr.push(v); });
+        if(arr.length){ cloudHadAlbum=true; }
+        if(arr.length || cloudHadAlbum || !album.length){
+          arr.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+          album=arr; cacheMirror();
+        }
+        renderAlbum(); renderMediaAdmin(); renderCounts();
+      });
 
-        fdb.collection("family").onSnapshot({includeMetadataChanges:false}, function(snap){
-          people=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; people.push(o); });
-          cacheMirror();
-          renderCounts(); renderPeople(); if($("view-chart").classList.contains("on")) renderChart();
-        }, function(err){ toast("تعذر الاتصال بقاعدة البيانات ("+(err&&err.code||"؟")+")"); });
+      rdb.ref("inbox").on("value", function(snap){
+        inbox=[]; snap.forEach(function(ch){ var v=ch.val()||{}; v.id=ch.key; inbox.push(v); });
+        inbox.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+        renderInbox();
+      });
 
-        fdb.collection("album").onSnapshot(function(snap){
-          album=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; album.push(o); });
-          album.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-          cacheMirror();
-          renderAlbum(); renderMediaAdmin(); renderCounts();
-        });
-
-        fdb.collection("inbox").onSnapshot(function(snap){
-          inbox=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; inbox.push(o); });
-          inbox.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-          renderInbox();
-        });
-
-        fdb.collection("settings").doc("main").onSnapshot(function(d){ if(d.exists && d.data().pin) pin=d.data().pin; });
-      };
-
-      fdb.enablePersistence({ synchronizeTabs:true })
-        .then(start)
-        .catch(function(){ try{ fdb.enablePersistence().then(start).catch(start); }catch(e3){ start(); } });
+      rdb.ref("settings/pin").on("value", function(s){ if(s.val()) pin=String(s.val()); });
       return;
     }catch(e){ LIVE=false; }
   }
@@ -842,7 +844,7 @@ function startEdit(){
 function removePerson(){
   var p=findPerson(this.getAttribute("data-id")); if(!p) return;
   if(!confirm("حذف "+p.name+" نهائياً؟")) return;
-  if(LIVE){ fdb.collection("family").doc(p.id).delete().then(function(){ toast("تم الحذف"); }); }
+  if(LIVE){ rdb.ref("family/"+p.id).remove().then(function(){ toast("تم الحذف"); }); }
   else{
     var out=[]; for(var i=0;i<people.length;i++){ if(people[i].id!==p.id) out.push(people[i]); }
     people=out; localSave(); renderPeople(); renderCounts(); toast("تم الحذف");
@@ -882,8 +884,8 @@ function savePerson(){
     if(photoUrl) rec.photo=photoUrl;
     if(LIVE){
       /* الكتابة تنحفظ محليا فورا (حتى بدون نت) وترتفع للسحابة تلقائيا */
-      var op = editId ? fdb.collection("family").doc(editId).set(rec,{merge:true})
-                      : fdb.collection("family").doc(uid()).set(rec);
+      var op = editId ? rdb.ref("family/"+editId).update(rec)
+                      : rdb.ref("family/"+uid()).set(rec);
       op.catch(function(err){ toast("تنبيه: لم يصل للسحابة ("+(err&&err.code||"؟")+") — تحقق من قواعد Firestore"); });
       clearInboxAfterSave();
       toast(editId?"تم التعديل":"تمت الإضافة");
@@ -933,7 +935,7 @@ function renderMediaAdmin(){
 function removeMedia(){
   var m=findMedia(this.getAttribute("data-id")); if(!m) return;
   if(!confirm("حذف هذا المقطع من الألبوم؟")) return;
-  if(LIVE){ fdb.collection("album").doc(m.id).delete(); }
+  if(LIVE){ rdb.ref("album/"+m.id).remove(); }
   else{
     var out=[]; for(var i=0;i<album.length;i++){ if(album[i].id!==m.id) out.push(album[i]); }
     album=out; localSave(); renderAlbum(); renderMediaAdmin(); renderCounts();
@@ -949,7 +951,7 @@ function saveMedia(){
   var push=function(rec){
     rec.title=title||""; rec.date=today; rec.createdAt=Date.now();
     if(LIVE){
-      fdb.collection("album").doc(uid()).set(rec)
+      rdb.ref("album/"+uid()).set(rec)
         .catch(function(err){ toast("تنبيه: لم يصل للسحابة ("+(err&&err.code||"؟")+")"); });
       done();
     }else{
@@ -1158,7 +1160,7 @@ function acceptInbox(){
 function rejectInbox(){
   var q=findInbox(this.getAttribute("data-id")); if(!q) return;
   if(!confirm("رفض طلب "+(q.name||"")+" وحذفه؟")) return;
-  if(LIVE){ fdb.collection("inbox").doc(q.id).delete(); }
+  if(LIVE){ rdb.ref("inbox/"+q.id).remove(); }
   else{
     var out=[]; for(var i=0;i<inbox.length;i++){ if(inbox[i].id!==q.id) out.push(inbox[i]); }
     inbox=out; localSave(); renderInbox();
@@ -1168,7 +1170,7 @@ function rejectInbox(){
 function clearInboxAfterSave(){
   if(!inboxEditId) return;
   var iid=inboxEditId; inboxEditId=null;
-  if(LIVE){ fdb.collection("inbox").doc(iid).delete(); }
+  if(LIVE){ rdb.ref("inbox/"+iid).remove(); }
   else{
     var out=[]; for(var i=0;i<inbox.length;i++){ if(inbox[i].id!==iid) out.push(inbox[i]); }
     inbox=out; localSave(); renderInbox();
@@ -1190,7 +1192,7 @@ function sendSubmission(){
     $("sSend").disabled=false;
   };
   if(LIVE){
-    fdb.collection("inbox").doc(uid()).set(rec)
+    rdb.ref("inbox/"+uid()).set(rec)
       .catch(function(err){ toast("تنبيه: لم يصل ("+(err&&err.code||"؟")+")"); });
     after();
   }else{
@@ -1288,6 +1290,73 @@ $("fCat").onchange=toggleParent;
 $("filterCat").onchange=renderPeople;
 $("mSave").onclick=saveMedia;
 
+function diagLine(ok, txt){
+  return "<div>"+(ok?"✅ ":"❌ ")+txt+"</div>";
+}
+function diagExplain(code){
+  code = String(code||"").toUpperCase();
+  if(code.indexOf("PERMISSION")>-1)
+    return "❗ السبب: قواعد قاعدة البيانات ترفض.<br>الحل: Firebase Console ← Build ← <b>Realtime Database</b> ← تبويب <b>Rules</b> ← الصق:<br><code>{ \"rules\": { \".read\": true, \".write\": true } }</code><br>واضغط <b>Publish</b>.";
+  if(code.indexOf("NETWORK")>-1 || code.indexOf("UNAVAILABLE")>-1)
+    return "❗ السبب: ما فيه اتصال بالخادم — النت مقطوع أو الشبكة تحجبه.";
+  return "❗ كود الخطأ: "+code;
+}
+$("diagBtn").onclick=function(){
+  var out=$("diagOut");
+  out.innerHTML="<div>جاري الفحص...</div>";
+  if(!LIVE || !rdb){
+    out.innerHTML=diagLine(false,"الموقع شغال بوضع محلي — إعدادات Firebase ما اشتغلت.");
+    return;
+  }
+  var html=diagLine(true,"المشروع: <b>"+FIREBASE_CONFIG.projectId+"</b>");
+  var cloudCount=0;
+  rdb.ref("family").once("value").then(function(snap){
+    cloudCount = snap.numChildren();
+    html+=diagLine(true,"القراءة من السحابة تشتغل — الأفراد الموجودون بالسحابة: <b>"+arNum(cloudCount)+"</b>"+
+      (cloudCount===0 && people.length ? " <span style='color:#e2b0ab'>(بياناتك بجهازك فقط ولم ترتفع!)</span>" : ""));
+    return rdb.ref("diag/test").set({t:Date.now()});
+  }).then(function(){
+    html+=diagLine(true,"الكتابة للسحابة تشتغل.");
+    if(cloudCount===0 && people.length){
+      html+="<div style='color:#e6cf95;margin-top:6px'>اضغط الزر تحت لرفع كل بياناتك — بعدها مباشرة الكل يشوفها.</div>";
+      out.innerHTML=html; showResync();
+    }else{
+      html+="<div style='color:#8fd6a4;margin-top:6px'>كل شيء سليم ✓ — أي أحد يفتح الرابط الآن يشوف البيانات.</div>";
+      out.innerHTML=html;
+    }
+  }).catch(function(err){
+    var code=(err&&err.code)||err||"unknown";
+    html+=diagLine(false,"فشل الاتصال بالسحابة.");
+    html+="<div style='color:#e2b0ab;margin-top:6px'>"+diagExplain(code)+"</div>";
+    out.innerHTML=html;
+  });
+};
+function showResync(){
+  if($("resyncBtn")) return;
+  var b=document.createElement("button");
+  b.className="btn"; b.id="resyncBtn"; b.style.marginTop="10px";
+  b.textContent="رفع بياناتي للسحابة الآن";
+  b.onclick=function(){
+    b.disabled=true; b.textContent="جاري الرفع...";
+    var jobs=[];
+    for(var i=0;i<people.length;i++){
+      var r=Object.assign({},people[i]); var id=r.id||uid(); delete r.id;
+      jobs.push(rdb.ref("family/"+id).update(r));
+    }
+    for(var j=0;j<album.length;j++){
+      var m=Object.assign({},album[j]); var mid=m.id||uid(); delete m.id;
+      jobs.push(rdb.ref("album/"+mid).update(m));
+    }
+    Promise.all(jobs).then(function(){
+      b.textContent="تم الرفع ✓ — الكل يشوف البيانات الآن";
+      toast("ارتفعت كل البيانات للسحابة");
+    }).catch(function(err){
+      b.disabled=false; b.textContent="رفع بياناتي للسحابة الآن";
+      toast("فشل الرفع ("+((err&&err.code)||"؟")+")");
+    });
+  };
+  $("diagOut").appendChild(b);
+}
 $("exportBtn").onclick=function(){
   var blob=new Blob([JSON.stringify({pin:pin,people:people,album:album})],{type:"application/json"});
   var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
@@ -1302,9 +1371,8 @@ $("importFile").onchange=function(){
       var o=JSON.parse(fr.result);
       if(!o || !o.people){ toast("الملف غير صالح"); return; }
       if(LIVE){
-        var batchCount=0;
-        for(var i=0;i<o.people.length;i++){ var r=Object.assign({},o.people[i]); delete r.id; fdb.collection("family").add(r); batchCount++; }
-        for(var j=0;j<(o.album||[]).length;j++){ var m=Object.assign({},o.album[j]); delete m.id; fdb.collection("album").add(m); }
+        for(var i=0;i<o.people.length;i++){ var r=Object.assign({},o.people[i]); var rid=r.id||uid(); delete r.id; rdb.ref("family/"+rid).update(r); }
+        for(var j=0;j<(o.album||[]).length;j++){ var m=Object.assign({},o.album[j]); var mid2=m.id||uid(); delete m.id; rdb.ref("album/"+mid2).update(m); }
         toast("تمت الاستعادة للسحابة");
       }else{
         people=o.people; album=o.album||[]; pin=o.pin||pin; localSave();
@@ -1318,7 +1386,7 @@ $("pinBtn").onclick=function(){
   var v=$("newPin").value.trim();
   if(v.length<3){ toast("الرمز لازم ٣ خانات على الأقل"); return; }
   pin=v; $("newPin").value="";
-  if(LIVE) fdb.collection("settings").doc("main").set({pin:v},{merge:true});
+  if(LIVE) rdb.ref("settings/pin").set(v);
   else localSave();
   toast("تم تحديث الرمز");
 };
