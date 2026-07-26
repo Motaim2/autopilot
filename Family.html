@@ -194,6 +194,14 @@ input[type=file]{padding:9px}
 .sent p{color:var(--muted);line-height:2}
 .inbox-badge{display:inline-block;min-width:22px;text-align:center;background:var(--gold);color:#20180a;
   border-radius:20px;font-size:12.5px;font-weight:700;padding:1px 8px;margin-inline-start:6px}
+.crop-wrap{position:relative;width:min(340px,86vw);margin:0 auto}
+.crop-wrap canvas{width:100%;border-radius:14px;display:block;background:#0a0d13;
+  border:1px solid var(--gold-dim);touch-action:none;cursor:grab}
+.crop-wrap canvas:active{cursor:grabbing}
+.crop-row{display:flex;align-items:center;gap:10px;margin-top:14px}
+.crop-row span{font-size:16px;color:var(--gold-soft);width:26px;text-align:center}
+.crop-row input[type=range]{flex:1;padding:0;accent-color:var(--gold);background:transparent;border:0}
+.crop-hint{font-size:12px;color:var(--muted);margin-top:10px}
 .toast{position:fixed;bottom:24px;right:50%;transform:translateX(50%) translateY(20px);background:#151a24;
   border:1px solid var(--gold-dim);color:var(--gold-soft);padding:12px 22px;border-radius:10px;z-index:99;
   opacity:0;transition:.3s;pointer-events:none;font-size:14px;max-width:88vw;text-align:center}
@@ -297,6 +305,7 @@ input[type=file]{padding:9px}
     <div class="card">
       <h4 id="formTitle">إضافة فرد جديد</h4>
       <img class="preview" id="preview" alt="">
+      <button class="btn sec" id="editPhotoBtn" style="max-width:220px;margin:0 auto 6px;display:block;padding:8px">✂ تعديل الصورة</button>
       <div class="field"><label>الصورة (تقبل الصور المتحركة GIF)</label><input type="file" id="fPhoto" accept="image/*,image/gif"></div>
       <div class="field"><label>الاسم</label><input type="text" id="fName" placeholder="مثال: عبدالله"></div>
       <div class="field"><label>التصنيف</label>
@@ -348,6 +357,18 @@ input[type=file]{padding:9px}
     </div>
   </section>
 </div>
+
+<div class="overlay" id="cropOverlay"><div class="sheet">
+  <h3>تعديل الصورة</h3>
+  <div class="crop-wrap"><canvas id="cropCv" width="320" height="320"></canvas></div>
+  <div class="crop-row"><span>⊕</span><input type="range" id="cropZoom" min="100" max="320" value="100"><span>⊖</span></div>
+  <div class="crop-row"><span>⟲</span><input type="range" id="cropRot" min="-180" max="180" value="0"><span>⟳</span></div>
+  <div class="crop-hint">اسحب الصورة بإصبعك لتحريكها · المزلاج الأول تقريب وتبعيد · الثاني وزن الميلان</div>
+  <div class="row2" style="margin-top:16px">
+    <button class="btn" id="cropOk">اعتماد</button>
+    <button class="btn sec" id="cropCancel">إلغاء</button>
+  </div>
+</div></div>
 
 <div class="overlay" id="pinOverlay"><div class="sheet">
   <h3>دخول المشرف</h3><p>أدخل رمز الدخول للمتابعة.</p>
@@ -988,6 +1009,119 @@ function saveMedia(){
   });
 }
 
+/* ---------- محرر الصور (تقريب / تحريك / وزن) ---------- */
+var crop = { img:null, z:1, rot:0, ox:0, oy:0, cb:null, drag:null, pinch:null };
+var CROPV = 320, CROPEX = 420;
+
+function openCropper(src, cb){
+  var im = new Image();
+  im.onload = function(){
+    crop.img = im; crop.z = 1; crop.rot = 0; crop.ox = 0; crop.oy = 0; crop.cb = cb;
+    $("cropZoom").value = 100; $("cropRot").value = 0;
+    cropRender();
+    $("cropOverlay").classList.add("on");
+  };
+  im.onerror = function(){ toast("تعذر فتح الصورة"); };
+  im.src = src;
+}
+function cropBaseScale(){
+  return Math.max(CROPV / crop.img.width, CROPV / crop.img.height);
+}
+function cropRender(){
+  var cv = $("cropCv"), cx = cv.getContext("2d");
+  cx.clearRect(0,0,CROPV,CROPV);
+  cx.save();
+  cx.translate(CROPV/2 + crop.ox, CROPV/2 + crop.oy);
+  cx.rotate(crop.rot * Math.PI/180);
+  var s = cropBaseScale() * crop.z;
+  cx.scale(s, s);
+  cx.drawImage(crop.img, -crop.img.width/2, -crop.img.height/2);
+  cx.restore();
+  /* تعتيم خارج الدائرة */
+  cx.save();
+  cx.fillStyle = "rgba(5,7,10,.62)";
+  cx.beginPath();
+  cx.rect(0,0,CROPV,CROPV);
+  cx.arc(CROPV/2, CROPV/2, CROPV/2 - 6, 0, Math.PI*2, true);
+  cx.fill("evenodd");
+  cx.strokeStyle = "rgba(201,164,76,.9)";
+  cx.lineWidth = 2;
+  cx.beginPath();
+  cx.arc(CROPV/2, CROPV/2, CROPV/2 - 6, 0, Math.PI*2);
+  cx.stroke();
+  cx.restore();
+}
+function cropExport(){
+  var cv = document.createElement("canvas");
+  cv.width = CROPEX; cv.height = CROPEX;
+  var cx = cv.getContext("2d"), r = CROPEX / CROPV;
+  cx.fillStyle = "#11151d"; cx.fillRect(0,0,CROPEX,CROPEX);
+  cx.save();
+  cx.translate(CROPEX/2 + crop.ox*r, CROPEX/2 + crop.oy*r);
+  cx.rotate(crop.rot * Math.PI/180);
+  var s = cropBaseScale() * crop.z * r;
+  cx.scale(s, s);
+  cx.drawImage(crop.img, -crop.img.width/2, -crop.img.height/2);
+  cx.restore();
+  var url = cv.toDataURL("image/jpeg", 0.82);
+  /* استخراج اللون من النتيجة */
+  var sc = document.createElement("canvas");
+  sc.width = 100; sc.height = 100;
+  var scx = sc.getContext("2d");
+  scx.drawImage(cv, 0, 0, 100, 100);
+  return { url: url, color: pickColor(scx, 100, 100) };
+}
+(function(){
+  var cv = $("cropCv");
+  cv.addEventListener("pointerdown", function(e){
+    if(crop.pinch) return;
+    crop.drag = { x:e.clientX, y:e.clientY, ox:crop.ox, oy:crop.oy };
+    try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  cv.addEventListener("pointermove", function(e){
+    if(!crop.drag || crop.pinch) return;
+    var rect = cv.getBoundingClientRect(), k = CROPV / rect.width;
+    crop.ox = crop.drag.ox + (e.clientX - crop.drag.x) * k;
+    crop.oy = crop.drag.oy + (e.clientY - crop.drag.y) * k;
+    cropRender();
+  });
+  cv.addEventListener("pointerup", function(){ crop.drag = null; });
+  cv.addEventListener("pointercancel", function(){ crop.drag = null; });
+  /* تقريب بإصبعين */
+  cv.addEventListener("touchstart", function(e){
+    if(e.touches.length === 2){
+      crop.drag = null;
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      crop.pinch = { d: Math.sqrt(dx*dx+dy*dy), z: crop.z };
+    }
+  }, {passive:true});
+  cv.addEventListener("touchmove", function(e){
+    if(crop.pinch && e.touches.length === 2){
+      e.preventDefault();
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      var d = Math.sqrt(dx*dx+dy*dy);
+      crop.z = Math.min(3.2, Math.max(1, crop.pinch.z * d / crop.pinch.d));
+      $("cropZoom").value = Math.round(crop.z * 100);
+      cropRender();
+    }
+  }, {passive:false});
+  cv.addEventListener("touchend", function(e){ if(e.touches.length < 2) crop.pinch = null; }, {passive:true});
+  $("cropZoom").oninput = function(){ crop.z = Number(this.value)/100; cropRender(); };
+  $("cropRot").oninput = function(){ crop.rot = Number(this.value); cropRender(); };
+  $("cropOk").onclick = function(){
+    var out = cropExport();
+    $("cropOverlay").classList.remove("on");
+    if(crop.cb) crop.cb(out.url, out.color);
+    crop.img = null; crop.cb = null;
+  };
+  $("cropCancel").onclick = function(){
+    $("cropOverlay").classList.remove("on");
+    crop.img = null; crop.cb = null;
+  };
+})();
+
 /* ---------- inbox (الطلبات الواردة) ---------- */
 function findInbox(id){ for(var i=0;i<inbox.length;i++){ if(inbox[i].id===id) return inbox[i]; } return null; }
 function renderInbox(){
@@ -1120,9 +1254,32 @@ $("pinCancel").onclick=function(){ $("pinOverlay").classList.remove("on"); };
 
 $("fPhoto").onchange=function(){
   if(!this.files || !this.files[0]) return;
-  processImage(this.files[0], function(dataUrl,color,kind,blob){
-    pendingPhoto=dataUrl; pendingColor=color; pendingKind=kind; pendingBlob=blob;
-    $("preview").src=dataUrl; $("preview").style.borderColor=color;
+  var f=this.files[0];
+  if(f.type==="image/gif"){
+    /* الصور المتحركة تنحفظ كما هي بدون محرر عشان ما تفقد الحركة */
+    processImage(f, function(dataUrl,color,kind){
+      pendingPhoto=dataUrl; pendingColor=color; pendingKind=kind;
+      $("preview").src=dataUrl; $("preview").style.borderColor=color;
+    });
+    return;
+  }
+  var fr=new FileReader();
+  fr.onload=function(){
+    openCropper(fr.result, function(url,color){
+      pendingPhoto=url; pendingColor=color; pendingKind="img";
+      $("preview").src=url; $("preview").style.borderColor=color;
+    });
+  };
+  fr.readAsDataURL(f);
+};
+$("editPhotoBtn").onclick=function(){
+  var src = pendingPhoto;
+  if(!src && editId){ var p=findPerson(editId); if(p) src=p.photo; }
+  if(!src){ toast("اختر صورة أول"); return; }
+  if(pendingKind==="gif"){ toast("الصور المتحركة ما تنعدل عشان ما تفقد حركتها"); return; }
+  openCropper(src, function(url,color){
+    pendingPhoto=url; pendingColor=color; pendingKind="img";
+    $("preview").src=url; $("preview").style.borderColor=color;
   });
 };
 $("saveBtn").onclick=savePerson;
