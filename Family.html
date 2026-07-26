@@ -48,12 +48,12 @@ body{
 .frame:before,.frame:after{content:"";position:absolute;width:26px;height:26px;border:1px solid var(--gold);opacity:.55}
 .frame:before{top:10px;right:10px;border-left:0;border-bottom:0}
 .frame:after{bottom:10px;left:10px;border-right:0;border-top:0}
-.eyebrow{font-size:13px;letter-spacing:.45em;color:var(--muted);margin:0 0 6px}
+.eyebrow{font-family:"Amiri",serif;font-size:clamp(20px,5vw,30px);letter-spacing:.08em;color:var(--gold-soft);margin:0 0 2px;text-shadow:0 6px 24px rgba(201,164,76,.25)}
 .house{font-family:"Amiri",serif;font-weight:700;font-size:clamp(38px,10vw,84px);line-height:1.15;margin:0;
   color:transparent;background:linear-gradient(180deg,#fff7e2,var(--gold) 55%,#8d6d2a);
   -webkit-background-clip:text;background-clip:text;cursor:pointer;user-select:none;
   text-shadow:0 12px 40px rgba(201,164,76,.18)}
-.tagline{color:var(--muted);font-size:15px;margin:14px auto 0;max-width:520px;line-height:1.9}
+.tagline{font-family:"Amiri",serif;color:var(--pearl);font-size:clamp(16px,4.2vw,20px);margin:14px auto 0;max-width:560px;line-height:2.1;opacity:.92}
 .gates{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:28px}
 .gate{font-family:"Amiri",serif;font-size:24px;color:var(--gold-soft);
   background:linear-gradient(180deg,rgba(201,164,76,.14),rgba(201,164,76,.04));
@@ -159,9 +159,6 @@ input[type=file]{padding:9px}
   border:1px solid var(--gold-dim);color:var(--gold-soft);padding:12px 22px;border-radius:10px;z-index:99;
   opacity:0;transition:.3s;pointer-events:none;font-size:14px;max-width:88vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(50%) translateY(0)}
-.mode{position:fixed;top:10px;left:10px;z-index:40;font-size:11px;color:var(--muted);
-  border:1px solid rgba(201,164,76,.25);border-radius:20px;padding:3px 10px;background:rgba(8,10,14,.7)}
-.mode.live{color:#8fd6a4;border-color:rgba(143,214,164,.35)}
 @media (max-width:600px){
   .row{min-height:430px;padding:0 18px}
   .gate{min-width:100%;padding:14px 20px}
@@ -172,7 +169,6 @@ input[type=file]{padding:9px}
 </head>
 <body>
 <div class="grain"></div>
-<div class="mode" id="modeBadge">...</div>
 <div class="wrap">
 
   <!-- ============ HOME ============ -->
@@ -181,10 +177,10 @@ input[type=file]{padding:9px}
       <svg class="orn" width="120" height="26" viewBox="0 0 120 26" fill="none" stroke="currentColor" stroke-width="1">
         <path d="M2 13h34M84 13h34"/><path d="M60 3c8 4 12 7 12 10s-4 6-12 10c-8-4-12-7-12-10s4-6 12-10z"/><circle cx="60" cy="13" r="2.5"/>
       </svg>
-      <p class="eyebrow">شجرة الأعمار</p>
+      <p class="eyebrow">شجرة العائلة</p>
       <h1 class="house" id="houseName" tabindex="0">محمد المسعر</h1>
       <div class="rule"><i></i><b>❖</b><i></i></div>
-      <p class="tagline">صور العائلة مرتبة حسب العمر، الأكبر في الأعلى والأصغر في الأسفل، ليبين تفاوت الأعمار بينهم.</p>
+      <p class="tagline">بيتٌ عامر بالأصالة والكرم، غرس محمد المسعر جذوره على الطيب والمعروف، فامتدّت فروعه أبناءً وأحفاداً يحملون الاسم بفخر، ويرفعون الرأس جيلاً بعد جيل.</p>
       <div class="gates">
         <button class="gate" data-go="sons">الأبناء<small id="cntSons">—</small></button>
         <button class="gate" data-go="grands">الأحفاد<small id="cntGrands">—</small></button>
@@ -449,8 +445,6 @@ function boot(){
       firebase.initializeApp(FIREBASE_CONFIG);
       fdb = firebase.firestore(); fst = firebase.storage();
       LIVE = true;
-      $("modeBadge").textContent = "متصل · التحديثات تظهر للجميع";
-      $("modeBadge").className = "mode live";
       fdb.collection("family").onSnapshot(function(snap){
         people=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; people.push(o); });
         renderCounts(); renderPeople(); if($("view-chart").classList.contains("on")) renderChart();
@@ -464,7 +458,6 @@ function boot(){
       return;
     }catch(e){ LIVE=false; }
   }
-  $("modeBadge").textContent = "وضع محلي · على هذا الجهاز فقط";
   localLoad(); renderCounts(); renderPeople(); renderAlbum(); renderMediaAdmin();
 }
 
@@ -668,13 +661,13 @@ function savePerson(){
     }
   };
 
-  if(pendingBlob && LIVE){
-    var ext = (pendingKind==="gif") ? "gif" : "jpg";
-    upload("family/"+uid()+"."+ext, pendingBlob, $("prog1"), function(url){ pendingBlob=null; finish(url); },
-      function(){ $("saveBtn").disabled=false; toast("فشل رفع الصورة — تحقق من Storage"); });
-  }else{
-    finish(pendingPhoto);
+  /* صور الأفراد تُحفظ مباشرة داخل قاعدة البيانات — ما تحتاج Storage */
+  if(pendingPhoto && pendingPhoto.length > 950000){
+    $("saveBtn").disabled=false;
+    toast("الصورة المتحركة كبيرة — اختر GIF أصغر من ٧٠٠ كيلو");
+    return;
   }
+  finish(pendingPhoto);
 }
 
 /* ---------- admin: album ---------- */
@@ -728,27 +721,47 @@ function saveMedia(){
   if(link && !file){ push({ type:"link", url:link }); return; }
 
   var isVideo = file.type.indexOf("video") === 0;
-  if(!LIVE){
-    if(file.size > 900000){ toast("بالوضع المحلي الملف لازم أقل من ٩٠٠ كيلو — فعّل Firebase للفيديوهات"); $("mSave").disabled=false; return; }
-    var fr=new FileReader();
-    fr.onload=function(){
-      if(isVideo){ videoThumb(file,function(th){ push({type:"video", url:fr.result, thumb:th}); }); }
-      else push({ type:"image", url:fr.result });
-    };
-    fr.readAsDataURL(file);
+  var isGif = (file.type === "image/gif");
+
+  if(!isVideo){
+    /* الصور والصور المتحركة تنحفظ مباشرة في قاعدة البيانات */
+    if(isGif){
+      if(file.size > 900000){ toast("الصورة المتحركة كبيرة — لازم أقل من ٧٠٠ كيلو"); $("mSave").disabled=false; return; }
+      var fr=new FileReader();
+      fr.onload=function(){ push({ type:"image", url:fr.result }); };
+      fr.readAsDataURL(file);
+    }else{
+      var fr2=new FileReader();
+      fr2.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var s=Math.min(1,1100/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*s); cv.height=Math.round(img.height*s);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          var q=0.8, out=cv.toDataURL("image/jpeg",q);
+          while(out.length>900000 && q>0.35){ q-=0.1; out=cv.toDataURL("image/jpeg",q); }
+          if(out.length>950000){ toast("الصورة كبيرة جداً"); $("mSave").disabled=false; return; }
+          push({ type:"image", url:out });
+        };
+        img.onerror=function(){ toast("تعذر قراءة الصورة"); $("mSave").disabled=false; };
+        img.src=fr2.result;
+      };
+      fr2.readAsDataURL(file);
+    }
     return;
   }
-  if(isVideo){
-    videoThumb(file, function(th){
-      upload("album/"+uid()+"_"+file.name, file, $("prog2"), function(url){
-        push({ type:"video", url:url, thumb:th||null });
-      }, function(){ toast("فشل الرفع — تحقق من Storage"); $("mSave").disabled=false; });
-    });
-  }else{
+
+  /* الفيديو يحتاج Storage */
+  if(!LIVE || !fst){ toast("رفع الفيديو يحتاج تفعيل التخزين — أو حط رابط يوتيوب"); $("mSave").disabled=false; return; }
+  videoThumb(file, function(th){
     upload("album/"+uid()+"_"+file.name, file, $("prog2"), function(url){
-      push({ type:"image", url:url });
-    }, function(){ toast("فشل الرفع — تحقق من Storage"); $("mSave").disabled=false; });
-  }
+      push({ type:"video", url:url, thumb:th||null });
+    }, function(){
+      toast("رفع الفيديو يحتاج ترقية خطة Firebase — بدلها استخدم رابط يوتيوب");
+      $("mSave").disabled=false;
+    });
+  });
 }
 
 /* ---------- wiring ---------- */
