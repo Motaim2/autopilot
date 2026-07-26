@@ -1,9 +1,11 @@
-var CACHE = "almusaar-v2";
-var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+var CACHE = "almusaar-v3";
+var SHELL = ["./Family.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", function(e){
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL).catch(function(){}); }));
+  e.waitUntil(caches.open(CACHE).then(function(c){
+    return Promise.all(SHELL.map(function(u){ return c.add(u).catch(function(){}); }));
+  }));
 });
 self.addEventListener("activate", function(e){
   e.waitUntil(caches.keys().then(function(keys){

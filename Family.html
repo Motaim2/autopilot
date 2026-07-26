@@ -438,6 +438,9 @@ function localSave(){
   try{ localStorage.setItem(KEY, JSON.stringify({pin:pin, people:people, album:album})); return true; }
   catch(e){ toast("المساحة ممتلئة — احفظ نسخة واحذف بعض الملفات"); return false; }
 }
+function cacheMirror(){
+  try{ localStorage.setItem(KEY+"_cache", JSON.stringify({people:people, album:album})); }catch(e){}
+}
 function localLoad(){
   try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); people=o.people||[]; album=o.album||[]; pin=o.pin||"1234"; } }catch(e){}
 }
@@ -462,18 +465,42 @@ function boot(){
   if(FIREBASE_CONFIG.apiKey){
     try{
       firebase.initializeApp(FIREBASE_CONFIG);
-      fdb = firebase.firestore(); fst = firebase.storage();
-      LIVE = true;
-      fdb.collection("family").onSnapshot(function(snap){
-        people=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; people.push(o); });
-        renderCounts(); renderPeople(); if($("view-chart").classList.contains("on")) renderChart();
-      }, function(){ toast("تعذر الاتصال بقاعدة البيانات"); });
-      fdb.collection("album").onSnapshot(function(snap){
-        album=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; album.push(o); });
-        album.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-        renderAlbum(); renderMediaAdmin(); renderCounts();
-      });
-      fdb.collection("settings").doc("main").onSnapshot(function(d){ if(d.exists && d.data().pin) pin=d.data().pin; });
+      fdb = firebase.firestore();
+      try{ fst = firebase.storage(); }catch(e0){ fst = null; }
+
+      /* شبكات الجوال أحيانا تحجب قناة الاتصال الافتراضية — هذا يحلها */
+      try{ fdb.settings({ experimentalAutoDetectLongPolling: true, merge: true }); }catch(e1){}
+
+      /* تخزين دائم داخل المتصفح: أي إضافة تنحفظ فورا حتى بدون نت وترتفع للسحابة أول ما يرجع الاتصال */
+      var start = function(){
+        LIVE = true;
+
+        /* اعرض آخر نسخة محفوظة فورا قبل وصول السحابة */
+        try{
+          var c = localStorage.getItem(KEY+"_cache");
+          if(c){ var o=JSON.parse(c); people=o.people||[]; album=o.album||[];
+            renderCounts(); renderPeople(); renderAlbum(); renderMediaAdmin(); }
+        }catch(e2){}
+
+        fdb.collection("family").onSnapshot({includeMetadataChanges:false}, function(snap){
+          people=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; people.push(o); });
+          cacheMirror();
+          renderCounts(); renderPeople(); if($("view-chart").classList.contains("on")) renderChart();
+        }, function(err){ toast("تعذر الاتصال بقاعدة البيانات ("+(err&&err.code||"؟")+")"); });
+
+        fdb.collection("album").onSnapshot(function(snap){
+          album=[]; snap.forEach(function(d){ var o=d.data(); o.id=d.id; album.push(o); });
+          album.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+          cacheMirror();
+          renderAlbum(); renderMediaAdmin(); renderCounts();
+        });
+
+        fdb.collection("settings").doc("main").onSnapshot(function(d){ if(d.exists && d.data().pin) pin=d.data().pin; });
+      };
+
+      fdb.enablePersistence({ synchronizeTabs:true })
+        .then(start)
+        .catch(function(){ try{ fdb.enablePersistence().then(start).catch(start); }catch(e3){ start(); } });
       return;
     }catch(e){ LIVE=false; }
   }
@@ -710,10 +737,12 @@ function savePerson(){
               color:pendingColor||"#c9a44c", kind:pendingKind, updatedAt:Date.now() };
     if(photoUrl) rec.photo=photoUrl;
     if(LIVE){
+      /* الكتابة تنحفظ محليا فورا (حتى بدون نت) وترتفع للسحابة تلقائيا */
       var op = editId ? fdb.collection("family").doc(editId).set(rec,{merge:true})
-                      : fdb.collection("family").add(rec);
-      op.then(function(){ toast(editId?"تم التعديل":"تمت الإضافة"); resetForm(); $("saveBtn").disabled=false; })
-        .catch(function(){ toast("فشل الحفظ — تحقق من صلاحيات قاعدة البيانات"); $("saveBtn").disabled=false; });
+                      : fdb.collection("family").doc(uid()).set(rec);
+      op.catch(function(err){ toast("تنبيه: لم يصل للسحابة ("+(err&&err.code||"؟")+") — تحقق من قواعد Firestore"); });
+      toast(editId?"تم التعديل":"تمت الإضافة");
+      resetForm(); $("saveBtn").disabled=false;
     }else{
       if(editId){
         for(var i=0;i<people.length;i++){ if(people[i].id===editId){
@@ -774,8 +803,9 @@ function saveMedia(){
   var push=function(rec){
     rec.title=title||""; rec.date=today; rec.createdAt=Date.now();
     if(LIVE){
-      fdb.collection("album").add(rec).then(function(){ done(); })
-        .catch(function(){ toast("فشل الحفظ"); $("mSave").disabled=false; });
+      fdb.collection("album").doc(uid()).set(rec)
+        .catch(function(err){ toast("تنبيه: لم يصل للسحابة ("+(err&&err.code||"؟")+")"); });
+      done();
     }else{
       rec.id=uid(); album.unshift(rec);
       if(localSave()){ renderAlbum(); renderMediaAdmin(); renderCounts(); done(); }
