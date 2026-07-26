@@ -454,6 +454,16 @@
     </div>
     <div id="fk4_out"></div>
   </div>
+  <div class="stage stg-agency">
+    <h2>&#128188; الحسبة الشاملة — صفقة شحن VIP</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <div><label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">تقفيل حساب العميل (كونز)</label>
+      <input id="fk5_close" type="number" inputmode="numeric" value="9000000"></div>
+      <div><label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px">المدفوع من العميل $</label>
+      <input id="fk5_paid" type="number" inputmode="numeric" value="5000"></div>
+    </div>
+    <div id="fk5_out"></div>
+  </div>
   <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
     <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
     <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
@@ -2697,13 +2707,76 @@ function render(){
       f4out.innerHTML=f4html;
     }
   }
+  if($("fk5_out")){
+    var v5=$("fk5_out");
+    var K5=num("fk5_close"), P5=num("fk5_paid");
+    if(K5<=0){ v5.innerHTML=""; }
+    else{
+      function b5(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
+      var lock5=num("s_lock2")||350000, thr5=c.thr, fak5=lock5-thr5;
+      var t5r=null; for(var t5i=0;t5i<TARGET_TABLE.length;t5i++){ if(TARGET_TABLE[t5i].jaz===lock5)t5r=TARGET_TABLE[t5i]; }
+      var perSal=t5r?((t5r.jazSal||0)+(t5r.wakeel||0)):110;
+      // 1) الصرف
+      var buy$=K5/c.rateBuy;                       // تكلفة شرائي
+      var shipK=P5*c.rateApp;                      // اللي يقابل فلوسه بالشحن
+      var vipK=Math.max(0,K5-shipK);               // البونص اللي تحملته
+      var vip$=vipK/c.rateBuy;
+      var marg$=P5-buy$;                           // الهامش النقدي الفوري
+      // 2) تقفيل الحسابات من كونز العميل
+      var n5=Math.floor(K5/thr5), rest5=K5-n5*thr5;
+      // 3) العوائد: الصندوق + جائزة الروم
+      var box5=0; for(var b5i=0;b5i<BOX_TIERS.length;b5i++){ if(P5>=BOX_TIERS[b5i].usd)box5=BOX_TIERS[b5i].konz; }
+      var roomBase=c.perRoom*lock5;
+      var roomVal=n5*lock5+rest5;                  // قيمة الروم بعد الفك
+      var cup5=Math.round(roomVal/roomBase*c.roomPrize);
+      var R5=box5+cup5;
+      // 4) العوائد تقفل زيادة
+      var nX=Math.floor(R5/thr5), leftK=R5-nX*thr5;
+      var nAll=n5+nX;
+      var salM=nAll*perSal;
+      // 5) الخلاصة
+      var ret$=R5/c.rateBuy;
+      var net$=marg$+ret$;
+      var h5='';
+      h5+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCB1 الصرف</div><div class="nbz">'
+        +b5('تكلفة شرائي ('+fmt(K5)+' \u00F71950)','$'+fmt(Math.round(buy$)),'#FF8A80')
+        +b5('دخل الشحنة من العميل','$'+fmt(P5),'#5EE3A6')
+        +b5('بونص VIP تحملته',fmt(vipK)+' (\u2248 $'+fmt(Math.round(vip$))+')','#FFC96B')+'</div>';
+      h5+='<div class="nbz">'+b5('الهامش النقدي الفوري',(marg$>=0?'+':'\u2212')+'$'+fmt(Math.abs(Math.round(marg$))),(marg$>=0?'#5EE3A6':'#FF8A80'))
+        +b5('يعادل شحنته','$'+fmt(P5)+' \u00D71600 = '+fmt(shipK),'#7CBBFF')
+        +b5('صندوق شحنته (من الجدول)',fmt(box5),'#BBAEFF')+'</div>';
+      h5+='<div class="nbt" style="color:#7CBBFF">\uD83C\uDFE6 تقفيل حساباتي من كونزه ('+fmt(thr5)+' + فك '+fmt(fak5)+')</div><div class="nbz">'
+        +b5('حسابات تقفل',fmt(n5),'#5EE3A6')
+        +b5('نرمي '+fmt(n5*thr5)+' والفك يكمل',fmt(n5*fak5),'#7CBBFF')
+        +b5('الباقي على حساب',fmt(rest5)+(rest5>0?' \u00B7 ناقصه '+fmt(thr5-rest5):''),'#FFD37E')+'</div>';
+      h5+='<div class="nbt" style="color:#F5A0BC">\uD83C\uDF81 العوائد</div><div class="nbz">'
+        +b5('سحب صندوق الشحنة',fmt(box5),'#BBAEFF')
+        +b5('جائزة الروم ('+fmt(roomVal)+' من '+fmt(roomBase)+')',fmt(cup5),'#FFD37E')
+        +b5('مجموع العوائد كونز',fmt(R5)+' (\u2248 $'+fmt(Math.round(ret$))+')','#5EE3A6')+'</div>';
+      h5+='<div class="nbt" style="color:#5EE3A6">\uD83D\uDD01 العوائد تقفل زيادة (مع الفك)</div><div class="nbz">'
+        +b5('حسابات إضافية من العوائد',fmt(nX),'#5EE3A6')
+        +b5('الفايض النهائي كونز',fmt(leftK)+' (\u2248 $'+fmt(Math.floor(leftK/c.rateBuy))+')','#FFC96B')
+        +b5('إجمالي الحسابات المقفلة',fmt(nAll),'#7CBBFF')+'</div>';
+      h5+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCB5 الرواتب الشهرية الجديدة</div><div class="nbz">'
+        +b5('لكل حساب (بعد الفك + وكيل)','$'+fmt(perSal),'#FFD37E')
+        +b5('\u00D7'+fmt(nAll)+' حساب','$'+fmt(salM)+' شهريًا','#5EE3A6')
+        +b5('منها وكيل \u00B7 حسابات','$'+fmt((t5r?t5r.wakeel:30)*nAll)+' \u00B7 $'+fmt((t5r?t5r.jazSal:80)*nAll),'#BBAEFF')+'</div>';
+      var vTxt5, vCol5;
+      if(net$>=0){ vCol5='#5EE3A6';
+        vTxt5='\u2705 الصفقة مغطية من أول يوم: هامش نقدي '+(marg$>=0?'+':'\u2212')+'$'+fmt(Math.abs(Math.round(marg$)))+' + عوائد كونز تعادل $'+fmt(Math.round(ret$))+' = <b>صافي +$'+fmt(Math.round(net$))+'</b> فوق راس مالك، وفوقها رواتب <b>$'+fmt(salM)+' شهريًا</b> مستمرة.'; }
+      else{ var months=salM>0?Math.ceil(Math.abs(net$)/salM):0; vCol5='#FFC96B';
+        vTxt5='\u26A0 العجز بعد العوائد: $'+fmt(Math.abs(Math.round(net$)))+' — الرواتب الجديدة ($'+fmt(salM)+' شهريًا) تعوضه خلال <b>'+months+' شهر</b> وبعدها ربح صافي.'; }
+      h5+='<div style="background:'+(net$>=0?'rgba(94,227,166,.1)':'rgba(255,201,107,.1)')+';border:1px solid '+vCol5+'55;border-radius:11px;padding:9px 10px;margin-top:8px;font-size:10.5px;line-height:1.9;color:rgba(255,255,255,.92)">'+vTxt5+'</div>';
+      v5.innerHTML=h5;
+    }
+  }
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n","fk5_close","fk5_paid"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
