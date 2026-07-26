@@ -2675,6 +2675,25 @@ function render(){
         +f4bx('تكلفة تارقت '+rA.lv+' (دعم+فك)',fmt(cA),'#FFC96B')
         +f4bx('تكلفة تارقت '+rB.lv+' (دعم+فك)',fmt(cB),'#FFC96B')
         +f4bx('فرق التكلفة كونز',(cB-cA>=0?'+':'\u2212')+fmt(Math.abs(cB-cA)),(cB-cA)<=0?'#5EE3A6':'#FF8A80')+'</div>';
+      // ===== نفس الكونز: هل أنا مستفيد أو خسران؟ =====
+      var costB1=Math.ceil(0.7*rB.jaz);
+      var K=cA;                                   // اللي انصرف فعليًا على n حساب تارقت A
+      var nB2=costB1>0?Math.floor(K/costB1):0;    // بنفس الكونز كم حساب تارقت B
+      var leftB=K-nB2*costB1;
+      var salA=pA*n4, salB2=pB*nB2;
+      var d2=salA-salB2;
+      f4html+='<div class="nbt" style="color:#FFC96B">\uD83E\uDDE0 نفس الكونز ('+fmt(K)+') \u2014 مين أفضل؟</div><div class="nbz">'
+        +f4bx('اللي سويته: '+n4+' حساب تارقت '+rA.lv,'$'+fmt(salA)+' شهريًا','#FFD37E')
+        +f4bx('البديل بنفس الكونز: '+fmt(nB2)+' حساب تارقت '+rB.lv,'$'+fmt(salB2)+' شهريًا','#7CBBFF')
+        +f4bx('يفضل من الكونز بالبديل',fmt(leftB)+' (\u2248 $'+fmt(Math.floor(leftB/c.rateBuy))+' شراء)','#9fc7ee')+'</div>';
+      var vTxt,vCol;
+      if(d2>0){ vCol='#5EE3A6';
+        vTxt='\u2705 أنت مستفيد: تقفيلتك على تارقت '+rA.lv+' راتبها أعلى بـ<b>+$'+fmt(d2)+' شهريًا</b> من البديل'+(leftB>0?' (مع إن البديل كان بيخلي معك '+fmt(leftB)+' كونز باقية)':'')+'.'; }
+      else if(d2<0){ vCol='#FF8A80';
+        vTxt='\u274C خسران: لو صرفت نفس الكونز على تارقت '+rB.lv+' ('+fmt(nB2)+' حساب) كان راتبك أعلى بـ<b>$'+fmt(Math.abs(d2))+' شهريًا</b>'+(leftB>0?' ويفضل معك '+fmt(leftB)+' كونز فوقها':'')+'.'; }
+      else { vCol='#FFD37E';
+        vTxt='\u2696 متعادلين بالراتب'+(leftB>0?' — لكن البديل يخلي معك '+fmt(leftB)+' كونز باقية، فهو أفضل بشوي.':'.'); }
+      f4html+='<div style="background:'+(d2>0?'rgba(94,227,166,.1)':(d2<0?'rgba(255,138,128,.1)':'rgba(255,211,126,.1)'))+';border:1px solid '+vCol+'55;border-radius:11px;padding:9px 10px;margin-top:7px;font-size:10.5px;line-height:1.9;color:rgba(255,255,255,.92)">'+vTxt+'</div>';
       f4out.innerHTML=f4html;
     }
   }
