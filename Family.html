@@ -63,6 +63,25 @@ body{
   transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.5)}
 .gate.wide{min-width:min(420px,100%);font-size:21px;padding:14px 30px;
   background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01))}
+.bdays{margin-top:22px;display:none}
+.bdays.on{display:block}
+.bdays-title{font-family:"Amiri",serif;color:var(--gold-soft);font-size:20px;margin:0 0 12px;
+  display:flex;align-items:center;gap:10px;justify-content:center}
+.bdays-title:before,.bdays-title:after{content:"";height:1px;width:44px;background:linear-gradient(90deg,transparent,var(--gold-dim))}
+.bdays-title:after{background:linear-gradient(90deg,var(--gold-dim),transparent)}
+.bday-list{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.bday{display:flex;align-items:center;gap:12px;text-align:right;
+  border:1px solid var(--bc,var(--gold-dim));border-radius:14px;padding:10px 16px;
+  background:linear-gradient(180deg,rgba(201,164,76,.10),rgba(0,0,0,.28));
+  box-shadow:0 12px 30px rgba(0,0,0,.4);min-width:min(300px,100%)}
+.bday img{width:58px;height:58px;border-radius:50%;object-fit:cover;
+  border:2px solid var(--bc,var(--gold));background:#1a1f2a;
+  box-shadow:0 0 18px var(--bg2,rgba(201,164,76,.3))}
+.bday .bi b{display:block;font-family:"Amiri",serif;font-size:19px;color:var(--pearl)}
+.bday .bi span{display:block;font-size:12.5px;color:var(--bc,var(--gold));margin-top:2px}
+.bday .bi small{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.bday.today{animation:bglow 2.2s ease infinite}
+@keyframes bglow{0%,100%{box-shadow:0 12px 30px rgba(0,0,0,.4)}50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 30px var(--bg2,rgba(201,164,76,.45))}}
 
 /* chart */
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
@@ -199,6 +218,10 @@ input[type=file]{padding:9px}
       </div>
       <div class="gates" style="margin-top:14px">
         <button class="gate wide" id="albumGate">ألبوم العائلة<small id="cntAlbum">صور وفيديوهات</small></button>
+      </div>
+      <div class="bdays" id="bdays">
+        <div class="bdays-title">🎂 أعياد ميلاد قريبة</div>
+        <div class="bday-list" id="bdayList"></div>
       </div>
     </div>
   </section>
@@ -518,10 +541,53 @@ function listOf(cat){
   out.sort(function(a,b){ return ageDays(b)-ageDays(a); });
   return out;
 }
+function nextBirthday(p){
+  if(!p.birth) return null;
+  var b = new Date(p.birth);
+  if(isNaN(b.getTime())) return null;
+  var now = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var next = new Date(today.getFullYear(), b.getMonth(), b.getDate());
+  if(next < today) next = new Date(today.getFullYear()+1, b.getMonth(), b.getDate());
+  var daysLeft = Math.round((next - today) / 86400000);
+  return { daysLeft: daysLeft, turning: next.getFullYear() - b.getFullYear() };
+}
+function bdayText(d){
+  if(d===0) return "اليوم عيد ميلاده 🎉";
+  if(d===1) return "باقي يوم واحد";
+  if(d===2) return "باقي يومين";
+  return "باقي "+arNum(d)+" أيام";
+}
+function renderBirthdays(){
+  var wrap=$("bdays"), list=$("bdayList");
+  if(!wrap) return;
+  var ups=[];
+  for(var i=0;i<people.length;i++){
+    var nb=nextBirthday(people[i]);
+    if(nb && nb.daysLeft<=7) ups.push({p:people[i], nb:nb});
+  }
+  ups.sort(function(a,b){ return a.nb.daysLeft-b.nb.daysLeft; });
+  list.innerHTML="";
+  if(!ups.length){ wrap.classList.remove("on"); return; }
+  wrap.classList.add("on");
+  for(var j=0;j<ups.length;j++){
+    var p=ups[j].p, nb=ups[j].nb;
+    var d=document.createElement("div");
+    d.className="bday"+(nb.daysLeft===0?" today":"");
+    d.style.setProperty("--bc", p.color||"#c9a44c");
+    d.style.setProperty("--bg2", hexToRgba(p.color||"#c9a44c",.4));
+    d.innerHTML="<img alt='' src='"+(p.photo||BLANK)+"'><div class='bi'><b></b><span></span><small></small></div>";
+    d.querySelector("b").textContent=p.name;
+    d.querySelector("span").textContent=bdayText(nb.daysLeft);
+    d.querySelector("small").textContent="يكمل "+arNum(nb.turning)+" "+(nb.turning===1?"سنة":(nb.turning===2?"سنتين":(nb.turning<11?"سنوات":"سنة")));
+    list.appendChild(d);
+  }
+}
 function renderCounts(){
   $("cntSons").textContent = arNum(listOf("sons").length)+" فرد";
   $("cntGrands").textContent = arNum(listOf("grands").length)+" فرد";
   $("cntAlbum").textContent = album.length ? (arNum(album.length)+" مقطع وصورة") : "صور وفيديوهات";
+  renderBirthdays();
 }
 function openChart(cat){
   currentCat=cat;
