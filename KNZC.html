@@ -484,22 +484,6 @@
     <div class="note" style="margin-top:5px">راتب الجاذبية $80 يتدور يوميًا لحظي · راتب الوكيل $30 يوم 15 فقط · كاسات باقي الرومات والصناديق = دعم تقفيل مو شحنة</div>
     <div id="fk7_out"></div>
   </div>
-  <div class="stage stg-acc">
-    <h2>&#129513; معادلة الحساب الواحد — شحنة + صندوق + مهام</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
-      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">شحنة الحساب $</label>
-      <input id="fk8_usd" type="number" inputmode="numeric" value="5000"></div>
-      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">كم حساب بنسوي لهم كذا</label>
-      <input id="fk8_n" type="number" inputmode="numeric" value="1"></div>
-      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">مهام يومية (30 يوم)</label>
-      <input id="fk8_m30" type="number" inputmode="numeric" value="130000"></div>
-      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">مهام +15 يوم إضافية</label>
-      <input id="fk8_m15" type="number" inputmode="numeric" value="42000"></div>
-      <div style="grid-column:span 2"><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">كونز ببلاش تنشحن (كاسات وكيل الشحن + الهدية + السلفة) — تحسب شحنة بس ما شريناها</label>
-      <input id="fk8_free" type="number" inputmode="numeric" placeholder="مثال: 4,720,000"></div>
-    </div>
-    <div id="fk8_out"></div>
-  </div>
   <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
     <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
     <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
@@ -760,6 +744,51 @@
   </div>
 </div>
 
+<!-- ============ تبويب 13: سيناريو ============ -->
+<div class="pane" id="pane13">
+  <div class="hero">
+    <div class="l">الربح الحالي (مستلم − تكلفة خارجية)</div>
+    <div class="big2" id="sc_net">$0</div>
+    <div class="s" id="sc_netSub"></div>
+  </div>
+  <div class="stage stg-log" style="padding:11px">
+    <div class="sumgrid">
+      <div class="c"><div class="l">الشحنة التراكمية</div><div class="v n-blue" id="sc_charge">$0</div></div>
+      <div class="c"><div class="l">التكلفة الخارجية</div><div class="v v-red" id="sc_cost">$0</div></div>
+      <div class="c"><div class="l">حسابات مقفلة</div><div class="v n-green" id="sc_closes">0</div></div>
+      <div class="c"><div class="l">رومات</div><div class="v n-vio" id="sc_rooms">0</div></div>
+      <div class="c"><div class="l">كونز جاهزة للرمي</div><div class="v v-gold" id="sc_pool">0</div></div>
+      <div class="c"><div class="l">راتب شهري متوقع</div><div class="v n-green" id="sc_salM">$0</div></div>
+    </div>
+  </div>
+  <div class="stage stg-agency">
+    <h2>&#128722; شراء وشحن (تكلفة + شحنة)</h2>
+    <div class="inrow"><input id="sc_buy" type="number" inputmode="numeric" placeholder="كونز"><button class="btn grn sm" onclick="scBuy()">اشترِ واشحن</button></div>
+    <h2 style="margin-top:10px">&#127873; شحنة ببلاش (كاس الوكيل · هدية · سلفة)</h2>
+    <div class="inrow"><input id="sc_free" type="number" inputmode="numeric" placeholder="كونز"><button class="btn blu sm" onclick="scFree()">اشحنها ببلاش</button></div>
+    <h2 style="margin-top:10px">&#128230; دعم (صندوق · مهام)</h2>
+    <div class="inrow"><input id="sc_sup" type="number" inputmode="numeric" placeholder="كونز"><button class="btn dk sm" onclick="scSup()">أضف دعم</button></div>
+  </div>
+  <div class="stage stg-room">
+    <h2>&#127974; الرمي والتقفيل والكاس</h2>
+    <div class="rbtns"><button class="btn gold" onclick="scThrow()">&#127942; ارمِ وقفّل (245k + فك)</button><button class="btn grn" onclick="scCup()">&#127942; اسحب كاس الرومات</button></div>
+    <div class="note" id="sc_cupNote" style="margin-top:5px"></div>
+  </div>
+  <div class="stage stg-acc">
+    <h2>&#128181; الرواتب</h2>
+    <div class="inrow"><input id="sc_sal" type="number" inputmode="numeric" placeholder="$ دولار"><button class="btn grn sm" onclick="scRecv()">استلمت رواتب</button><button class="btn gold sm" onclick="scCycle()">دوّرها شحن</button></div>
+    <div class="mini" style="margin-top:7px">
+      <div class="c"><div class="l">رواتب مستلمة</div><div class="v n-green" id="sc_recv">$0</div></div>
+      <div class="c"><div class="l">متاح للتدوير</div><div class="v v-gold" id="sc_cash">$0</div></div>
+    </div>
+  </div>
+  <div class="stage stg-log">
+    <h2>&#128220; السجل</h2>
+    <div id="sc_log"><div class="empty">ما فيه حركات</div></div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="sc" onclick="doReset('sc',this)">تصفير السيناريو</button></div>
+</div>
+
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
 <canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
@@ -774,6 +803,7 @@
 
 <!-- شريط التبويبات -->
 <div class="tabbar">
+  <div class="tb" data-p="pane13" onclick="switchTab('pane13',this)"><span class="i">&#127916;</span>سيناريو</div>
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
   <div class="tb" data-p="pane12" onclick="switchTab('pane12',this)"><span class="i">&#128274;</span>تقفيل ملف</div>
   <div class="tb" data-p="pane2" onclick="switchTab('pane2',this)"><span class="i">&#129518;</span>حاسبة روم</div>
@@ -790,6 +820,72 @@
 <script>
 var FK3={tg:null};
 var FK6={rows:[{lv:9,n:0}]};
+function scInit(){ if(!S.sc)S.sc={cost:0,charge:0,pool:0,closes:0,roomVal:0,cupTaken:0,recv:0,cash:0,log:[]}; return S.sc; }
+function scLog(t){ var sc=scInit(); sc.log.unshift(new Date().toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})+" \u00B7 "+t); if(sc.log.length>14)sc.log.pop(); }
+function scBuy(){ var k=num("sc_buy"); if(k<=0){alert("اكتب الكونز.");return;}
+  var sc=scInit(), c=cfg();
+  sc.cost+=k/c.rateBuy; sc.charge+=k/c.rateApp; sc.pool+=k;
+  scLog("\uD83D\uDED2 شراء وشحن "+fmt(k)+" (\u2248 $"+fmt(Math.round(k/c.rateBuy))+")");
+  $("sc_buy").value=""; save(); render(); }
+function scFree(){ var k=num("sc_free"); if(k<=0){alert("اكتب الكونز.");return;}
+  var sc=scInit(), c=cfg();
+  sc.charge+=k/c.rateApp; sc.pool+=k;
+  scLog("\uD83C\uDF81 شحنة ببلاش "+fmt(k));
+  $("sc_free").value=""; save(); render(); }
+function scSup(){ var k=num("sc_sup"); if(k<=0){alert("اكتب الكونز.");return;}
+  var sc=scInit();
+  sc.pool+=k;
+  scLog("\uD83D\uDCE6 دعم "+fmt(k));
+  $("sc_sup").value=""; save(); render(); }
+function scThrow(){ var sc=scInit(), c=cfg();
+  var lock=num("s_lock2")||350000;
+  var cl=Math.floor(sc.pool/c.thr);
+  if(cl<=0){ alert("الكونز الجاهزة أقل من "+fmt(c.thr)+"."); return; }
+  sc.pool-=cl*c.thr; sc.closes+=cl; sc.roomVal+=cl*lock;
+  scLog("\uD83C\uDFE6 رمينا وقفّلنا "+fmt(cl)+" حساب (فك يكملها "+fmt(cl*(lock-c.thr))+")");
+  save(); render(); }
+function scCup(){ var sc=scInit(), c=cfg();
+  var lock=num("s_lock2")||350000;
+  var avail=Math.floor(sc.roomVal/(c.perRoom*lock)*c.roomPrize)-sc.cupTaken;
+  if(avail<=0){ alert("ما فيه كاس متاح — ارمِ أول."); return; }
+  sc.cupTaken+=avail; sc.pool+=avail;
+  scLog("\uD83C\uDFC6 سحبنا كاس "+fmt(avail)+" (دعم)");
+  save(); render(); }
+function scRecv(){ var d=num("sc_sal"); if(d<=0){alert("اكتب المبلغ.");return;}
+  var sc=scInit();
+  sc.recv+=d; sc.cash+=d;
+  scLog("\uD83D\uDCB5 استلمنا رواتب $"+fmt(d));
+  $("sc_sal").value=""; save(); render(); }
+function scCycle(){ var d=num("sc_sal"); var sc=scInit(), c=cfg();
+  if(d<=0)d=sc.cash;
+  if(d<=0){ alert("ما فيه رواتب متاحة."); return; }
+  if(d>sc.cash){ alert("المتاح للتدوير $"+fmt(sc.cash)+" فقط."); return; }
+  sc.cash-=d;
+  var k=d*c.rateBuy;
+  sc.charge+=k/c.rateApp; sc.pool+=k;
+  scLog("\uD83D\uDD04 دوّرنا $"+fmt(d)+" \u2190 "+fmt(k)+" كونز شحنة");
+  $("sc_sal").value=""; save(); render(); }
+function renderSc(){ var sc=scInit(), c=cfg();
+  var lock=num("s_lock2")||350000;
+  var salM=sc.closes*(c.salAcc+c.salAgent);
+  var net=sc.recv-sc.cost;
+  $("sc_net").textContent=(net>=0?"+":"\u2212")+"$"+fmt(Math.abs(Math.round(net)));
+  $("sc_net").style.color=net>=0?"#5EE3A6":"#FF8A80";
+  $("sc_netSub").textContent="مستلم $"+fmt(Math.round(sc.recv))+" \u2212 تكلفة $"+fmt(Math.round(sc.cost))+" \u00B7 وبالمخزون "+fmt(Math.round(sc.pool))+" كونز (\u2248 $"+fmt(Math.round(sc.pool/c.rateBuy))+")";
+  $("sc_charge").textContent="$"+fmt(Math.round(sc.charge));
+  $("sc_cost").textContent="$"+fmt(Math.round(sc.cost));
+  $("sc_closes").textContent=fmt(sc.closes);
+  $("sc_rooms").textContent=String(Math.round(sc.roomVal/(c.perRoom*lock)*100)/100);
+  $("sc_pool").textContent=fmt(Math.round(sc.pool));
+  $("sc_salM").textContent="$"+fmt(salM);
+  $("sc_recv").textContent="$"+fmt(Math.round(sc.recv));
+  $("sc_cash").textContent="$"+fmt(Math.round(sc.cash));
+  var availCup=Math.floor(sc.roomVal/(c.perRoom*lock)*c.roomPrize)-sc.cupTaken;
+  $("sc_cupNote").textContent="كاس متاح للسحب: "+fmt(Math.max(0,availCup))+" \u00B7 كل روم ("+fmt(c.perRoom*lock)+") = كاس "+fmt(c.roomPrize);
+  var lg=$("sc_log");
+  if(lg){ if(!sc.log.length)lg.innerHTML='<div class="empty">ما فيه حركات</div>';
+    else{ var lh=''; for(var i=0;i<sc.log.length;i++)lh+='<div class="logitem"><div class="dt">'+sc.log[i]+'</div></div>'; lg.innerHTML=lh; } }
+}
 function fk7Sim(K0,cups,gift,targetS,useWk){
   var c=cfg();
   var thr=c.thr, lock=(num("s_lock2")||350000);
@@ -1137,7 +1233,7 @@ function cancelRoom(rid){
 }
 function closeRoom(rid){ var R=findRoom(rid); if(!R)return; var c=cfg(); var owner=null; if(R.isCup){ owner=findAcc(S.selAcc)||findAcc(R.fromAcc); } if(!owner){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].name===R.name){ owner=S.accounts[i]; break; } } } if(!owner){ owner={id:S.seq++,name:R.name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:false,isShip:false}; S.accounts.push(owner); } if(R.isCup){ S.shipBal+=c.cupShip; S.shipIn+=c.cupShip; var sa=findShipAcct(); if(!sa)sa=owner; sa.bal+=c.cupGift; sa._cupDest=sa.name; S.prizeTot=(S.prizeTot||0)+c.cupGift; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.cupGift,cupShip:c.cupShip,cupTo:sa.name,isCup:true}); } else { owner.bal+=c.roomPrize; S.prizeTot=(S.prizeTot||0)+c.roomPrize; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.roomPrize}); } if(R.isCup){ var sacc=findShipAcct(); logAct("\uD83C\uDFC6","أقفلنا كاس «"+R.name+"» ("+R.accounts+" حساب مكتمل) · "+fmt(c.cupShip)+" لرصيد الشحن + "+fmt(c.cupGift)+" لحساب وكيل الشحن «"+(sacc?sacc.name:owner.name)+"»"); } else { logAct("\uD83D\uDD12","أقفلنا «"+R.name+"» ("+R.accounts+" حساب مكتمل) · جائزة "+fmt(c.roomPrize)); } for(var j=0;j<S.openRooms.length;j++){ if(S.openRooms[j].rid===rid){ S.openRooms.splice(j,1); break; } } save(); }
 function endWeek(){ S.weeks.push({n:S.weeks.length+1,acc:S.closedAccounts}); render(); }
-var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة",alerts:"مسح كل التنبيهات",ppl:"تصفير الأشخاص"};
+var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة",alerts:"مسح كل التنبيهات",ppl:"تصفير الأشخاص",sc:"تصفير السيناريو"};
 function armBtn(el,on){ if(on){ el.textContent="اضغط مرة ثانية للتأكيد"; el.style.color="#fff"; el.style.background="var(--red)"; el.style.padding="9px 16px"; el.style.borderRadius="10px"; el.style.textDecoration="none"; } else { el.textContent=resetLabel[el.getAttribute("data-r")]||"تصفير"; el.style.background="none"; el.style.color="var(--red)"; el.style.padding="0"; el.style.textDecoration="underline"; } }
 function doReset(kind,el){
   if(!resetArm[kind]){
@@ -1149,7 +1245,7 @@ function doReset(kind,el){
   resetArm[kind]=false; if(resetTimer[kind])clearTimeout(resetTimer[kind]);
   if(kind==="taqfeel"){ S.agencyBal=0;S.agencyIn=0;S.drawn=0;S.shipBal=0;S.shipIn=0;S.closedAccounts=0;S.accounts=[];S.active=null;S.openRooms=[];S.rooms=[];S.weeks=[];S.selAcc=null;S.log=[];S.rebateTot=0;S.boxTot=0;S.prizeTot=0;S.fedTot=0;S.pumpKonzTot=0;S.advances=0;S.accDebt=0; }
   else if(kind==="fakcup"){ S.fak=[];S.cup=[]; }
-  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; } else if(kind==="alerts"){ S.alerts=[]; renderAlerts(); } else if(kind==="ppl"){ S.ppl=[]; PP_SEL={}; renderPpl(); }
+  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; } else if(kind==="alerts"){ S.alerts=[]; renderAlerts(); } else if(kind==="ppl"){ S.ppl=[]; PP_SEL={}; renderPpl(); } else if(kind==="sc"){ S.sc=null; scInit(); }
   EDIT=null; armBtn(el,false); render();
 }
 
@@ -2998,71 +3094,14 @@ function render(){
       v7.innerHTML=h7;
     }
   }
-  if($("fk8_out")){
-    var v8=$("fk8_out");
-    var u8=num("fk8_usd"), n8=Math.max(1,Math.round(num("fk8_n"))||1);
-    var m30=num("fk8_m30"), m15=num("fk8_m15"), free8=num("fk8_free");
-    if(u8<=0&&free8<=0){ v8.innerHTML=""; }
-    else{
-      function b8(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
-      var lock8=num("s_lock2")||350000, thr8=c.thr;
-      var t58=null; for(var t8i=0;t8i<TARGET_TABLE.length;t8i++){ if(TARGET_TABLE[t8i].jaz===lock8)t58=TARGET_TABLE[t8i]; }
-      var perSal8=t58?((t58.jazSal||0)+(t58.wakeel||0)):110;
-      var shipK1=u8*c.rateApp;                 // شحنة الحساب الواحد
-      var box1=0; for(var b8i=0;b8i<BOX_TIERS.length;b8i++){ if(u8>=BOX_TIERS[b8i].usd)box1+=BOX_TIERS[b8i].konz; }
-      var mis1=m30+m15;
-      // ===== الإجمالي: N حساب + الكونز المجانية =====
-      var boughtK=shipK1*n8;                   // اللي شريناه فعلًا
-      var totShipK=boughtK+free8;              // كله يحسب شحنة
-      var cost8=boughtK/c.rateBuy;             // التكلفة = المشترى فقط
-      var totCharge$=totShipK/c.rateApp;
-      var totBox=box1*n8, totMis=mis1*n8;
-      // نرمي الكل: الشحنات + الصناديق + المهام، والكاس دعم يرجع لين يخلص
-      var pool8=totShipK+totBox+totMis, cl8=0, roomVal8=0, guard8=0;
-      while(pool8>=thr8&&guard8<400){
-        var cc=Math.floor(pool8/thr8); cl8+=cc; pool8-=cc*thr8;
-        var vv=cc*lock8; roomVal8+=vv;
-        pool8+=vv/(c.perRoom*lock8)*c.roomPrize;
-        guard8++;
-      }
-      var fayd8=Math.round(pool8);
-      var rooms8=Math.round(roomVal8/(c.perRoom*lock8)*100)/100;
-      var cupTot8=Math.round(roomVal8/(c.perRoom*lock8)*c.roomPrize);
-      var sal8=cl8*perSal8;
-      var net8=sal8-cost8;
-      var h8='';
-      h8+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCE6 المدخلات \u2014 '+fmt(n8)+' حساب \u00D7 $'+fmt(u8)+(free8>0?' + كونز ببلاش':'')+'</div><div class="nbz">'
-        +b8('شحنات مشتراة',fmt(boughtK)+' (\u2248 $'+fmt(Math.round(cost8))+' تكلفة)','#FF8A80')
-        +b8('كونز ببلاش تنشحن',free8>0?fmt(free8)+' ($0)':'\u2014','#5EE3A6')
-        +b8('الشحنة الكلية المحتسبة','$'+fmt(Math.round(totCharge$)),'#7CBBFF')+'</div>';
-      h8+='<div class="nbz">'
-        +b8('صناديق ('+fmt(box1)+' \u00D7'+fmt(n8)+')',fmt(totBox),'#BBAEFF')
-        +b8('مهام ('+fmt(mis1)+' \u00D7'+fmt(n8)+')',fmt(totMis),'#BBAEFF')
-        +b8('كل اللي بننزله',fmt(totShipK+totBox+totMis),'#FFD37E')+'</div>';
-      h8+='<div class="nbt" style="color:#5EE3A6">\uD83C\uDFE6 نرمي الكل ونقفل (245+فك \u2014 الكاس دعم يرجع لين يخلص)</div><div class="nbz">'
-        +b8('حسابات تتقفل',fmt(cl8),'#5EE3A6')
-        +b8('رومات',rooms8+' \u00B7 كاساتها '+fmt(cupTot8)+' دخلت','#FFD37E')
-        +b8('الفايض النهائي',fmt(fayd8)+(fayd8>0?' \u00B7 ناقصه '+fmt(thr8-fayd8):''),'#9fc7ee')+'</div>';
-      h8+='<div class="nbt" style="color:#F5A0BC">\uD83D\uDCB5 الرواتب والربح</div><div class="nbz">'
-        +b8('رواتب شهرية \u00D7'+fmt(cl8),'$'+fmt(sal8),'#5EE3A6')
-        +b8('التكلفة (المشترى فقط)','$'+fmt(Math.round(cost8)),'#FF8A80')
-        +b8('الربح أول شهر',(net8>=0?'+':'\u2212')+'$'+fmt(Math.abs(Math.round(net8))),(net8>=0?'#5EE3A6':'#FFC96B'))+'</div>';
-      var w8;
-      if(net8>=0){ w8='\u2705 <b style="font-size:14px;color:#5EE3A6">ربحان من أول شهر: +$'+fmt(Math.round(net8))+'</b> \u2014 المجاني ('+fmt(free8)+') رفع الشحنة والتقفيل بدون ما يكلفك، وبعدها $'+fmt(sal8)+' شهريًا.'; }
-      else{ var mo8=sal8>0?Math.ceil(cost8/sal8):0;
-        w8='<b style="font-size:14px;color:#FFC96B">أول شهر ناقص $'+fmt(Math.abs(Math.round(net8)))+'</b> \u2014 الرواتب ($'+fmt(sal8)+') ترجع التكلفة خلال <b>'+mo8+' شهر</b>'+(free8>0?' \u00B7 والمجاني وفّر عليك $'+fmt(Math.round(free8/c.rateBuy))+' شراء':'')+'.'; }
-      h8+='<div style="background:rgba(94,227,166,.08);border:1.5px solid '+(net8>=0?'#5EE3A6':'#FFC96B')+'66;border-radius:11px;padding:10px 11px;margin-top:7px;font-size:10.5px;line-height:2;color:rgba(255,255,255,.93);text-align:center">'+w8
-        +'<br><span style="color:rgba(255,255,255,.6);font-size:9.5px">الصناديق محسوبة على شحنة كل حساب \u00B7 لو المجاني رفع شريحة حساب معين عدّل مبلغ شحنته فوق</span></div>';
-      v8.innerHTML=h8;
-    }
-  }
+  if($("sc_net")) renderSc();
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n","fk5_close","fk6_manual","fk7_start","fk7_target","fk7_cups","fk7_gift","fk8_usd","fk8_n","fk8_m30","fk8_m15","fk8_free"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n","fk5_close","fk6_manual","fk7_start","fk7_target","fk7_cups","fk7_gift"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
