@@ -1527,7 +1527,27 @@ var BRD_ACCS=[
   {k:"k", n:"KNZ",        col:"#FFD37E", pct:false},
   {k:"s1",n:"فرعي 1",     col:"#BBAEFF", pct:false},
   {k:"s2",n:"فرعي 2",     col:"#F5A0BC", pct:false},
-  {k:"s3",n:"فرعي 3",     col:"#7FE3DA", pct:false}
+  {k:"s3",n:"فرعي 3",     col:"#7FE3DA", pct:false},
+  {k:"s4",n:"فرعي 4",    col:"#BBAEFF", pct:false},
+  {k:"s5",n:"فرعي 5",    col:"#F5A0BC", pct:false},
+  {k:"s6",n:"فرعي 6",    col:"#7FE3DA", pct:false},
+  {k:"s7",n:"فرعي 7",    col:"#FFC96B", pct:false},
+  {k:"s8",n:"فرعي 8",    col:"#8FD3FE", pct:false},
+  {k:"s9",n:"فرعي 9",    col:"#C5F28A", pct:false},
+  {k:"s10",n:"فرعي 10",    col:"#FF9EA0", pct:false},
+  {k:"s11",n:"فرعي 11",    col:"#9BE8C4", pct:false},
+  {k:"s12",n:"فرعي 12",    col:"#E0B0FF", pct:false},
+  {k:"s13",n:"فرعي 13",    col:"#FFD37E", pct:false},
+  {k:"s14",n:"فرعي 14",    col:"#BBAEFF", pct:false},
+  {k:"s15",n:"فرعي 15",    col:"#F5A0BC", pct:false},
+  {k:"s16",n:"فرعي 16",    col:"#7FE3DA", pct:false},
+  {k:"s17",n:"فرعي 17",    col:"#FFC96B", pct:false},
+  {k:"s18",n:"فرعي 18",    col:"#8FD3FE", pct:false},
+  {k:"s19",n:"فرعي 19",    col:"#C5F28A", pct:false},
+  {k:"s20",n:"فرعي 20",    col:"#FF9EA0", pct:false},
+  {k:"s21",n:"فرعي 21",    col:"#9BE8C4", pct:false},
+  {k:"s22",n:"فرعي 22",    col:"#E0B0FF", pct:false},
+  {k:"s23",n:"فرعي 23",    col:"#FFD37E", pct:false}
 ];
 var BRD_COLS=[{k:"w",n:"وكيل الشحن",col:"#7CBBFF"},{k:"m",n:"الأساسي",col:"#5EE3A6"},{k:"k",n:"KNZ",col:"#FFD37E"},{k:"s1",n:"فرعي 1",col:"#BBAEFF"},{k:"s2",n:"فرعي 2",col:"#F5A0BC"},{k:"s3",n:"فرعي 3",col:"#7FE3DA"}];
 function brdName(key){ var B=S.brd; if(B&&B.names&&B.names[key])return B.names[key]; for(var i=0;i<BRD_ACCS.length;i++){ if(BRD_ACCS[i].k===key)return BRD_ACCS[i].n; } return key; }
@@ -1545,6 +1565,7 @@ function brdInit(){
     S.brd.rooms=nr;
   }
   if(!S.brd.names)S.brd.names={};
+  for(var a2=0;a2<BRD_ACCS.length;a2++){ if(!S.brd.accs[BRD_ACCS[a2].k])S.brd.accs[BRD_ACCS[a2].k]={fed:0,bal:0}; }
   return S.brd;
 }
 function brdLog(ic,t){ var B=brdInit(); B.log.unshift({ic:ic,t:t}); if(B.log.length>80)B.log.pop(); }
