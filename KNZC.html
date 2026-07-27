@@ -469,6 +469,37 @@
     <input id="fk6_manual" type="number" inputmode="numeric" placeholder="اتركها فاضية = يحسبها من الجدول">
     <div id="fk6_out"></div>
   </div>
+  <div class="stage stg-ship">
+    <h2>&#128260; محاكي التدوير — 15 يوم لشحنة الهدف</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">بداية الكونز (فاضية = يحسب الأقل)</label>
+      <input id="fk7_start" type="number" inputmode="numeric" placeholder="تلقائي"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">هدف الشحنة $</label>
+      <input id="fk7_target" type="number" inputmode="numeric" value="70000"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">كاسات روم وكيل الشحن (شحنة)</label>
+      <input id="fk7_cups" type="number" inputmode="numeric" value="2520000"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">هدية البرنامج للوكيل (شحنة)</label>
+      <input id="fk7_gift" type="number" inputmode="numeric" value="2200000"></div>
+    </div>
+    <div class="note" style="margin-top:5px">راتب الجاذبية $80 يتدور يوميًا لحظي · راتب الوكيل $30 يوم 15 فقط · كاسات باقي الرومات والصناديق = دعم تقفيل مو شحنة</div>
+    <div id="fk7_out"></div>
+  </div>
+  <div class="stage stg-acc">
+    <h2>&#129513; معادلة الحساب الواحد — شحنة + صندوق + مهام</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">شحنة الحساب $</label>
+      <input id="fk8_usd" type="number" inputmode="numeric" value="5000"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">كم حساب بنسوي لهم كذا</label>
+      <input id="fk8_n" type="number" inputmode="numeric" value="1"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">مهام يومية (30 يوم)</label>
+      <input id="fk8_m30" type="number" inputmode="numeric" value="130000"></div>
+      <div><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">مهام +15 يوم إضافية</label>
+      <input id="fk8_m15" type="number" inputmode="numeric" value="42000"></div>
+      <div style="grid-column:span 2"><label style="display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px">كونز ببلاش تنشحن (كاسات وكيل الشحن + الهدية + السلفة) — تحسب شحنة بس ما شريناها</label>
+      <input id="fk8_free" type="number" inputmode="numeric" placeholder="مثال: 4,720,000"></div>
+    </div>
+    <div id="fk8_out"></div>
+  </div>
   <div class="stage" style="background:linear-gradient(165deg,#3D2E10,#2F230C)">
     <h2 style="color:#FFC96B">&#128273; كونز الفك المتوفرة</h2>
     <div class="note" style="margin-top:0">اجمع كونز الفك من كل حساب مقفل — أضفها وحدة وحدة.</div>
@@ -759,6 +790,43 @@
 <script>
 var FK3={tg:null};
 var FK6={rows:[{lv:9,n:0}]};
+function fk7Sim(K0,cups,gift,targetS,useWk){
+  var c=cfg();
+  var thr=c.thr, lock=(num("s_lock2")||350000);
+  var charge=0, acc=0, carry=0, usd=0, support=0, taken={};
+  var days=[];
+  for(var d=1;d<=15;d++){
+    var chargeK=0;
+    if(d===1)chargeK+=K0+gift;
+    if(d===7)chargeK+=cups/2;
+    if(d===14)chargeK+=cups/2;
+    chargeK+=usd*c.rateBuy; usd=0;
+    charge+=chargeK/c.rateApp;
+    var pool=chargeK+support+carry; support=0;
+    var cl=Math.floor(pool/thr); carry=pool-cl*thr; acc+=cl;
+    // كاس رومات الحسابات (غير وكيل الشحن) = دعم
+    support+=(cl*lock)/(c.perRoom*lock)*c.roomPrize;
+    // الصناديق حسب الشحنة التراكمية = دعم
+    for(var b=0;b<BOX_TIERS.length;b++){ if(charge>=BOX_TIERS[b].usd&&!taken[BOX_TIERS[b].usd]){ taken[BOX_TIERS[b].usd]=1; support+=BOX_TIERS[b].konz; } }
+    usd+=cl*c.salAcc; // راتب الجاذبية لحظي — يتدور بكرة
+    days.push({d:d,ch:charge,acc:acc,sal:cl*c.salAcc,cl:cl});
+  }
+  var wk=acc*c.salAgent, wkUsed=0;
+  if(useWk&&charge<targetS){
+    var needK=(targetS-charge)*c.rateApp;
+    var need$=needK/c.rateBuy;
+    wkUsed=Math.min(wk,need$);
+    charge+=wkUsed*c.rateBuy/c.rateApp;
+  }
+  return {days:days,charge:charge,acc:acc,wk:wk,wkUsed:wkUsed,ok:charge>=targetS};
+}
+function fk7Min(cups,gift,targetS,useWk){
+  var lo=0, hi=200000000;
+  if(!fk7Sim(hi,cups,gift,targetS,useWk).ok)return -1;
+  for(var i=0;i<40;i++){ var mid=(lo+hi)/2;
+    if(fk7Sim(mid,cups,gift,targetS,useWk).ok)hi=mid; else lo=mid; }
+  return Math.ceil(hi/1000)*1000;
+}
 function fk6Add(){ FK6.rows.push({lv:5,n:0}); render(); }
 function fk6Del(i){ FK6.rows.splice(i,1); if(!FK6.rows.length)FK6.rows.push({lv:5,n:0}); render(); }
 function fk6Set(i,f,v){ if(FK6.rows[i]){ FK6.rows[i][f]=(f==="lv")?parseInt(v,10):Math.max(0,Math.round(parseFloat(String(v).replace(/[،,\s]/g,""))||0)); } render(); }
@@ -2895,13 +2963,106 @@ function render(){
       v6.innerHTML=h6;
     }
   }
+  if($("fk7_out")){
+    var v7=$("fk7_out");
+    var tg7=num("fk7_target")||70000;
+    var cups7=num("fk7_cups"), gift7=num("fk7_gift");
+    var minWk=fk7Min(cups7,gift7,tg7,true);
+    var minNo=fk7Min(cups7,gift7,tg7,false);
+    var st7=num("fk7_start"); var auto7=st7<=0;
+    if(auto7)st7=minWk;
+    if(st7<=0){ v7.innerHTML=""; }
+    else{
+      var R7=fk7Sim(st7,cups7,gift7,tg7,true);
+      function b7(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
+      var h7='<div class="nbt" style="color:#5EE3A6">\uD83C\uDFAF أقل بداية توصل $'+fmt(tg7)+' خلال 15 يوم</div><div class="nbz" style="grid-template-columns:1fr 1fr">'
+        +b7('مع سحب راتب الوكيل يوم 15',minWk>=0?fmt(minWk)+' كونز (\u2248 $'+fmt(Math.ceil(minWk/c.rateBuy))+')':'\u2014','#5EE3A6')
+        +b7('بدون لمس راتب الوكيل',minNo>=0?fmt(minNo)+' كونز (\u2248 $'+fmt(Math.ceil(minNo/c.rateBuy))+')':'ما توصل','#FFD37E')+'</div>';
+      h7+='<div class="nbt" style="color:#7CBBFF">\uD83D\uDCC5 جدول الـ15 يوم — بداية '+fmt(st7)+(auto7?' (الأقل تلقائيًا)':'')+'</div>';
+      h7+='<div class="fltwrap"><table class="fltab"><tr><th>اليوم</th><th>شحنة تراكمية $</th><th>حسابات</th><th>قفل اليوم</th><th>راتب اليوم $</th></tr>';
+      for(var d7=0;d7<R7.days.length;d7++){ var dd=R7.days[d7];
+        var hit=dd.ch>=tg7&&(d7===0||R7.days[d7-1].ch<tg7);
+        h7+='<tr'+(hit?' style="background:rgba(94,227,166,.12)"':'')+'><td>'+dd.d+'</td>'
+          +'<td style="color:'+(dd.ch>=tg7?'#5EE3A6':'#FFD37E')+';font-weight:800">$'+fmt(Math.round(dd.ch))+'</td>'
+          +'<td style="color:#7CBBFF">'+fmt(dd.acc)+'</td>'
+          +'<td style="color:#5EE3A6">'+(dd.cl?'+'+fmt(dd.cl):'\u2014')+'</td>'
+          +'<td style="color:#FFD37E">'+(dd.sal?'$'+fmt(dd.sal):'\u2014')+'</td></tr>';
+      }
+      h7+='</table></div>';
+      var wTxt7;
+      if(R7.days[14].ch>=tg7){ wTxt7='\u2705 <b>وصلنا $'+fmt(Math.round(R7.days[14].ch))+' قبل يوم 15 بدون لمس راتب الوكيل</b> \u2014 راتب الوكيل كامل لك: <b>$'+fmt(R7.wk)+'</b>'; }
+      else if(R7.ok){ wTxt7='\u26A0 يوم 15 وصلنا $'+fmt(Math.round(R7.days[14].ch))+' \u2014 <b>نسحب من راتب الوكيل $'+fmt(Math.ceil(R7.wkUsed))+'</b> من أصل $'+fmt(R7.wk)+' ونكمل $'+fmt(tg7)+' \u2713 \u00B7 يفضل للوكيل $'+fmt(Math.floor(R7.wk-R7.wkUsed)); }
+      else{ wTxt7='\u274C ما وصلنا حتى مع راتب الوكيل ($'+fmt(R7.wk)+') \u2014 وصلنا $'+fmt(Math.round(R7.charge))+' \u00B7 زد البداية'; }
+      h7+='<div style="background:'+(R7.ok?'rgba(94,227,166,.1)':'rgba(255,138,128,.1)')+';border:1.5px solid '+(R7.ok?'#5EE3A6':'#FF8A80')+'66;border-radius:11px;padding:10px 11px;margin-top:7px;font-size:10.5px;line-height:2;color:rgba(255,255,255,.93);text-align:center">'+wTxt7
+        +'<br><span style="color:rgba(255,255,255,.6);font-size:9.5px">النهاية: '+fmt(R7.acc)+' حساب مقفل \u00B7 كاسات الوكيل والهدية انشحنوا (يوم 1 و7 و14) \u00B7 كاسات باقي الرومات والصناديق دعمت التقفيل</span></div>';
+      v7.innerHTML=h7;
+    }
+  }
+  if($("fk8_out")){
+    var v8=$("fk8_out");
+    var u8=num("fk8_usd"), n8=Math.max(1,Math.round(num("fk8_n"))||1);
+    var m30=num("fk8_m30"), m15=num("fk8_m15"), free8=num("fk8_free");
+    if(u8<=0&&free8<=0){ v8.innerHTML=""; }
+    else{
+      function b8(l,v,col){ return '<div class="b"><div class="l">'+l+'</div><div class="v" style="color:'+(col||"#fff")+'">'+v+'</div></div>'; }
+      var lock8=num("s_lock2")||350000, thr8=c.thr;
+      var t58=null; for(var t8i=0;t8i<TARGET_TABLE.length;t8i++){ if(TARGET_TABLE[t8i].jaz===lock8)t58=TARGET_TABLE[t8i]; }
+      var perSal8=t58?((t58.jazSal||0)+(t58.wakeel||0)):110;
+      var shipK1=u8*c.rateApp;                 // شحنة الحساب الواحد
+      var box1=0; for(var b8i=0;b8i<BOX_TIERS.length;b8i++){ if(u8>=BOX_TIERS[b8i].usd)box1+=BOX_TIERS[b8i].konz; }
+      var mis1=m30+m15;
+      // ===== الإجمالي: N حساب + الكونز المجانية =====
+      var boughtK=shipK1*n8;                   // اللي شريناه فعلًا
+      var totShipK=boughtK+free8;              // كله يحسب شحنة
+      var cost8=boughtK/c.rateBuy;             // التكلفة = المشترى فقط
+      var totCharge$=totShipK/c.rateApp;
+      var totBox=box1*n8, totMis=mis1*n8;
+      // نرمي الكل: الشحنات + الصناديق + المهام، والكاس دعم يرجع لين يخلص
+      var pool8=totShipK+totBox+totMis, cl8=0, roomVal8=0, guard8=0;
+      while(pool8>=thr8&&guard8<400){
+        var cc=Math.floor(pool8/thr8); cl8+=cc; pool8-=cc*thr8;
+        var vv=cc*lock8; roomVal8+=vv;
+        pool8+=vv/(c.perRoom*lock8)*c.roomPrize;
+        guard8++;
+      }
+      var fayd8=Math.round(pool8);
+      var rooms8=Math.round(roomVal8/(c.perRoom*lock8)*100)/100;
+      var cupTot8=Math.round(roomVal8/(c.perRoom*lock8)*c.roomPrize);
+      var sal8=cl8*perSal8;
+      var net8=sal8-cost8;
+      var h8='';
+      h8+='<div class="nbt" style="color:#FFD37E">\uD83D\uDCE6 المدخلات \u2014 '+fmt(n8)+' حساب \u00D7 $'+fmt(u8)+(free8>0?' + كونز ببلاش':'')+'</div><div class="nbz">'
+        +b8('شحنات مشتراة',fmt(boughtK)+' (\u2248 $'+fmt(Math.round(cost8))+' تكلفة)','#FF8A80')
+        +b8('كونز ببلاش تنشحن',free8>0?fmt(free8)+' ($0)':'\u2014','#5EE3A6')
+        +b8('الشحنة الكلية المحتسبة','$'+fmt(Math.round(totCharge$)),'#7CBBFF')+'</div>';
+      h8+='<div class="nbz">'
+        +b8('صناديق ('+fmt(box1)+' \u00D7'+fmt(n8)+')',fmt(totBox),'#BBAEFF')
+        +b8('مهام ('+fmt(mis1)+' \u00D7'+fmt(n8)+')',fmt(totMis),'#BBAEFF')
+        +b8('كل اللي بننزله',fmt(totShipK+totBox+totMis),'#FFD37E')+'</div>';
+      h8+='<div class="nbt" style="color:#5EE3A6">\uD83C\uDFE6 نرمي الكل ونقفل (245+فك \u2014 الكاس دعم يرجع لين يخلص)</div><div class="nbz">'
+        +b8('حسابات تتقفل',fmt(cl8),'#5EE3A6')
+        +b8('رومات',rooms8+' \u00B7 كاساتها '+fmt(cupTot8)+' دخلت','#FFD37E')
+        +b8('الفايض النهائي',fmt(fayd8)+(fayd8>0?' \u00B7 ناقصه '+fmt(thr8-fayd8):''),'#9fc7ee')+'</div>';
+      h8+='<div class="nbt" style="color:#F5A0BC">\uD83D\uDCB5 الرواتب والربح</div><div class="nbz">'
+        +b8('رواتب شهرية \u00D7'+fmt(cl8),'$'+fmt(sal8),'#5EE3A6')
+        +b8('التكلفة (المشترى فقط)','$'+fmt(Math.round(cost8)),'#FF8A80')
+        +b8('الربح أول شهر',(net8>=0?'+':'\u2212')+'$'+fmt(Math.abs(Math.round(net8))),(net8>=0?'#5EE3A6':'#FFC96B'))+'</div>';
+      var w8;
+      if(net8>=0){ w8='\u2705 <b style="font-size:14px;color:#5EE3A6">ربحان من أول شهر: +$'+fmt(Math.round(net8))+'</b> \u2014 المجاني ('+fmt(free8)+') رفع الشحنة والتقفيل بدون ما يكلفك، وبعدها $'+fmt(sal8)+' شهريًا.'; }
+      else{ var mo8=sal8>0?Math.ceil(cost8/sal8):0;
+        w8='<b style="font-size:14px;color:#FFC96B">أول شهر ناقص $'+fmt(Math.abs(Math.round(net8)))+'</b> \u2014 الرواتب ($'+fmt(sal8)+') ترجع التكلفة خلال <b>'+mo8+' شهر</b>'+(free8>0?' \u00B7 والمجاني وفّر عليك $'+fmt(Math.round(free8/c.rateBuy))+' شراء':'')+'.'; }
+      h8+='<div style="background:rgba(94,227,166,.08);border:1.5px solid '+(net8>=0?'#5EE3A6':'#FFC96B')+'66;border-radius:11px;padding:10px 11px;margin-top:7px;font-size:10.5px;line-height:2;color:rgba(255,255,255,.93);text-align:center">'+w8
+        +'<br><span style="color:rgba(255,255,255,.6);font-size:9.5px">الصناديق محسوبة على شحنة كل حساب \u00B7 لو المجاني رفع شريحة حساب معين عدّل مبلغ شحنته فوق</span></div>';
+      v8.innerHTML=h8;
+    }
+  }
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
   save();
 }
 
-var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n","fk5_close","fk6_manual"];
+var setIds=["s_rateBuy","s_throw","s_perRoom","s_pct","s_salAcc","s_salAgent","s_rateApp","s_roomPrize","s_cupShip","s_cupGift","s_lock2","rc_konz","rc_cur","pc_amount","pc_pct","qs_count","ex_in","brd_usd","cv_k","cv_u","fkc_close","fkq_amt","fk2_a","fk2_b","fk3_amt","fk4_n","fk5_close","fk6_manual","fk7_start","fk7_target","fk7_cups","fk7_gift","fk8_usd","fk8_n","fk8_m30","fk8_m15","fk8_free"];
 for(var q=0;q<setIds.length;q++){ var e=$(setIds[q]); if(e) e.addEventListener("input",render); }
 
 load(); render();
