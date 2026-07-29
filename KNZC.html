@@ -207,7 +207,8 @@
   .bacc{border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,.06)}
   .bacc .bn{font-size:10px;font-weight:800} .bacc .bb{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px} .bacc .bf{font-size:8.5px;color:var(--muted);margin-top:1px}
   .bacc.on{border-color:#fff}
-  .brdrooms{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:7px}
+  .brdrooms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px}
+  .brdrooms .wklbl{grid-column:1/-1;font-size:9.5px;font-weight:900;color:var(--muted);margin-top:4px;letter-spacing:.3px}
   .brm{border-radius:9px;padding:5px 2px;text-align:center;cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,.06)}
   .brm .rn2{font-size:7.5px;font-weight:800;line-height:1.3} .brm .rp{height:5px;border-radius:3px;background:rgba(0,0,0,.4);overflow:hidden;margin-top:4px}
   .brm .rp i{display:block;height:100%;width:0}
@@ -688,6 +689,7 @@
   <div class="stage stg-log" style="padding:11px">
     <h2 style="margin-bottom:2px">&#128101; الحسابات <span class="tag">اضغط لاختيار الحساب</span></h2>
     <div id="brd_accs" class="brdaccs"></div>
+    <div class="note" id="bv_msel" style="margin-top:5px"></div>
     <div class="inrow" style="margin-top:8px"><input id="brd_amt" type="number" inputmode="numeric" placeholder="كونز الشحن"><button class="btn grn sm" onclick="brdCharge(0)">اشحن للمحدد</button><button class="btn blu sm" onclick="brdCharge(1)">الكل</button></div>
     <div class="inrow" style="margin-top:6px"><input id="brd_rn" type="text" placeholder="اسم جديد للحساب المحدد"><button class="btn dk sm" onclick="brdRename()">غيّر الاسم</button></div>
   </div>
@@ -695,6 +697,10 @@
   <div class="stage stg-room" style="padding:11px">
     <h2 style="margin-bottom:2px">&#127942; الرومات — 6 حسابات × 4 أسابيع <span class="tag">اضغط لاختيار الروم</span></h2>
     <div id="brd_rooms" class="brdrooms"></div>
+    <div style="display:flex;align-items:center;gap:7px;margin-top:7px">
+      <span style="font-size:10.5px;color:var(--muted);white-space:nowrap">الروم المحدد لمن؟</span>
+      <select id="brd_rmOwn" onchange="brdRoomOwn(this.value)" style="flex:1;background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:10px;color:var(--ink);font-size:12px;outline:none"></select>
+    </div>
     <div class="inrow" style="margin-top:8px"><input id="brd_thr" type="number" inputmode="numeric" placeholder="كونز الرمي"><button class="btn gold sm" onclick="brdThrow(0)">ارمِ</button><button class="btn amber sm" onclick="brdThrow(1)">كل رصيده</button></div>
     <div class="rbtns" style="margin-top:6px"><button class="btn vio sm" onclick="brdExchange(0)">تبادل (بالمكتوب)</button><button class="btn vio sm" onclick="brdExchange(1)" style="opacity:.92">قفّل الروم كله تبادل</button></div>
     <div class="progtxt" id="bv_accprog" style="margin-top:8px">حساب جاري 0 / 245,000</div>
@@ -747,40 +753,73 @@
 <!-- ============ تبويب 13: سيناريو ============ -->
 <div class="pane" id="pane13">
   <div class="hero">
-    <div class="l">الربح الحالي (مستلم − تكلفة خارجية)</div>
+    <div class="l">الصافي (رواتب متولدة − تكلفة خارجية − سلفة قائمة)</div>
     <div class="big2" id="sc_net">$0</div>
     <div class="s" id="sc_netSub"></div>
   </div>
   <div class="stage stg-log" style="padding:11px">
-    <div class="sumgrid">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--muted)">الأسبوع:</span><div class="chips" id="sc_weeks" style="margin:0"></div>
+      <button class="btn grn sm" onclick="scNextDay()" style="margin-inline-start:auto">اليوم انتهى &#8592; يوم جديد</button>
+    </div>
+    <div class="chips" id="sc_days" style="margin-top:7px"></div>
+    <div class="fltwrap" style="margin-top:8px"><table class="fltab" id="sc_dtab"></table></div>
+    <div class="sumgrid" style="margin-top:8px">
       <div class="c"><div class="l">الشحنة التراكمية</div><div class="v n-blue" id="sc_charge">$0</div></div>
-      <div class="c"><div class="l">التكلفة الخارجية</div><div class="v v-red" id="sc_cost">$0</div></div>
       <div class="c"><div class="l">حسابات مقفلة</div><div class="v n-green" id="sc_closes">0</div></div>
-      <div class="c"><div class="l">رومات</div><div class="v n-vio" id="sc_rooms">0</div></div>
-      <div class="c"><div class="l">كونز جاهزة للرمي</div><div class="v v-gold" id="sc_pool">0</div></div>
-      <div class="c"><div class="l">راتب شهري متوقع</div><div class="v n-green" id="sc_salM">$0</div></div>
+      <div class="c"><div class="l">تكلفة خارجية</div><div class="v v-red" id="sc_cost">$0</div></div>
     </div>
   </div>
   <div class="stage stg-agency">
-    <h2>&#128722; شراء وشحن (تكلفة + شحنة)</h2>
-    <div class="inrow"><input id="sc_buy" type="number" inputmode="numeric" placeholder="كونز"><button class="btn grn sm" onclick="scBuy()">اشترِ واشحن</button></div>
-    <h2 style="margin-top:10px">&#127873; شحنة ببلاش (كاس الوكيل · هدية · سلفة)</h2>
-    <div class="inrow"><input id="sc_free" type="number" inputmode="numeric" placeholder="كونز"><button class="btn blu sm" onclick="scFree()">اشحنها ببلاش</button></div>
-    <h2 style="margin-top:10px">&#128230; دعم (صندوق · مهام)</h2>
-    <div class="inrow"><input id="sc_sup" type="number" inputmode="numeric" placeholder="كونز"><button class="btn dk sm" onclick="scSup()">أضف دعم</button></div>
+    <h2>1&#65039;&#8419; الرواتب من الوكالة <span style="font-size:9.5px;color:var(--muted)">— تبان فور التقفيل</span></h2>
+    <div class="mini" style="margin-top:7px">
+      <div class="c"><div class="l">راتب الحسابات ($80)</div><div class="v n-green" id="sc_salA">$0</div></div>
+      <div class="c"><div class="l">راتب الوكيل ($30)</div><div class="v v-gold" id="sc_salW">$0</div></div>
+      <div class="c"><div class="l">سلفة قائمة (دين)</div><div class="v v-red" id="sc_adv">$0</div></div>
+    </div>
+    <div class="inrow" style="margin-top:8px"><input id="sc_wd" type="number" inputmode="numeric" placeholder="$ دولار"><button class="btn grn sm" onclick="scWd('a')">من الحسابات &#8592; شحن</button><button class="btn gold sm" onclick="scWd('w')">من الوكيل &#8592; شحن</button></div>
+    <div class="rbtns" style="margin-top:6px"><button class="btn dk sm" onclick="scAdv()">سلفة &#8592; شحن (دين)</button><button class="btn dk sm" onclick="scPay()">سدد السلفة من الرصيد</button></div>
+    <div class="inrow" style="margin-top:6px"><input id="sc_ext" type="number" inputmode="numeric" placeholder="$ شراء خارجي"><button class="btn red sm" onclick="scExt()">شراء خارجي &#8592; شحن (تكلفة)</button></div>
   </div>
-  <div class="stage stg-room">
-    <h2>&#127974; الرمي والتقفيل والكاس</h2>
-    <div class="rbtns"><button class="btn gold" onclick="scThrow()">&#127942; ارمِ وقفّل (245k + فك)</button><button class="btn grn" onclick="scCup()">&#127942; اسحب كاس الرومات</button></div>
-    <div class="note" id="sc_cupNote" style="margin-top:5px"></div>
+  <div class="stage stg-ship">
+    <h2>2&#65039;&#8419; وكيل الشحن</h2>
+    <div class="mini" style="margin-top:7px">
+      <div class="c"><div class="l">خانة الشحن (يرسلها شحنات)</div><div class="v n-blue" id="sc_shipK">0</div></div>
+      <div class="c"><div class="l">خانة الدعم (من كاس رومه)</div><div class="v v-gold" id="sc_supK">0</div></div>
+    </div>
+    <div class="inrow" style="margin-top:7px"><input id="sc_gift" type="number" inputmode="numeric" placeholder="كونز هدية من التطبيق"><button class="btn blu sm" onclick="scGift()">هدية &#8592; خانة الشحن</button></div>
+    <button class="btn gold sm" onclick="scThrowSup()" style="width:100%;margin-top:6px">&#128230; ارمِ خانة الدعم في الروم المحدد</button>
   </div>
   <div class="stage stg-acc">
-    <h2>&#128181; الرواتب</h2>
-    <div class="inrow"><input id="sc_sal" type="number" inputmode="numeric" placeholder="$ دولار"><button class="btn grn sm" onclick="scRecv()">استلمت رواتب</button><button class="btn gold sm" onclick="scCycle()">دوّرها شحن</button></div>
-    <div class="mini" style="margin-top:7px">
-      <div class="c"><div class="l">رواتب مستلمة</div><div class="v n-green" id="sc_recv">$0</div></div>
-      <div class="c"><div class="l">متاح للتدوير</div><div class="v v-gold" id="sc_cash">$0</div></div>
+    <h2>3&#65039;&#8419; الحسابات <span style="font-size:9.5px;color:var(--muted)">— اضغط تختار، وسمّها براحتك</span></h2>
+    <div id="sc_accs" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px"></div>
+    <div class="rbtns" style="margin-top:7px"><button class="btn dk sm" onclick="scAddAcc()">+ حساب</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
+      <div><label style="display:block;font-size:9.5px;color:var(--muted);margin-bottom:3px">شحنة $</label><input id="sc_usd" type="number" inputmode="numeric" value="5000" style="padding:9px"></div>
+      <div><label style="display:block;font-size:9.5px;color:var(--muted);margin-bottom:3px">مهام فورية</label><input id="sc_m30" type="number" inputmode="numeric" value="130000" style="padding:9px"></div>
+      <div><label style="display:block;font-size:9.5px;color:var(--muted);margin-bottom:3px">مهام الشهر الجاي</label><input id="sc_m43" type="number" inputmode="numeric" value="43000" style="padding:9px"></div>
     </div>
+    <button class="btn grn" onclick="scShip()" style="width:100%;margin-top:7px">&#9889; اشحن الحساب المحدد (فورًا: صندوق + مهام تنزل له)</button>
+    <div class="note" id="sc_shipNote" style="margin-top:5px"></div>
+    <div class="inrow" style="margin-top:7px"><input id="sc_ren" placeholder="اسم جديد"><button class="btn dk sm" onclick="scRen('a')">سمِّ الحساب</button><button class="btn dk sm" onclick="scRen('r')">سمِّ الروم</button></div>
+  </div>
+  <div class="stage stg-room">
+    <h2>4&#65039;&#8419; الرومات <span style="font-size:9.5px;color:var(--muted)">— اضغط تختار، وحدد الروم لمن (كاسه يرجع لصاحبه الأحد)</span></h2>
+    <div id="sc_rooms" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"></div>
+    <div class="rbtns" style="margin-top:7px"><button class="btn dk sm" onclick="scAddRoom()">+ روم</button><button class="btn dk sm" onclick="scSunday()">&#128197; الأحد &mdash; نزّل الكاسات (<span id="sc_pend">0</span>)</button></div>
+    <div style="display:flex;align-items:center;gap:7px;margin-top:8px">
+      <span style="font-size:10.5px;color:var(--muted);white-space:nowrap">الروم المحدد لمن؟</span>
+      <select id="sc_owner" onchange="scRoomOwner(this.value)" style="flex:1;background:rgba(255,255,255,.1);border:none;border-radius:10px;padding:10px;color:var(--ink);font-size:12px;outline:none"></select>
+    </div>
+    <button class="btn gold" onclick="scThrowAcc()" style="width:100%;margin-top:8px">&#127974; ارمِ كونز الحساب المحدد في الروم المحدد (245k + فك)</button>
+  </div>
+  <div class="stage stg-log">
+    <h2>5&#65039;&#8419; مهام الشهر الجاي</h2>
+    <div class="mini" style="margin-top:7px">
+      <div class="c"><div class="l">متجمعة</div><div class="v n-vio" id="sc_nx">0</div></div>
+      <div class="c"><div class="l">لو رميناها</div><div class="v n-green" id="sc_nxSim">&mdash;</div></div>
+    </div>
+    <button class="btn dk sm" onclick="scNext()" style="width:100%;margin-top:7px">&#128640; شهر جديد &mdash; نزّلها للحساب المحدد</button>
   </div>
   <div class="stage stg-log">
     <h2>&#128220; السجل</h2>
@@ -820,71 +859,177 @@
 <script>
 var FK3={tg:null};
 var FK6={rows:[{lv:9,n:0}]};
-function scInit(){ if(!S.sc)S.sc={cost:0,charge:0,pool:0,closes:0,roomVal:0,cupTaken:0,recv:0,cash:0,log:[]}; return S.sc; }
-function scLog(t){ var sc=scInit(); sc.log.unshift(new Date().toLocaleTimeString("ar-SA",{hour:"2-digit",minute:"2-digit"})+" \u00B7 "+t); if(sc.log.length>14)sc.log.pop(); }
-function scBuy(){ var k=num("sc_buy"); if(k<=0){alert("اكتب الكونز.");return;}
-  var sc=scInit(), c=cfg();
-  sc.cost+=k/c.rateBuy; sc.charge+=k/c.rateApp; sc.pool+=k;
-  scLog("\uD83D\uDED2 شراء وشحن "+fmt(k)+" (\u2248 $"+fmt(Math.round(k/c.rateBuy))+")");
-  $("sc_buy").value=""; save(); render(); }
-function scFree(){ var k=num("sc_free"); if(k<=0){alert("اكتب الكونز.");return;}
-  var sc=scInit(), c=cfg();
-  sc.charge+=k/c.rateApp; sc.pool+=k;
-  scLog("\uD83C\uDF81 شحنة ببلاش "+fmt(k));
-  $("sc_free").value=""; save(); render(); }
-function scSup(){ var k=num("sc_sup"); if(k<=0){alert("اكتب الكونز.");return;}
-  var sc=scInit();
-  sc.pool+=k;
-  scLog("\uD83D\uDCE6 دعم "+fmt(k));
-  $("sc_sup").value=""; save(); render(); }
-function scThrow(){ var sc=scInit(), c=cfg();
-  var lock=num("s_lock2")||350000;
-  var cl=Math.floor(sc.pool/c.thr);
-  if(cl<=0){ alert("الكونز الجاهزة أقل من "+fmt(c.thr)+"."); return; }
-  sc.pool-=cl*c.thr; sc.closes+=cl; sc.roomVal+=cl*lock;
-  scLog("\uD83C\uDFE6 رمينا وقفّلنا "+fmt(cl)+" حساب (فك يكملها "+fmt(cl*(lock-c.thr))+")");
+var SC_DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+function scInit(){
+  if(!S.sc||S.sc.v!==3)S.sc={v:3,week:1,day:1,charge:0,shipK:0,supK:0,closes:0,
+    accs:[{name:"حساب 1",fed:0,bal:0},{name:"حساب 2",fed:0,bal:0},{name:"حساب 3",fed:0,bal:0}],
+    rooms:[{name:"روم 1",owner:-1,fill:0,done:false}],
+    selA:0,selR:0,pend:[],salA:0,salW:0,genSal:0,adv:0,cost:0,nx:0,dsum:{},log:[]};
+  return S.sc; }
+function scTag(){ var sc=scInit(); return "أس"+sc.week+"\u00B7"+SC_DAYS[sc.day-1]; }
+function scDs(){ var sc=scInit(); var k="w"+sc.week+"d"+sc.day;
+  if(!sc.dsum[k])sc.dsum[k]={s:0,t:0,c:0,m:0}; return sc.dsum[k]; }
+function scLog(t){ var sc=scInit(); sc.log.unshift(scTag()+" \u00B7 "+t); if(sc.log.length>24)sc.log.pop(); }
+function scWeek(w){ var sc=scInit(); sc.week=w; sc.day=1; scLog("\u27A1 انتقلنا للأسبوع "+w); save(); render(); }
+function scDaySet(d){ var sc=scInit(); sc.day=d; save(); render(); }
+function scNextDay(){ var sc=scInit();
+  if(sc.day<7){ sc.day++; }
+  else{ sc.day=1; sc.week=sc.week>=4?1:sc.week+1; }
+  scLog("\u2600 بدينا "+SC_DAYS[sc.day-1]+(sc.day===1?" — أسبوع "+sc.week+(sc.pend.length?" \u00B7 فيه "+sc.pend.length+" كاس جاهز للتنزيل":""):""));
   save(); render(); }
-function scCup(){ var sc=scInit(), c=cfg();
-  var lock=num("s_lock2")||350000;
-  var avail=Math.floor(sc.roomVal/(c.perRoom*lock)*c.roomPrize)-sc.cupTaken;
-  if(avail<=0){ alert("ما فيه كاس متاح — ارمِ أول."); return; }
-  sc.cupTaken+=avail; sc.pool+=avail;
-  scLog("\uD83C\uDFC6 سحبنا كاس "+fmt(avail)+" (دعم)");
-  save(); render(); }
-function scRecv(){ var d=num("sc_sal"); if(d<=0){alert("اكتب المبلغ.");return;}
+function scOwnerName(o){ var sc=scInit(); return o===-1?"وكيل الشحن":(sc.accs[o]?sc.accs[o].name:"?"); }
+function scSelAcc(i){ var sc=scInit(); sc.selA=i; save(); render(); }
+function scSelRoom(i){ var sc=scInit(); sc.selR=i; save(); render(); }
+function scAddAcc(){ var sc=scInit(); sc.accs.push({name:"حساب "+(sc.accs.length+1),fed:0,bal:0}); sc.selA=sc.accs.length-1; scLog("\u2795 أضفنا "+sc.accs[sc.selA].name); save(); render(); }
+function scAddRoom(){ var sc=scInit(); sc.rooms.push({name:"روم "+(sc.rooms.length+1),owner:-1,fill:0,done:false}); sc.selR=sc.rooms.length-1; scLog("\u2795 أضفنا "+sc.rooms[sc.selR].name); save(); render(); }
+function scRen(kind){ var v=($("sc_ren").value||"").trim(); if(!v){alert("اكتب الاسم.");return;}
   var sc=scInit();
-  sc.recv+=d; sc.cash+=d;
-  scLog("\uD83D\uDCB5 استلمنا رواتب $"+fmt(d));
-  $("sc_sal").value=""; save(); render(); }
-function scCycle(){ var d=num("sc_sal"); var sc=scInit(), c=cfg();
-  if(d<=0)d=sc.cash;
-  if(d<=0){ alert("ما فيه رواتب متاحة."); return; }
-  if(d>sc.cash){ alert("المتاح للتدوير $"+fmt(sc.cash)+" فقط."); return; }
-  sc.cash-=d;
-  var k=d*c.rateBuy;
-  sc.charge+=k/c.rateApp; sc.pool+=k;
-  scLog("\uD83D\uDD04 دوّرنا $"+fmt(d)+" \u2190 "+fmt(k)+" كونز شحنة");
-  $("sc_sal").value=""; save(); render(); }
+  if(kind==="a"){ scLog("\u270F "+sc.accs[sc.selA].name+" صار "+v); sc.accs[sc.selA].name=v; }
+  else{ scLog("\u270F "+sc.rooms[sc.selR].name+" صار "+v); sc.rooms[sc.selR].name=v; }
+  $("sc_ren").value=""; save(); render(); }
+function scRoomOwner(v){ var sc=scInit(); sc.rooms[sc.selR].owner=parseInt(v,10);
+  scLog("\uD83C\uDFF7 "+sc.rooms[sc.selR].name+" صار لـ"+scOwnerName(sc.rooms[sc.selR].owner)); save(); render(); }
+function scWd(src){ var d=num("sc_wd"); if(d<=0){alert("اكتب المبلغ.");return;}
+  var sc=scInit(), c=cfg();
+  if(src==="a"){ if(d>sc.salA){alert("راتب الحسابات المتاح $"+fmt(Math.floor(sc.salA))+" فقط.");return;} sc.salA-=d; }
+  else{ if(d>sc.salW){alert("راتب الوكيل المتاح $"+fmt(Math.floor(sc.salW))+" فقط.");return;} sc.salW-=d; }
+  sc.shipK+=d*c.rateBuy;
+  scLog("\uD83D\uDCB5 سحبنا $"+fmt(d)+" من راتب "+(src==="a"?"الحسابات":"الوكيل")+" \u2190 "+fmt(d*c.rateBuy)+" كونز شحن");
+  $("sc_wd").value=""; save(); render(); }
+function scAdv(){ var d=num("sc_wd"); if(d<=0){alert("اكتب المبلغ بخانة الدولار.");return;}
+  var sc=scInit(), c=cfg();
+  sc.adv+=d; sc.shipK+=d*c.rateBuy;
+  scLog("\uD83E\uDDFE سلفة $"+fmt(d)+" \u2190 "+fmt(d*c.rateBuy)+" كونز شحن (دين)");
+  $("sc_wd").value=""; save(); render(); }
+function scPay(){ var sc=scInit();
+  if(sc.adv<=0){alert("ما فيه سلفة.");return;}
+  var p=Math.min(sc.adv,sc.salA); var p2=(p<sc.adv)?Math.min(sc.adv-p,sc.salW):0;
+  if(p+p2<=0){alert("ما فيه رصيد رواتب للسداد.");return;}
+  sc.salA-=p; sc.salW-=p2; sc.adv-=(p+p2);
+  scLog("\u2705 سددنا سلفة $"+fmt(p+p2)+(sc.adv>0?" \u00B7 باقي $"+fmt(sc.adv):" \u2014 خلصت"));
+  save(); render(); }
+function scExt(){ var d=num("sc_ext"); if(d<=0){alert("اكتب المبلغ.");return;}
+  var sc=scInit(), c=cfg();
+  sc.cost+=d; sc.shipK+=d*c.rateBuy;
+  scLog("\uD83D\uDED2 شراء خارجي $"+fmt(d)+" \u2190 "+fmt(d*c.rateBuy)+" كونز شحن");
+  $("sc_ext").value=""; save(); render(); }
+function scGift(){ var k=num("sc_gift"); if(k<=0){alert("اكتب الكونز.");return;}
+  var sc=scInit();
+  sc.shipK+=k;
+  scLog("\uD83C\uDF81 هدية "+fmt(k)+" \u2190 خانة الشحن");
+  $("sc_gift").value=""; save(); render(); }
+function scShip(){ var sc=scInit(), c=cfg();
+  var a=sc.accs[sc.selA]; if(!a){alert("حدد حساب.");return;}
+  var u=num("sc_usd")||5000, m30=num("sc_m30"), m43=num("sc_m43");
+  var need=u*c.rateApp;
+  if(sc.shipK<need){ alert("خانة الشحن "+fmt(Math.floor(sc.shipK))+" وتحتاج "+fmt(need)+"."); return; }
+  var tiers=brdTiers(a.fed,a.fed+u);
+  sc.shipK-=need; a.fed+=u; sc.charge+=u;
+  a.bal+=need+tiers.k+m30;
+  sc.nx+=m43;
+  var ds=scDs(); ds.s+=u;
+  scLog("\u26A1 شحنا "+a.name+" $"+fmt(u)+" \u2190 كونزه "+fmt(need)+(tiers.k?" + صندوق "+fmt(tiers.k):"")+" + مهام "+fmt(m30)+" \u00B7 مهام الجاي +"+fmt(m43));
+  save(); render(); }
+function scCloseInto(srcName,amount,takeFn){ // مشترك: رمي بمقدار amount في الروم المحدد
+  var sc=scInit(), c=cfg(); var lock=num("s_lock2")||350000, base=c.perRoom*lock;
+  var r=sc.rooms[sc.selR]; if(!r){alert("حدد روم.");return 0;}
+  if(r.done){alert(r.name+" مكتمل \u2014 أضف روم أو حدد غيره.");return 0;}
+  var cl=Math.floor(amount/c.thr);
+  if(cl<=0){alert("الكونز أقل من "+fmt(c.thr)+".");return 0;}
+  var space=Math.floor((base-r.fill)/lock);
+  if(space<=0){alert(r.name+" ما يسع أكثر.");return 0;}
+  if(cl>space)cl=space;
+  takeFn(cl*c.thr);
+  sc.closes+=cl; sc.salA+=cl*c.salAcc; sc.salW+=cl*c.salAgent; sc.genSal+=cl*(c.salAcc+c.salAgent);
+  r.fill+=cl*lock;
+  var doneNow=false;
+  if(r.fill>=base-1){ r.done=true; doneNow=true; sc.pend.push({room:r.name,owner:r.owner}); }
+  var ds=scDs(); ds.t+=cl*c.thr; ds.c+=cl; ds.m+=cl*(c.salAcc+c.salAgent);
+  scLog("\uD83C\uDFE6 رمينا من "+srcName+" وقفّلنا "+fmt(cl)+" حساب في "+r.name+" (+$"+fmt(cl*c.salAcc)+" \u00B7 +$"+fmt(cl*c.salAgent)+")"+(doneNow?" \u00B7 \uD83C\uDFC6 اكتمل! كاسه لـ"+scOwnerName(r.owner)+" ينزل الأحد":""));
+  save(); render(); return cl; }
+function scThrowAcc(){ var sc=scInit(); var a=sc.accs[sc.selA]; if(!a){alert("حدد حساب.");return;}
+  scCloseInto(a.name,a.bal,function(used){ a.bal-=used; }); }
+function scThrowSup(){ var sc=scInit();
+  scCloseInto("خانة الدعم",sc.supK,function(used){ sc.supK-=used; }); }
+function scSunday(){ var sc=scInit(), c=cfg();
+  if(!sc.pend.length){ alert("ما فيه كاسات معلقة."); return; }
+  for(var i=0;i<sc.pend.length;i++){ var pp=sc.pend[i];
+    if(pp.owner===-1){ sc.shipK+=c.cupShip; sc.supK+=c.cupGift;
+      scLog("\uD83D\uDCC5 كاس "+pp.room+" لوكيل الشحن: "+fmt(c.cupShip)+" شحن + "+fmt(c.cupGift)+" دعم"); }
+    else{ var a2=sc.accs[pp.owner]; if(a2){ a2.bal+=c.roomPrize;
+      scLog("\uD83D\uDCC5 كاس "+pp.room+" نزل لـ"+a2.name+": "+fmt(c.roomPrize)+" يرميها بأسبوعه الجديد"); } }
+  }
+  sc.pend=[];
+  save(); render(); }
+function scNext(){ var sc=scInit();
+  if(sc.nx<=0){ alert("ما فيه مهام متجمعة."); return; }
+  var a=sc.accs[sc.selA]; if(!a){alert("حدد حساب.");return;}
+  a.bal+=sc.nx;
+  scLog("\uD83D\uDE80 شهر جديد: مهام "+fmt(sc.nx)+" نزلت لـ"+a.name);
+  sc.nx=0; save(); render(); }
 function renderSc(){ var sc=scInit(), c=cfg();
-  var lock=num("s_lock2")||350000;
-  var salM=sc.closes*(c.salAcc+c.salAgent);
-  var net=sc.recv-sc.cost;
+  var lock=num("s_lock2")||350000, base=c.perRoom*lock;
+  var net=sc.genSal-sc.cost-sc.adv;
   $("sc_net").textContent=(net>=0?"+":"\u2212")+"$"+fmt(Math.abs(Math.round(net)));
   $("sc_net").style.color=net>=0?"#5EE3A6":"#FF8A80";
-  $("sc_netSub").textContent="مستلم $"+fmt(Math.round(sc.recv))+" \u2212 تكلفة $"+fmt(Math.round(sc.cost))+" \u00B7 وبالمخزون "+fmt(Math.round(sc.pool))+" كونز (\u2248 $"+fmt(Math.round(sc.pool/c.rateBuy))+")";
+  $("sc_netSub").textContent="رواتب متولدة $"+fmt(Math.round(sc.genSal))+" \u2212 خارجي $"+fmt(Math.round(sc.cost))+" \u2212 سلفة $"+fmt(Math.round(sc.adv))+" \u00B7 راتب شهري متوقع $"+fmt(sc.closes*(c.salAcc+c.salAgent));
   $("sc_charge").textContent="$"+fmt(Math.round(sc.charge));
-  $("sc_cost").textContent="$"+fmt(Math.round(sc.cost));
   $("sc_closes").textContent=fmt(sc.closes);
-  $("sc_rooms").textContent=String(Math.round(sc.roomVal/(c.perRoom*lock)*100)/100);
-  $("sc_pool").textContent=fmt(Math.round(sc.pool));
-  $("sc_salM").textContent="$"+fmt(salM);
-  $("sc_recv").textContent="$"+fmt(Math.round(sc.recv));
-  $("sc_cash").textContent="$"+fmt(Math.round(sc.cash));
-  var availCup=Math.floor(sc.roomVal/(c.perRoom*lock)*c.roomPrize)-sc.cupTaken;
-  $("sc_cupNote").textContent="كاس متاح للسحب: "+fmt(Math.max(0,availCup))+" \u00B7 كل روم ("+fmt(c.perRoom*lock)+") = كاس "+fmt(c.roomPrize);
+  $("sc_cost").textContent="$"+fmt(Math.round(sc.cost));
+  $("sc_shipK").textContent=fmt(Math.round(sc.shipK));
+  $("sc_supK").textContent=fmt(Math.round(sc.supK));
+  $("sc_salA").textContent="$"+fmt(Math.floor(sc.salA));
+  $("sc_salW").textContent="$"+fmt(Math.floor(sc.salW));
+  $("sc_adv").textContent="$"+fmt(Math.round(sc.adv));
+  $("sc_pend").textContent=String(sc.pend.length);
+  $("sc_nx").textContent=fmt(Math.round(sc.nx));
+  var cl2=Math.floor(sc.nx/c.thr);
+  $("sc_nxSim").textContent=cl2>0?("\u2248 "+fmt(cl2)+" حساب \u00B7 +$"+fmt(cl2*(c.salAcc+c.salAgent))):"\u2014";
+  var usd9=num("sc_usd")||5000;
+  $("sc_shipNote").textContent="خانة الشحن تكفي لـ"+fmt(Math.floor(sc.shipK/(usd9*c.rateApp)))+" شحنة \u00D7 $"+fmt(usd9);
+  // الأسابيع والأيام
+  var wEl=$("sc_weeks");
+  if(wEl){ var wh=''; for(var w=1;w<=4;w++)wh+='<span class="chip'+(sc.week===w?" f on":"")+'" onclick="scWeek('+w+')">'+w+'</span>'; wEl.innerHTML=wh; }
+  var dEl=$("sc_days");
+  if(dEl){ var dh=''; for(var d=1;d<=7;d++)dh+='<span class="chip'+(sc.day===d?" f on":"")+'" onclick="scDaySet('+d+')" style="font-size:10px;padding:6px 9px">'+SC_DAYS[d-1]+'</span>'; dEl.innerHTML=dh; }
+  // جدول الأسبوع يوم بيوم
+  var dt=$("sc_dtab");
+  if(dt){ var th='<tr><th>اليوم</th><th>شحنّا $</th><th>رمينا</th><th>قفلنا</th><th>رواتب $</th></tr>';
+    for(var d2=1;d2<=7;d2++){ var k2="w"+sc.week+"d"+d2; var v2=sc.dsum[k2]||{s:0,t:0,c:0,m:0};
+      var has=v2.s||v2.t||v2.c;
+      th+='<tr'+(sc.day===d2?' style="background:rgba(94,227,166,.1)"':'')+'><td>'+SC_DAYS[d2-1]+'</td>'
+        +'<td style="color:#7CBBFF">'+(v2.s?'$'+fmt(v2.s):'\u2014')+'</td>'
+        +'<td style="color:#FFD37E">'+(v2.t?fmt(v2.t):'\u2014')+'</td>'
+        +'<td style="color:#5EE3A6">'+(v2.c?'+'+fmt(v2.c):'\u2014')+'</td>'
+        +'<td style="color:#5EE3A6">'+(v2.m?'$'+fmt(v2.m):'\u2014')+'</td></tr>'; }
+    dt.innerHTML=th; }
+  // الحسابات
+  var aEl=$("sc_accs");
+  if(aEl){ var ah='';
+    for(var i=0;i<sc.accs.length;i++){ var a=sc.accs[i];
+      ah+='<div onclick="scSelAcc('+i+')" style="background:rgba(255,255,255,'+(sc.selA===i?'.14':'.06')+');border:1.5px solid '+(sc.selA===i?'#5EE3A6':'rgba(255,255,255,.08)')+';border-radius:11px;padding:8px 6px;text-align:center;cursor:pointer">'
+        +'<div style="font-size:10.5px;font-weight:800;color:#BBAEFF">'+a.name+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);margin-top:2px">شحنة $'+fmt(a.fed)+'</div>'
+        +'<div style="font-size:11px;font-weight:800;color:#FFD37E;margin-top:2px">'+fmt(Math.round(a.bal))+'</div></div>'; }
+    aEl.innerHTML=ah; }
+  // الرومات
+  var rEl=$("sc_rooms");
+  if(rEl){ var rh='';
+    for(var j=0;j<sc.rooms.length;j++){ var r=sc.rooms[j];
+      var pctR=Math.min(100,r.fill/base*100);
+      rh+='<div onclick="scSelRoom('+j+')" style="background:rgba(255,255,255,'+(sc.selR===j?'.14':'.06')+');border:1.5px solid '+(sc.selR===j?'#FFD37E':'rgba(255,255,255,.08)')+';border-radius:11px;padding:8px;cursor:pointer">'
+        +'<div style="display:flex;justify-content:space-between;font-size:10.5px"><b style="color:#FFD37E">'+r.name+(r.done?' \u2713':'')+'</b><span style="color:#7CBBFF;font-size:9px">'+scOwnerName(r.owner)+'</span></div>'
+        +'<div style="height:6px;background:rgba(255,255,255,.1);border-radius:99px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pctR+'%;background:linear-gradient(90deg,#FFD37E,#5EE3A6)"></div></div>'
+        +'<div style="font-size:8.5px;color:var(--muted);margin-top:4px">'+fmt(Math.round(r.fill))+' / '+fmt(base)+'</div></div>'; }
+    rEl.innerHTML=rh; }
+  // قائمة مالك الروم
+  var oEl=$("sc_owner");
+  if(oEl){ var oh='<option value="-1"'+(sc.rooms[sc.selR]&&sc.rooms[sc.selR].owner===-1?" selected":"")+'>وكيل الشحن (كاسه ينقسم شحن+دعم)</option>';
+    for(var q=0;q<sc.accs.length;q++)oh+='<option value="'+q+'"'+(sc.rooms[sc.selR]&&sc.rooms[sc.selR].owner===q?" selected":"")+'>'+sc.accs[q].name+'</option>';
+    oEl.innerHTML=oh; }
   var lg=$("sc_log");
   if(lg){ if(!sc.log.length)lg.innerHTML='<div class="empty">ما فيه حركات</div>';
-    else{ var lh=''; for(var i=0;i<sc.log.length;i++)lh+='<div class="logitem"><div class="dt">'+sc.log[i]+'</div></div>'; lg.innerHTML=lh; } }
+    else{ var lh=''; for(var i9=0;i9<sc.log.length;i9++)lh+='<div class="logitem"><div class="dt">'+sc.log[i9]+'</div></div>'; lg.innerHTML=lh; } }
 }
 function fk7Sim(K0,cups,gift,targetS,useWk){
   var c=cfg();
@@ -900,11 +1045,9 @@ function fk7Sim(K0,cups,gift,targetS,useWk){
     charge+=chargeK/c.rateApp;
     var pool=chargeK+support+carry; support=0;
     var cl=Math.floor(pool/thr); carry=pool-cl*thr; acc+=cl;
-    // كاس رومات الحسابات (غير وكيل الشحن) = دعم
     support+=(cl*lock)/(c.perRoom*lock)*c.roomPrize;
-    // الصناديق حسب الشحنة التراكمية = دعم
     for(var b=0;b<BOX_TIERS.length;b++){ if(charge>=BOX_TIERS[b].usd&&!taken[BOX_TIERS[b].usd]){ taken[BOX_TIERS[b].usd]=1; support+=BOX_TIERS[b].konz; } }
-    usd+=cl*c.salAcc; // راتب الجاذبية لحظي — يتدور بكرة
+    usd+=cl*c.salAcc;
     days.push({d:d,ch:charge,acc:acc,sal:cl*c.salAcc,cl:cl});
   }
   var wk=acc*c.salAgent, wkUsed=0;
@@ -1522,50 +1665,71 @@ function renderPlay(){
 
 /* ===== حاسبة الخطة ===== */
 var BRD_ACCS=[
-  {k:"w", n:"وكيل الشحن", col:"#7CBBFF", pct:false},
-  {k:"m", n:"الأساسي",    col:"#5EE3A6", pct:true},
   {k:"k", n:"KNZ",        col:"#FFD37E", pct:false},
-  {k:"s1",n:"فرعي 1",     col:"#BBAEFF", pct:false},
-  {k:"s2",n:"فرعي 2",     col:"#F5A0BC", pct:false},
-  {k:"s3",n:"فرعي 3",     col:"#7FE3DA", pct:false},
-  {k:"s4",n:"فرعي 4",    col:"#BBAEFF", pct:false},
-  {k:"s5",n:"فرعي 5",    col:"#F5A0BC", pct:false},
-  {k:"s6",n:"فرعي 6",    col:"#7FE3DA", pct:false},
-  {k:"s7",n:"فرعي 7",    col:"#FFC96B", pct:false},
-  {k:"s8",n:"فرعي 8",    col:"#8FD3FE", pct:false},
-  {k:"s9",n:"فرعي 9",    col:"#C5F28A", pct:false},
-  {k:"s10",n:"فرعي 10",    col:"#FF9EA0", pct:false},
-  {k:"s11",n:"فرعي 11",    col:"#9BE8C4", pct:false},
-  {k:"s12",n:"فرعي 12",    col:"#E0B0FF", pct:false},
-  {k:"s13",n:"فرعي 13",    col:"#FFD37E", pct:false},
-  {k:"s14",n:"فرعي 14",    col:"#BBAEFF", pct:false},
-  {k:"s15",n:"فرعي 15",    col:"#F5A0BC", pct:false},
-  {k:"s16",n:"فرعي 16",    col:"#7FE3DA", pct:false},
-  {k:"s17",n:"فرعي 17",    col:"#FFC96B", pct:false},
-  {k:"s18",n:"فرعي 18",    col:"#8FD3FE", pct:false},
-  {k:"s19",n:"فرعي 19",    col:"#C5F28A", pct:false},
-  {k:"s20",n:"فرعي 20",    col:"#FF9EA0", pct:false},
-  {k:"s21",n:"فرعي 21",    col:"#9BE8C4", pct:false},
-  {k:"s22",n:"فرعي 22",    col:"#E0B0FF", pct:false},
-  {k:"s23",n:"فرعي 23",    col:"#FFD37E", pct:false}
+  {k:"s1",n:"فرعي 1",    col:"#BBAEFF", pct:false},
+  {k:"s2",n:"فرعي 2",    col:"#F5A0BC", pct:false},
+  {k:"s3",n:"فرعي 3",    col:"#7FE3DA", pct:false},
+  {k:"s4",n:"فرعي 4",    col:"#8FD3FE", pct:false},
+  {k:"s5",n:"فرعي 5",    col:"#C5F28A", pct:false},
+  {k:"s6",n:"فرعي 6",    col:"#FF9EA0", pct:false},
+  {k:"s7",n:"فرعي 7",    col:"#9BE8C4", pct:false},
+  {k:"s8",n:"فرعي 8",    col:"#E0B0FF", pct:false},
+  {k:"s9",n:"فرعي 9",    col:"#FFC96B", pct:false},
+  {k:"s10",n:"فرعي 10",    col:"#7CE8FF", pct:false},
+  {k:"s11",n:"فرعي 11",    col:"#F0A8E0", pct:false},
+  {k:"s12",n:"فرعي 12",    col:"#A8F0B8", pct:false},
+  {k:"s13",n:"فرعي 13",    col:"#FFB07E", pct:false},
+  {k:"s14",n:"فرعي 14",    col:"#B0C8FF", pct:false},
+  {k:"s15",n:"فرعي 15",    col:"#F5E58A", pct:false},
+  {k:"s16",n:"فرعي 16",    col:"#8AE5C0", pct:false},
+  {k:"s17",n:"فرعي 17",    col:"#FF9ED8", pct:false},
+  {k:"s18",n:"فرعي 18",    col:"#A0E8F5", pct:false},
+  {k:"s19",n:"فرعي 19",    col:"#D8C0FF", pct:false},
+  {k:"s20",n:"فرعي 20",    col:"#C8F5A0", pct:false},
+  {k:"s21",n:"فرعي 21",    col:"#FFB8B8", pct:false},
+  {k:"s22",n:"فرعي 22",    col:"#88D8B0", pct:false},
+  {k:"s23",n:"فرعي 23",    col:"#F5C8A0", pct:false},
+  {k:"m", n:"الأساسي",    col:"#5EE3A6", pct:true},
+  {k:"w", n:"وكيل الشحن", col:"#7CBBFF", pct:false}
 ];
 var BRD_COLS=[{k:"w",n:"وكيل الشحن",col:"#7CBBFF"},{k:"m",n:"الأساسي",col:"#5EE3A6"},{k:"k",n:"KNZ",col:"#FFD37E"},{k:"s1",n:"فرعي 1",col:"#BBAEFF"},{k:"s2",n:"فرعي 2",col:"#F5A0BC"},{k:"s3",n:"فرعي 3",col:"#7FE3DA"}];
 function brdName(key){ var B=S.brd; if(B&&B.names&&B.names[key])return B.names[key]; for(var i=0;i<BRD_ACCS.length;i++){ if(BRD_ACCS[i].k===key)return BRD_ACCS[i].n; } return key; }
+function brdRoomsNew(){
+  var defs=[["s2","s3"],["s3","s4"],["s5","s6"],["s7","s8"]];
+  var rr=[];
+  for(var w=0;w<4;w++){
+    rr.push({fill:0,done:false,owner:"w",week:w+1,fx:1});
+    rr.push({fill:0,done:false,owner:"k",week:w+1,fx:1});
+    rr.push({fill:0,done:false,owner:defs[w][0],week:w+1});
+    rr.push({fill:0,done:false,owner:defs[w][1],week:w+1});
+  }
+  return rr;
+}
+function brdRoomOwn(v){ var B=brdInit(); var rm=B.rooms[B.selRoom];
+  if(rm.fx){ alert("هذا روم ثابت ("+brdName(rm.owner)+") ما يتغير."); render(); return; }
+  rm.owner=v;
+  brdLog("\uD83C\uDFF7","روم أسبوع "+rm.week+" صار لـ«"+brdName(v)+"»");
+  render(); }
 function brdInit(){
   if(!S.brd){ S.brd={cash:0,wak:0,salUsd:0,salSpent:0,thrown:0,acc:0,
     accs:{}, rooms:[], sel:"m", selRoom:0,
     boxK:0,rebK:0,cupBackK:0,giftK:0,prizeK:0,fakK:0,fedKonz:0,log:[]};
     for(var i=0;i<BRD_ACCS.length;i++)S.brd.accs[BRD_ACCS[i].k]={fed:0,bal:0};
-    for(var r=0;r<24;r++)S.brd.rooms.push({fill:0,done:false,owner:BRD_COLS[r%6].k,week:Math.floor(r/6)+1});
+    S.brd.rooms=brdRoomsNew();
   }
-  if(S.brd.rooms.length===16){
-    var old=S.brd.rooms; var nr=[];
-    for(var r2=0;r2<24;r2++)nr.push({fill:0,done:false,owner:BRD_COLS[r2%6].k,week:Math.floor(r2/6)+1});
-    for(var o2=0;o2<16;o2++){ var wk=Math.floor(o2/4), ci=o2%4; nr[wk*6+ci]=old[o2]; nr[wk*6+ci].week=wk+1; }
-    S.brd.rooms=nr;
+  if(S.brd.rooms.length!==16||S.brd.rooms[0].fx===undefined){
+    var oldR=S.brd.rooms||[]; var nr=brdRoomsNew();
+    for(var w9=1;w9<=4;w9++){
+      for(var o9=0;o9<oldR.length;o9++){ var orr=oldR[o9]; if(orr.week!==w9)continue;
+        for(var n9=0;n9<nr.length;n9++){ var nrr=nr[n9];
+          if(nrr.week===w9&&nrr.fx&&nrr.owner===orr.owner){ nrr.fill=orr.fill; nrr.done=orr.done; } } }
+    }
+    S.brd.rooms=nr; if(S.brd.selRoom>=16)S.brd.selRoom=0;
   }
   if(!S.brd.names)S.brd.names={};
-  for(var a2=0;a2<BRD_ACCS.length;a2++){ if(!S.brd.accs[BRD_ACCS[a2].k])S.brd.accs[BRD_ACCS[a2].k]={fed:0,bal:0}; }
+  for(var a2=0;a2<BRD_ACCS.length;a2++){ if(!S.brd.accs[BRD_ACCS[a2].k])S.brd.accs[BRD_ACCS[a2].k]={fed:0,bal:0,thr:0};
+    var A9=S.brd.accs[BRD_ACCS[a2].k]; if(A9.thr===undefined)A9.thr=0; }
+  if(!S.brd.msel)S.brd.msel={};
   return S.brd;
 }
 function brdLog(ic,t){ var B=brdInit(); B.log.unshift({ic:ic,t:t}); if(B.log.length>80)B.log.pop(); }
@@ -1586,6 +1750,29 @@ function brdGift(){ var B=brdInit(); var k=num("brd_gift"); if(k<=0){ alert("ا�
   B.wak+=k; B.giftAdminK=(B.giftAdminK||0)+k;
   brdLog("\uD83C\uDF81","هدية من الإدارة: "+fmt(k)+" كونز دخلت وكيل الشحن (ببلاش — ما تنحسب)");
   $("brd_gift").value=""; render(); }
+function brdQ5(key){ var B=brdInit(); var c=cfg();
+  var kz=5000*c.rateApp;
+  if(B.wak<kz){ alert("رصيد وكيل الشحن "+fmt(B.wak)+" ويحتاج "+fmt(kz)+" لشحنة $5,000."); return; }
+  var meta=null; for(var i=0;i<BRD_ACCS.length;i++){ if(BRD_ACCS[i].k===key)meta=BRD_ACCS[i]; }
+  if(!meta)return;
+  var a=B.accs[key];
+  B.wak-=kz; var pv=a.fed; a.fed+=5000; a.bal+=kz; B.fedKonz+=kz;
+  var msg="\u26A1 شحنة $5,000 لـ«"+brdName(key)+"» ("+fmt(kz)+")";
+  if(meta.pct){ var reb=kz*c.pct; B.wak+=reb; B.rebK+=reb; msg+=" \u2190 نسبة "+fmt(reb)+" رجعت للوكيل"; }
+  var bx=brdTiers(pv,a.fed);
+  if(bx.k>0){ a.bal+=bx.k; B.boxK+=bx.k; msg+=" \u2190 صندوق "+bx.n.join("،")+" نزل "+fmt(bx.k)+" داخل حسابه"; }
+  brdLog("\u26A1",msg);
+  render(); }
+function brdGiftTo(key,amt){ var B=brdInit(); var k=amt||num("brd_gift");
+  if(k<=0){ alert("اكتب الكونز."); return; }
+  var a=B.accs[key]; if(!a)return;
+  a.bal+=k; B.giftAdminK=(B.giftAdminK||0)+k;
+  brdLog("\uD83C\uDF81","هدية "+fmt(k)+" كونز نزلت لـ«"+brdName(key)+"» (ببلاش — ما تنحسب شحنة)");
+  if(!amt)$("brd_gift").value="";
+  render(); }
+function brdMsel(k){ var B=brdInit(); B.msel=B.msel||{};
+  if(B.msel[k])delete B.msel[k]; else B.msel[k]=1;
+  render(); }
 function brdSelAcc(k){ var B=brdInit(); B.sel=k; brdFillConv("acc"); render(); }
 function brdSelRoom(i){ var B=brdInit(); B.selRoom=i; brdFillConv("room"); render(); }
 function brdFillConv(kind){ var B=brdInit(); var c=cfg(); var roomKz=c.perRoom*c.thr;
@@ -1615,11 +1802,19 @@ function brdThrow(all){ var B=brdInit(); var c=cfg();
   var a=B.accs[B.sel]; var meta=null; for(var i0=0;i0<BRD_ACCS.length;i0++){ if(BRD_ACCS[i0].k===B.sel)meta=BRD_ACCS[i0]; }
   var rm=B.rooms[B.selRoom];
   if(rm.done){ alert("هذا الروم مكتمل — اختر روم ثاني."); return; }
-  var kz=all?a.bal:num("brd_thr");
-  kz=Math.min(kz,a.bal,roomKz-rm.fill);
-  if(kz<1){ alert("رصيد «"+meta.n+"» ما يكفي أو الروم ممتلئ."); return; }
-  a.bal-=kz; rm.fill+=kz; B.thrown+=kz;
-  var msg="رمى «"+meta.n+"» "+fmt(kz)+" في روم "+brdRoomName(B.selRoom);
+  var keys=[]; if(B.msel){ for(var mk9 in B.msel){ if(B.msel[mk9]&&B.accs[mk9])keys.push(mk9); } }
+  if(!keys.length)keys=[B.sel];
+  var avail=0; for(var v9=0;v9<keys.length;v9++)avail+=B.accs[keys[v9]].bal;
+  var kz=all?avail:num("brd_thr");
+  kz=Math.min(kz,avail,roomKz-rm.fill);
+  if(kz<1){ alert("رصيد "+(keys.length>1?"المحددين":"«"+brdName(keys[0])+"»")+" ما يكفي أو الروم ممتلئ."); return; }
+  var need9=kz, parts9=[];
+  for(var p9=0;p9<keys.length&&need9>0;p9++){ var acc9=B.accs[keys[p9]];
+    var take9=Math.min(need9,acc9.bal); if(take9<1)continue;
+    acc9.bal-=take9; acc9.thr=(acc9.thr||0)+take9; need9-=take9;
+    parts9.push(brdName(keys[p9])+" "+fmt(take9)); }
+  rm.fill+=kz; B.thrown+=kz;
+  var msg="رمى "+parts9.join(" + ")+" في روم "+brdRoomName(B.selRoom);
   var accNow=Math.floor(B.thrown/c.thr); var d=accNow-B.acc;
   if(d>0){ B.acc=accNow; B.fakK+=d*fakPer;
     var sal=d*(c.salAcc+c.salAgent); B.salUsd+=sal;
@@ -1679,23 +1874,43 @@ function renderPlan(){
   for(var i=0;i<BRD_ACCS.length;i++){ var m=BRD_ACCS[i]; var a=B.accs[m.k];
     var nxt=null; for(var tb=0;tb<BOX_TIERS.length;tb++){ if(BOX_TIERS[tb].usd>a.fed){ nxt=BOX_TIERS[tb]; break; } }
     var nxTxt=nxt?fmt(Math.ceil((nxt.usd-a.fed)*c.rateApp)):'\u2713';
-    h+='<div class="bacc'+(B.sel===m.k?" on":"")+'" onclick="brdSelAcc(\''+m.k+'\')" style="background:'+m.col+'22">'+
-       '<div class="bn" style="color:'+m.col+'">'+brdName(m.k)+'</div>'+
+    var ms9=B.msel&&B.msel[m.k];
+    h+='<div class="bacc'+(B.sel===m.k?" on":"")+'" onclick="brdSelAcc(\''+m.k+'\')" style="position:relative;background:'+m.col+'22'+(ms9?';border:1.5px solid #8FD3FE':'')+'">'+
+       '<span style="position:absolute;top:5px;left:5px;width:18px;height:18px;border-radius:50%;background:#fff;border:1.6px solid #000;color:#000;font-size:9.5px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1">'+(i+1)+'</span>'+
+       '<div class="bn" style="color:'+m.col+'"><span onclick="event.stopPropagation();brdMsel(\''+m.k+'\')" style="margin-inline-end:4px;opacity:'+(ms9?'1':'.4')+'">'+(ms9?'\u2611':'\u2610')+'</span>'+brdName(m.k)+'</div>'+
        '<div class="bb" style="color:'+m.col+'">'+fmt(a.bal)+'</div>'+
        '<div class="bf">شحنة $'+fmt(a.fed)+(m.pct?' · 3%':'')+'</div>'+
-       '<div class="bf" style="color:#FFC96B">'+nxTxt+'</div></div>';
+       '<div class="bf" style="color:#8FD3FE">دعم: '+fmt(a.thr||0)+'</div>'+
+       '<div class="bf" style="color:#FFC96B">'+nxTxt+'</div>'+
+       '<div style="display:flex;gap:4px;margin-top:5px">'+
+       '<span onclick="event.stopPropagation();brdQ5(\''+m.k+'\')" style="flex:1;font-size:9px;font-weight:900;text-align:center;padding:5px 0;border-radius:8px;background:rgba(94,227,166,.18);color:#5EE3A6">\u26A1 $5k</span>'+
+       '<span onclick="event.stopPropagation();brdGiftTo(\''+m.k+'\',130000)" style="flex:1;font-size:9px;font-weight:900;text-align:center;padding:5px 0;border-radius:8px;background:rgba(255,211,126,.18);color:#FFD37E">130k</span>'+
+       '<span onclick="event.stopPropagation();brdGiftTo(\''+m.k+'\',43000)" style="flex:1;font-size:9px;font-weight:900;text-align:center;padding:5px 0;border-radius:8px;background:rgba(187,174,255,.18);color:#BBAEFF">43k</span>'+
+       '</div></div>';
   }
   el.innerHTML=h;
+  var mn9=$("bv_msel");
+  if(mn9){ var mk8=[]; for(var q9 in (B.msel||{})){ if(B.msel[q9])mk8.push(brdName(q9)); }
+    mn9.textContent=mk8.length?("\u2611 الدعم بيكون من ("+mk8.length+"): "+mk8.join("، ")+" \u2014 بالترتيب لين يكتفي الروم"):""; }
   // الرومات 4×4
   var rh="";
-  for(var r=0;r<B.rooms.length;r++){ var rm=B.rooms[r]; var col=""; for(var j=0;j<BRD_COLS.length;j++){ if(BRD_COLS[j].k===rm.owner)col=BRD_COLS[j].col; }
+  var lastWk=0;
+  for(var r=0;r<B.rooms.length;r++){ var rm=B.rooms[r];
+    if(rm.week!==lastWk){ lastWk=rm.week; rh+='<div class="wklbl">\uD83D\uDCC6 الأسبوع '+rm.week+'</div>'; } var col="#9fc7ee"; for(var j=0;j<BRD_ACCS.length;j++){ if(BRD_ACCS[j].k===rm.owner)col=BRD_ACCS[j].col; }
     var pctf=Math.min(rm.fill/roomKz*100,100);
     rh+='<div class="brm'+(B.selRoom===r?" on":"")+(rm.done?" done":"")+'" onclick="brdSelRoom('+r+')" style="background:'+col+'1e">'+
-        '<div class="rn2" style="color:'+col+'">'+(rm.owner==="w"?"\uD83D\uDCC5 ":"")+brdName(rm.owner)+'<br>أسبوع '+rm.week+'</div>'+
+        '<div class="rn2" style="color:'+col+'">'+(rm.fx?"\uD83D\uDCCC ":"")+brdName(rm.owner)+'<br>أسبوع '+rm.week+'</div>'+
         '<div class="rp"><i style="width:'+pctf+'%;background:'+col+'"></i></div>'+
         '<div class="rt">'+(rm.done?"\u2713 كمل":fmt(Math.round((roomKz-rm.fill)/1000))+'k ناقصه')+'</div></div>';
   }
   $("brd_rooms").innerHTML=rh;
+  var ro9=$("brd_rmOwn");
+  if(ro9){ var srm9=B.rooms[B.selRoom];
+    if(srm9.fx){ ro9.innerHTML='<option>\uD83D\uDCCC '+brdName(srm9.owner)+' — ثابت (أسبوع '+srm9.week+')</option>'; ro9.disabled=true; }
+    else{ ro9.disabled=false; var oh9='';
+      for(var q8=0;q8<BRD_ACCS.length;q8++){ var mk8=BRD_ACCS[q8].k; if(mk8==="w"||mk8==="m")continue;
+        oh9+='<option value="'+mk8+'"'+(srm9.owner===mk8?" selected":"")+'>'+brdName(mk8)+'</option>'; }
+      ro9.innerHTML=oh9; } }
   var accPart=B.thrown%c.thr;
   $("bv_accprog").textContent="حساب جاري "+fmt(accPart)+" / "+fmt(c.thr)+(accPart>0?" · ناقصه "+fmt(c.thr-accPart):"")+" · مقفلة: "+fmt(B.acc);
   // التقرير الملون
