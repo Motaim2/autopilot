@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d1220">
+<title>الثنائي — ELENOR · MOTAIM</title>
+<style>
+  :root{
+    --bg:#EDF1F6; --pg-ink:#17202B; --pg-muted:#5C6B7E;
+    --ink:#F4F7FB; --muted:#A7B6C8; --line:rgba(255,255,255,.14);
+    --gold:#E3A63C; --gold-soft:#FFD37E; --green:#22B573; --green-soft:#5EE3A6;
+    --red:#FF8A80; --blue:#7CBBFF; --blue-soft:#9CCBFF; --violet:#BBAEFF; --vio:#BBAEFF; --amber:#FFC96B;
+    --shadow:0 10px 24px rgba(23,32,43,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--pg-ink);font-family:"Segoe UI",Tahoma,system-ui,-apple-system,sans-serif}
+  body{padding:0 0 84px;max-width:640px;margin:0 auto;-webkit-user-select:none;user-select:none;overflow-x:hidden}
+  input,select,textarea{-webkit-user-select:text;user-select:text}
+
+  .appbar{padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;display:flex;align-items:center;gap:10px;position:sticky;top:0;background:rgba(237,241,246,.94);backdrop-filter:blur(10px);z-index:30;border-bottom:1px solid rgba(23,32,43,.07)}
+  .appbar .m{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#E3A63C,#C77F1B);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 10px rgba(227,166,60,.35)}
+  .appbar h1{font-size:16px;margin:0;color:var(--pg-ink);font-weight:800}
+  .appbar p{margin:1px 0 0;font-size:11px;color:var(--pg-muted)}
+
+  .tabbar{position:fixed;bottom:0;right:0;left:0;max-width:640px;margin:0 auto;display:flex;background:#fff;border-top:1px solid rgba(23,32,43,.07);z-index:40;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 18px rgba(23,32,43,.06)}
+  .tabbar .tb{flex:1;text-align:center;padding:9px 3px 10px;color:#8492A6;font-size:10.5px;font-weight:700;cursor:pointer}
+  .tabbar .tb .i{font-size:19px;display:block;margin-bottom:2px;filter:grayscale(.5);opacity:.7}
+  .tabbar .tb.on{color:var(--pg-ink)}
+  .tabbar .tb.on .i{filter:none;opacity:1}
+
+  .pane{display:none;padding:10px}
+  .pane.on{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+  .stage{border-radius:18px;padding:14px;margin-top:10px;box-shadow:var(--shadow);color:var(--ink);background:linear-gradient(165deg,#232B36,#1B222C);border:1px solid transparent;position:relative}
+  .stg-agency{background:linear-gradient(165deg,#0F3D2E,#0B2F24)}
+  .stg-ship{background:linear-gradient(165deg,#123458,#0D2842)}
+  .stg-acc{background:linear-gradient(165deg,#3D2E10,#2F230C)}
+  .stg-room{background:linear-gradient(165deg,#2B2354,#211A42)}
+  .stg-log{background:linear-gradient(165deg,#232B36,#1B222C)}
+  .stage h2{font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:7px;color:var(--ink);flex-wrap:wrap}
+  .stage .tag{font-size:9.5px;color:var(--muted);font-weight:600}
+  .flowdot{display:none}
+
+  .big{text-align:center;padding:4px 0 2px}
+  .big .num{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .big .u{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .n-green{color:#5EE3A6} .n-blue{color:#7CBBFF} .n-gold{color:#FFD37E} .n-vio{color:#BBAEFF} .n-amber{color:#FFC96B}
+
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+  .mini .c{background:rgba(255,255,255,.07);border-radius:11px;padding:8px 9px;text-align:center}
+  .mini .c .l{font-size:9.5px;color:var(--muted)}
+  .mini .c .v{font-size:13.5px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  .inrow{display:flex;gap:7px;margin-top:9px}
+  .inrow input,.inrow select{flex:1;min-width:0;background:rgba(255,255,255,.1);border:none;border-radius:11px;padding:11px;color:var(--ink);font-size:13.5px;outline:none;text-align:center}
+  .inrow input::placeholder{color:var(--muted)}
+  .btn{border:none;border-radius:11px;padding:11px 14px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;transition:transform .12s}
+  .btn:active{transform:scale(.95)}
+  .btn.gold{background:#E3A63C;color:#2A1E05}
+  .btn.grn{background:#22B573;color:#fff}
+  .btn.blu{background:#3D8BFD;color:#fff}
+  .btn.vio{background:#8B7BFF;color:#fff}
+  .btn.amber{background:#F0B850;color:#2A1E05}
+  .btn.red{background:#E5544B;color:#fff}
+  .btn.dk{background:rgba(255,255,255,.12);color:var(--ink)}
+  .btn.sm{padding:8px 10px;font-size:12px}
+  .note{font-size:10.5px;color:var(--muted);line-height:1.6;margin-top:7px}
+
+  .acc{background:rgba(255,255,255,.06);border:1px solid transparent;border-radius:13px;padding:11px;margin-top:8px}
+  .acc.on{border-color:rgba(255,211,126,.55)}
+  .acc .ah{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .acc .an{font-size:13px;font-weight:800}
+  .acc .abal{font-size:12px;color:#7CBBFF;font-variant-numeric:tabular-nums}
+  .acc .adet{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .acc .abtns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .pill{font-size:9.5px;padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.1);color:var(--muted);border:none}
+  .pill.sel{background:rgba(255,211,126,.18);color:#FFD37E}
+
+  .room{background:rgba(255,255,255,.06);border-radius:13px;padding:11px;margin-top:8px}
+  .room .rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+  .room .rn{font-size:13px;font-weight:800;color:#FFD37E}
+  .room .rc{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .prog{height:10px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden;border:none;margin-top:8px}
+  .prog>i{display:block;height:100%;background:linear-gradient(90deg,#22B573,#5EE3A6);width:0;transition:width .25s}
+  .rbtns{display:flex;gap:6px;margin-top:8px}
+  .rbtns .btn{flex:1}
+  .progtxt{text-align:center;font-size:10.5px;color:var(--muted);margin-top:6px}
+
+  .logitem{background:rgba(255,255,255,.06);border:1px solid transparent;border-radius:12px;padding:9px 11px;margin-top:7px}
+  .logitem .top{display:flex;justify-content:space-between;align-items:center}
+  .logitem .nm{font-size:12.5px;font-weight:700}
+  .logitem .st{font-size:9.5px;color:#5EE3A6;background:rgba(94,227,166,.14);border:none;border-radius:20px;padding:2px 8px}
+  .logitem .dt{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+  .weekitem{display:flex;justify-content:space-between;background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:8px 11px;margin-top:6px;font-size:12px}
+  .weekitem b{color:#FFD37E;font-variant-numeric:tabular-nums}
+  .empty{text-align:center;color:var(--muted);font-size:11.5px;padding:10px 0}
+  .next{background:rgba(255,255,255,.07);border:none;border-radius:12px;padding:12px;font-size:12px;line-height:1.7}
+  .next b{color:#FFD37E}
+  .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .sumgrid .c{background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:8px 9px}
+  .sumgrid .c .l{font-size:9.5px;color:var(--muted)}
+  .sumgrid .c .v{font-size:14px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .logline{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px;line-height:1.5}
+  .logline:last-child{border-bottom:none}
+  .logline .li{flex-shrink:0;font-size:13px}
+  .logline .lx{flex:1;color:var(--ink)}
+  .logmore{text-align:center;color:var(--muted);font-size:10.5px;margin-top:7px}
+
+  input.bigc{width:100%;font-size:24px;font-weight:800;background:rgba(255,255,255,.1);border:none;border-radius:12px;padding:13px;text-align:center;outline:none;color:var(--ink)}
+  .line{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .line:last-child{border-bottom:none}
+  .line .l{font-size:12px;color:var(--muted)}
+  .line .v{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+  .v-red{color:#FF8A80} .v-grn{color:#5EE3A6} .v-amber{color:#FFC96B} .v-vio{color:#BBAEFF} .v-gold{color:#FFD37E}
+  .badge{margin-top:11px;border:none;border-radius:12px;padding:11px;text-align:center;font-size:12px;font-weight:700;line-height:1.6}
+  .badge.done{background:rgba(94,227,166,.15);color:#5EE3A6}
+  .badge.need{background:rgba(255,138,128,.13);color:#FF8A80}
+  .adder{display:flex;gap:7px}
+  .adder input{flex:1;min-width:0;background:rgba(255,255,255,.1);border:none;border-radius:11px;padding:12px;color:var(--ink);font-size:15px;outline:none;text-align:center}
+  .adder input::placeholder{color:var(--muted)}
+  .items .item{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.06);border:none;border-radius:10px;padding:7px 11px;margin-top:5px;font-size:12.5px}
+  .items .item .x{color:#FF8A80;cursor:pointer;font-weight:800;font-size:15px;padding:0 4px}
+  .items .item .n{font-variant-numeric:tabular-nums;font-weight:700}
+  .totalfield{display:flex;justify-content:space-between;align-items:center;margin-top:10px;background:rgba(255,255,255,.08);border:none;border-radius:11px;padding:10px 12px}
+  .totalfield .l{font-size:11.5px;color:var(--muted)}
+  .totalfield .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  details{margin-top:12px}
+  summary{color:var(--pg-muted);font-size:11.5px;cursor:pointer;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"\2699 "}
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+  .setgrid .f{display:flex;flex-direction:column}
+  .setgrid label{font-size:10px;color:var(--pg-muted);margin-bottom:3px}
+  .setgrid input{background:#fff;border:1px solid rgba(23,32,43,.12);border-radius:9px;padding:8px;color:var(--pg-ink);font-size:12.5px;text-align:center;outline:none}
+  .resetbar{text-align:center;margin-top:14px}
+  .resetbar button{background:none;border:none;color:#E5544B;font-size:11.5px;cursor:pointer;text-decoration:underline}
+
+  .hero{border-radius:18px;padding:16px;text-align:center;margin-top:10px;background:linear-gradient(165deg,#232B36,#1B222C);color:var(--ink);box-shadow:var(--shadow);border:1px solid transparent}
+  .hero .l{font-size:11px;color:var(--muted);letter-spacing:.4px}
+  .hero .big2{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px;line-height:1;color:#5EE3A6}
+  .hero .s{font-size:10.5px;color:var(--muted);margin-top:5px}
+
+  .salgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+  .salgrid6,.salsub6{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}
+  .salsub6 input{background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:7px 3px;color:var(--ink);font-size:12px;text-align:center;outline:none;min-width:0}
+  .salsub6 input::placeholder{color:var(--muted)}
+  .salc{border:none;border-radius:10px;padding:7px 3px;text-align:center;background:rgba(255,255,255,.07)}
+  .salc .cl{font-size:9px;color:var(--muted)}
+  .salc .cv{font-size:12px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .salc.rateb{background:rgba(34,181,115,.18)} .salc.rateb .cv{color:#5EE3A6}
+  .salc.nisba{background:rgba(61,139,253,.18)} .salc.nisba .cv{color:#7CBBFF}
+  .salc.fak{background:rgba(227,166,60,.18)} .salc.fak .cv{color:#FFD37E}
+  .salc.saat{background:rgba(94,227,166,.13)} .salc.saat .cv{color:#8FEFC1}
+  .salc.wakeel{background:rgba(139,123,255,.18)} .salc.wakeel .cv{color:#BBAEFF}
+  .salc.edafi{background:rgba(224,112,143,.18)} .salc.edafi .cv{color:#F5A0BC}
+  .grphead{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:2px 0}
+  .grphead .gn{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .grphead .gt{font-size:15px;font-weight:800;color:#5EE3A6;font-variant-numeric:tabular-nums}
+  .subitem{background:rgba(255,255,255,.06);border:1px dashed transparent;border-radius:12px;padding:10px;margin-top:8px}
+  .subitem .sh{display:flex;justify-content:space-between;align-items:center}
+  .subitem .sn{font-size:13px;font-weight:700}
+  .subitem .stt{font-size:13px;font-weight:800;color:#5EE3A6}
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+  .tcell{background:rgba(255,255,255,.08);border:1px solid transparent;border-radius:11px;padding:10px 4px;text-align:center;cursor:pointer;transition:transform .1s}
+  .tcell:active{transform:scale(.95)}
+  .tcell .tl{font-size:9px;color:var(--muted)}
+  .tcell .tv{font-size:12.5px;font-weight:800;color:#FFD37E;font-variant-numeric:tabular-nums;margin-top:2px}
+  .tcell.on{border-color:#FFD37E;background:rgba(255,211,126,.14)}
+  .trow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .trow:last-child{border-bottom:none}
+  .trow .tn{font-size:12px;color:var(--muted)}
+  .trow .tval{display:flex;align-items:center;gap:8px}
+  .trow .tv2{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+  .trow .cpy{font-size:10px;color:#7CBBFF;cursor:pointer;background:rgba(124,187,255,.12);border-radius:8px;padding:3px 9px}
+  .trow-jz,.trow-al,.trow-as,.trow-wk{border-radius:10px;padding:8px 10px;margin:5px 0;border-bottom:none}
+  .trow-jz{background:rgba(227,166,60,.18)} .trow-jz .tn{color:#FFD37E} .trow-jz .tv2{color:#FFD37E}
+  .trow-al{background:rgba(61,139,253,.18)} .trow-al .tn{color:#9CCBFF} .trow-al .tv2{color:#7CBBFF}
+  .trow-as{background:rgba(34,181,115,.18)} .trow-as .tn{color:#8FEFC1} .trow-as .tv2{color:#5EE3A6}
+  .trow-wk{background:rgba(139,123,255,.18)} .trow-wk .tn{color:#CFC6FF} .trow-wk .tv2{color:#BBAEFF}
+  .micbtn{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;border:none;border-radius:9px;background:rgba(255,255,255,.12);color:var(--ink);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;z-index:2}
+  .micbtn.rec{background:#E5544B;color:#fff;animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .micwrap{position:relative;flex:1;min-width:0;display:flex}
+  .micwrap>input{width:100%;padding-left:40px!important}
+  .plgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+  .plcell{display:flex;flex-direction:column;gap:5px}
+  .plcell .btn{width:100%}
+  .histitem{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px}
+  .histitem:last-child{border-bottom:none}
+  .histitem .hk{color:var(--muted)} .histitem .hv{font-weight:800;font-variant-numeric:tabular-nums}
+  .histitem .hd{font-size:9.5px;color:var(--muted)}
+  .flsel{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .flsel .f{min-width:0}
+  .flsel .f{display:flex;flex-direction:column}
+  .flsel label{font-size:10px;color:var(--muted);margin-bottom:3px}
+  .flsel select{background:rgba(255,255,255,.1);border:none;border-radius:9px;padding:8px;color:var(--ink);font-size:12px;outline:none;width:100%;max-width:100%}
+  .flsel select option{background:#232B36;color:#fff}
+  .brdaccs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:7px}
+  .bacc{border-radius:10px;padding:7px 4px;text-align:center;cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,.06)}
+  .bacc .bn{font-size:10px;font-weight:800} .bacc .bb{font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px} .bacc .bf{font-size:8.5px;color:var(--muted);margin-top:1px}
+  .bacc.on{border-color:#fff}
+  .brdrooms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px}
+  .brdrooms .wklbl{grid-column:1/-1;font-size:9.5px;font-weight:900;color:var(--muted);margin-top:4px;letter-spacing:.3px}
+  .brm{border-radius:9px;padding:5px 2px;text-align:center;cursor:pointer;border:1.5px solid transparent;background:rgba(255,255,255,.06)}
+  .brm .rn2{font-size:7.5px;font-weight:800;line-height:1.3} .brm .rp{height:5px;border-radius:3px;background:rgba(0,0,0,.4);overflow:hidden;margin-top:4px}
+  .brm .rp i{display:block;height:100%;width:0}
+  .brm .rt{font-size:7.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+  .brm.on{border-color:#fff}
+  .brm.done{opacity:.75}
+  .brl{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:9px;margin-top:5px;font-size:11px}
+  .brl .l2{color:rgba(255,255,255,.75)} .brl .v2{font-weight:800;font-variant-numeric:tabular-nums;font-size:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .chip{font-size:10px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.08);color:var(--muted);cursor:pointer;border:1px solid transparent}
+  .chip.on{background:rgba(94,227,166,.15);color:#5EE3A6;border-color:rgba(94,227,166,.4)}
+  .chip.f.on{background:rgba(124,187,255,.15);color:#7CBBFF;border-color:rgba(124,187,255,.4)}
+  .fltwrap{overflow-x:auto;margin-top:8px;border-radius:10px;background:rgba(0,0,0,.25)}
+  .fltab{width:100%;border-collapse:collapse;font-size:9.5px;white-space:nowrap}
+  .fltab th{padding:6px 7px;color:var(--muted);font-weight:700;text-align:right;border-bottom:1px solid var(--line);font-size:9px}
+  .fltab td{padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums}
+  .fltab tr:last-child td{border-bottom:none}
+  .flid{color:#7CBBFF;cursor:pointer;direction:ltr;font-weight:700}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1B222B;color:#5EE3A6;padding:9px 18px;border-radius:20px;font-size:12px;font-weight:800;z-index:99;box-shadow:0 4px 18px rgba(0,0,0,.4);opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+  .addc{opacity:.4;margin-inline-start:5px;cursor:pointer;font-weight:900;color:#5EE3A6}
+  .addc:active{opacity:1}
+  .custh input{width:66px;background:rgba(255,211,126,.12);border:none;border-radius:6px;color:#FFD37E;font-size:9px;font-weight:800;padding:3px 4px;text-align:center;outline:none}
+  .custx{color:#FF8A80;cursor:pointer;margin-inline-start:3px;font-weight:900}
+  .custi{width:60px;background:rgba(255,255,255,.07);border:none;border-radius:6px;color:var(--ink);font-size:9.5px;padding:3px 4px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+  @keyframes alsh{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+  .alring{display:inline-block;animation:alsh .5s infinite}
+  .pcard{border-radius:14px;padding:11px;margin-bottom:10px;border:2px solid transparent;background:#212A35;box-shadow:0 3px 12px rgba(0,0,0,.25)}
+  .prow{display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .pnm{font-size:13.5px;font-weight:800;background:transparent;border:none;color:inherit;outline:none;width:40%}
+  .psal{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums}
+  .pmeta input{background:rgba(255,255,255,.13);border:none;border-radius:8px;color:var(--ink);font-size:10.5px;padding:6px 8px;outline:none;width:100%}
+  .pmeta{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
+  .ptab{width:100%;border-collapse:collapse;font-size:10px;margin-top:7px}
+  .ptab th{font-size:9px;color:var(--muted);padding:4px 3px;text-align:center;cursor:pointer}
+  .ptab td{padding:3px 2px;text-align:center}
+  .ptab input{width:100%;background:rgba(255,255,255,.13);border:none;border-radius:6px;color:var(--ink);font-size:10.5px;padding:5px 3px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+  .pcell.on{outline:2px solid #5EE3A6;border-radius:6px}
+  .pdot{width:16px;height:16px;border-radius:50%;cursor:pointer;flex:none;border:2px solid rgba(255,255,255,.3)}
+  .nbz{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:5px 0 2px}
+  .nbz .b{background:rgba(255,255,255,.06);border-radius:9px;padding:6px 3px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+  .nbz .l{font-size:8.5px;color:rgba(255,255,255,.55);margin-bottom:2px;line-height:1.3}
+  .nbz .v{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.35}
+  .nbt{font-size:9.5px;font-weight:900;margin-top:7px;letter-spacing:.2px}
+</style>
+<style>
+  body{padding-bottom:30px}
+</style>
+</head>
+<body>
+<div class="pane on" id="pane14">
+  <div class="hero">
+    <div class="l">الفارق الكلي (دعم − شحن)</div>
+    <div class="big2" id="du_tdiff">0</div>
+    <div class="s" id="du_tdiffUsd" style="font-weight:800;margin-top:2px"></div>
+    <div class="mini" style="margin-top:8px">
+      <div class="c"><div class="l">شحن الكل</div><div class="v n-blue" id="du_trecv">0</div></div>
+      <div class="c"><div class="l">دعم الكل</div><div class="v v-gold" id="du_tsup">0</div></div>
+      <div class="c"><div class="l">الشحن بالدولار</div><div class="v n-blue" id="du_tusd">$0</div></div>
+      <div class="c"><div class="l">المردود بالدولار</div><div class="v n-green" id="du_tprof">$0</div></div>
+    </div>
+    <div class="s" id="du_sub" style="margin-top:7px"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="stage stg-room" style="padding:10px">
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#5EE3A6" id="du_e_n">قفل 0 حساب</div>
+      <div id="du_e_tg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px"></div>
+      <div style="text-align:center;font-size:15px;font-weight:900;color:#F5A0BC;letter-spacing:1px">ELENOR</div>
+      <input id="du_e_in" type="number" inputmode="numeric" placeholder="كونز" style="margin-top:8px">
+      <div class="rbtns" style="margin-top:6px">
+        <button class="btn blu sm" onclick="duRecv('e','in')" style="flex:1">شحن داخلي</button>
+        <button class="btn red sm" onclick="duRecv('e','ex')" style="flex:1">شحن خارجي</button>
+      </div>
+      <div class="mini" style="margin-top:6px">
+        <div class="c"><div class="l">الشحن الداخلي</div><div class="v n-blue" id="du_e_rin" style="font-size:11px">0</div></div>
+        <div class="c"><div class="l">الشحن الخارجي</div><div class="v v-red" id="du_e_rex" style="font-size:11px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px;grid-template-columns:1fr">
+        <div class="c"><div class="l">الشحن</div><div class="v n-blue" id="du_e_recv">0</div></div>
+        <div class="c"><div class="l">الدعم</div><div class="v v-gold" id="du_e_sup">0</div></div>
+        <div class="c"><div class="l">الفارق (دعم − شحن)</div><div class="v" id="du_e_diff" style="font-size:13px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px">
+        <div class="c"><div class="l">قيمة الشحن</div><div class="v n-blue" id="du_e_usd" style="font-size:12px">$0</div></div>
+        <div class="c" onclick="duProf('e')" style="cursor:pointer"><div class="l">المردود</div><div class="v n-green" id="du_e_prof" style="font-size:12px">$0</div></div>
+      </div>
+      <input id="du_e_an" type="text" placeholder="اسم الحساب" style="margin-top:8px;padding:10px">
+      <input id="du_e_av" type="number" inputmode="numeric" placeholder="كم دعم (كونز)" style="margin-top:6px;padding:10px">
+      <button class="btn gold sm" onclick="duSup('e')" style="width:100%;margin-top:6px">+ دعم حساب</button>
+      <div id="du_e_ents" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px"></div>
+
+    </div>
+    <div class="stage stg-agency" style="padding:10px">
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#5EE3A6" id="du_m_n">قفل 0 حساب</div>
+      <div id="du_m_tg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px"></div>
+      <div style="text-align:center;font-size:15px;font-weight:900;color:#5EE3A6;letter-spacing:1px">MOTAIM</div>
+      <input id="du_m_in" type="number" inputmode="numeric" placeholder="كونز" style="margin-top:8px">
+      <div class="rbtns" style="margin-top:6px">
+        <button class="btn blu sm" onclick="duRecv('m','in')" style="flex:1">شحن داخلي</button>
+        <button class="btn red sm" onclick="duRecv('m','ex')" style="flex:1">شحن خارجي</button>
+      </div>
+      <div class="mini" style="margin-top:6px">
+        <div class="c"><div class="l">الشحن الداخلي</div><div class="v n-blue" id="du_m_rin" style="font-size:11px">0</div></div>
+        <div class="c"><div class="l">الشحن الخارجي</div><div class="v v-red" id="du_m_rex" style="font-size:11px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px;grid-template-columns:1fr">
+        <div class="c"><div class="l">الشحن</div><div class="v n-blue" id="du_m_recv">0</div></div>
+        <div class="c"><div class="l">الدعم</div><div class="v v-gold" id="du_m_sup">0</div></div>
+        <div class="c"><div class="l">الفارق (دعم − شحن)</div><div class="v" id="du_m_diff" style="font-size:13px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px">
+        <div class="c"><div class="l">قيمة الشحن</div><div class="v n-blue" id="du_m_usd" style="font-size:12px">$0</div></div>
+        <div class="c" onclick="duProf('m')" style="cursor:pointer"><div class="l">المردود</div><div class="v n-green" id="du_m_prof" style="font-size:12px">$0</div></div>
+      </div>
+      <input id="du_m_an" type="text" placeholder="اسم الحساب" style="margin-top:8px;padding:10px">
+      <input id="du_m_av" type="number" inputmode="numeric" placeholder="كم دعم (كونز)" style="margin-top:6px;padding:10px">
+      <button class="btn gold sm" onclick="duSup('m')" style="width:100%;margin-top:6px">+ دعم حساب</button>
+      <div id="du_m_ents" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px"></div>
+
+    </div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="duo" onclick="doReset('duo',this)">تصفير الثنائي كامل</button></div>
+</div>
+<script>
+function $(id){ return document.getElementById(id); }
+function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+function fmtInput(inp){
+  var raw=String(inp.value).replace(/[،,\s]/g,"");
+  if(raw===""||raw==="-"){ return; }
+  // اسمح بنقطة عشرية أثناء الكتابة
+  var m=raw.match(/^(-?\d*)(\.\d*)?$/);
+  if(!m) return;
+  var intPart=m[1]||"", decPart=m[2]||"";
+  var formatted=(intPart?(+intPart).toLocaleString("en-US"):"")+decPart;
+  if(inp.value!==formatted){
+    inp.value=formatted;
+  }
+}
+
+function num(id){ var e=$(id); if(!e)return 0; var v=String(e.value).replace(/[\u060C,\s]/g,""); return +v||0; }
+function num2(v){ var n=parseFloat(String(v).replace(/[\u060C,\s]/g,"")); return isNaN(n)?0:n; }
+var TARGET_TABLE=[
+  {lv:1,  jaz:30000,    alm:9000,     wakala:13,   modeef:11,   jazSal:6,     almSal:3,     cash:2,   wakeel:2},
+  {lv:2,  jaz:50000,    alm:15000,    wakala:22,   modeef:18,   jazSal:11,    almSal:4,     cash:3,   wakeel:4},
+  {lv:3,  jaz:100000,   alm:30000,    wakala:44,   modeef:35,   jazSal:21,    almSal:11,    cash:3,   wakeel:9},
+  {lv:4,  jaz:200000,   alm:60000,    wakala:87,   modeef:67,   jazSal:42,    almSal:21,    cash:4,   wakeel:20},
+  {lv:5,  jaz:350000,   alm:105000,   wakala:149,  modeef:119,  jazSal:80,    almSal:34,    cash:5,   wakeel:30},
+  {lv:6,  jaz:520000,   alm:156000,   wakala:214,  modeef:170,  jazSal:114,   almSal:49,    cash:7,   wakeel:44},
+  {lv:7,  jaz:750000,   alm:225000,   wakala:302,  modeef:240,  jazSal:155,   almSal:70,    cash:15,  wakeel:62},
+  {lv:8,  jaz:1300000,  alm:390000,   wakala:525,  modeef:435,  jazSal:255,   almSal:150,   cash:30,  wakeel:90},
+  {lv:9,  jaz:2100000,  alm:630000,   wakala:875,  modeef:735,  jazSal:417,   almSal:278,   cash:40,  wakeel:140},
+  {lv:10, jaz:3500000,  alm:1050000,  wakala:1400, modeef:1170, jazSal:624,   almSal:496,   cash:50,  wakeel:230},
+  {lv:11, jaz:5800000,  alm:1740000,  wakala:2312, modeef:1932, jazSal:1155,  almSal:697,   cash:80,  wakeel:380},
+  {lv:12, jaz:8800000,  alm:2640000,  wakala:3530, modeef:2980, jazSal:1645,  almSal:1195,  cash:140, wakeel:550},
+  {lv:13, jaz:13000000, alm:3900000,  wakala:5190, modeef:4305, jazSal:2161,  almSal:1964,  cash:180, wakeel:885},
+  {lv:14, jaz:18000000, alm:5400000,  wakala:6890, modeef:5740, jazSal:2800,  almSal:2720,  cash:220, wakeel:1150},
+  {lv:15, jaz:24000000, alm:7200000,  wakala:9100, modeef:7700, jazSal:3800,  almSal:3600,  cash:300, wakeel:1400},
+  {lv:16, jaz:32000000, alm:9600000,  wakala:12230,modeef:10330,jazSal:5500,  almSal:4480,  cash:350, wakeel:1900},
+  {lv:17, jaz:44000000, alm:13200000, wakala:16880,modeef:14880,jazSal:8000,  almSal:6480,  cash:400, wakeel:2000},
+  {lv:18, jaz:65000000, alm:19500000, wakala:24105,modeef:21305,jazSal:11480, almSal:9325,  cash:500, wakeel:2800},
+  {lv:19, jaz:85000000, alm:25500000, wakala:30700,modeef:27050,jazSal:14600, almSal:11850, cash:600, wakeel:3650}
+];
+function tgOf(jaz){
+  var cur=null,next=null;
+  for(var i=0;i<TARGET_TABLE.length;i++){
+    if(jaz>=TARGET_TABLE[i].jaz)cur=TARGET_TABLE[i];
+    else { next=TARGET_TABLE[i]; break; }
+  }
+  return {cur:cur,next:next,need:next?(next.jaz-jaz):0};
+}
+
+function cfg(){ return { rateBuy:1950, thr:245000, salAcc:80, salAgent:30, rateApp:1600 }; }
+var S={duo:null};
+function save(){ try{ localStorage.setItem("konz_duo_solo", JSON.stringify(S)); }catch(e){} }
+function load(){ try{ var r=localStorage.getItem("konz_duo_solo"); if(r){ var o=JSON.parse(r); for(var k in o)S[k]=o[k]; } }catch(e){} }
+function render(){ if($("du_trecv")) renderDuo(); }
+var RESET_ARM=null;
+function doReset(kind,btn){
+  if(RESET_ARM!==btn){ RESET_ARM=btn; btn.textContent="اضغط مرة ثانية للتأكيد"; setTimeout(function(){ if(RESET_ARM===btn){RESET_ARM=null; btn.textContent="تصفير الثنائي كامل";} },2500); return; }
+  RESET_ARM=null; btn.textContent="تصفير الثنائي كامل";
+  S.duo=null; duInit(); save(); render();
+}
+var MIC_ACTIVE=null;
+function ar2num(txt){
+  // حوّل الأرقام العربية ٠-٩ إلى لاتينية
+  var map={"\u0660":"0","\u0661":"1","\u0662":"2","\u0663":"3","\u0664":"4","\u0665":"5","\u0666":"6","\u0667":"7","\u0668":"8","\u0669":"9"};
+  txt=txt.replace(/[\u0660-\u0669]/g,function(d){return map[d];});
+  // كلمات المضاعفات
+  var t=txt.toLowerCase();
+  var mult=1;
+  if(/مليون|ملايين|مليونين|million/.test(t)) mult=1000000;
+  else if(/[أا]لف|[أا]لفين|الاف|آلاف|thousand/.test(t)) mult=1000;
+  // استخرج الأرقام (مع الفواصل والنقاط)
+  var m=t.replace(/[،,]/g,"").match(/\d+(?:\.\d+)?/g);
+  var num=null;
+  if(m){ num=parseFloat(m.join("")); if(isNaN(num))num=null; }
+  if(num===null){
+    // كلمات عربية بحتة
+    var words=[
+      ["ثلاثمئة",300],["ثلاث مئة",300],["ثلاثمية",300],["اربعمئة",400],["أربعمئة",400],["اربعمية",400],["خمسمئة",500],["خمسمية",500],["ستمئة",600],["ستمية",600],["سبعمئة",700],["سبعمية",700],["ثمانمئة",800],["ثمنمية",800],["تسعمئة",900],["تسعمية",900],
+      ["مئتين",200],["ميتين",200],
+      ["احدعشر",11],["اثنعشر",12],["عشرين",20],["ثلاثين",30],["اربعين",40],["أربعين",40],["خمسين",50],["ستين",60],["سبعين",70],["ثمانين",80],["تسعين",90],
+      ["واحد",1],["اثنين",2],["ثنين",2],["ثلاثة",3],["ثلاث",3],["اربعة",4],["أربعة",4],["اربع",4],["خمسة",5],["خمس",5],["ستة",6],["ست",6],["سبعة",7],["سبع",7],["ثمانية",8],["ثمان",8],["تسعة",9],["تسع",9],["عشرة",10],["عشر",10],
+      ["مئة",100],["مية",100],["ميه",100]];
+    var found=0, any=false;
+    for(var w=0;w<words.length;w++){ if(t.indexOf(words[w][0])!==-1){ found+=words[w][1]; any=true; t=t.replace(words[w][0],""); } }
+    if(/مليونين|[أا]لفين/.test(txt.toLowerCase())){ found=(found||0)+2; any=true; }
+    var half=/نص|نصف/.test(txt);
+    if(half && !any && mult>1){
+      var lt=txt.toLowerCase();
+      var iH=lt.search(/نص|نصف/), iM=lt.search(/مليون|ملايين|[أا]لف|الاف|آلاف/);
+      found=(iH<iM)?0.5:1.5; any=true; // "نص مليون"=0.5 · "مليون ونص"=1.5
+    }
+    else if(half){ found=(found||0)+0.5; any=true; }
+    if(any) num=found;
+    else if(mult>1) num=1;
+    else return null;
+  }
+  if(mult>1 && num<mult) num=num*mult;
+  return num;
+}
+function startMic(inputId,btn){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert("المتصفح ما يدعم الإدخال الصوتي. حدّث iOS أو استخدم Safari."); return; }
+  if(MIC_ACTIVE){ try{MIC_ACTIVE.stop();}catch(e){} MIC_ACTIVE=null; }
+  var rec=new SR();
+  rec.lang="ar-SA"; rec.interimResults=false; rec.maxAlternatives=1;
+  btn.classList.add("rec"); btn.textContent="\u23F9";
+  MIC_ACTIVE=rec;
+  rec.onresult=function(ev){
+    var said=ev.results[0][0].transcript;
+    var num=ar2num(said);
+    var inp=$(inputId);
+    if(inp){
+      if(num!==null){ inp.value=num.toLocaleString("en-US"); inp.dispatchEvent(new Event("input")); }
+      else { alert("ما فهمت رقم من: «"+said+"» — جرّب مرة ثانية."); }
+    }
+  };
+  rec.onend=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  rec.onerror=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  try{ rec.start(); }catch(e){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; }
+}
+function startMicText(inputId,btn){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert("المتصفح ما يدعم الإدخال الصوتي."); return; }
+  if(MIC_ACTIVE){ try{MIC_ACTIVE.stop();}catch(e){} MIC_ACTIVE=null; }
+  var rec=new SR();
+  rec.lang="ar-SA"; rec.interimResults=false; rec.maxAlternatives=1;
+  btn.classList.add("rec"); btn.textContent="\u23F9";
+  MIC_ACTIVE=rec;
+  rec.onresult=function(ev){ var said=ev.results[0][0].transcript.trim(); var inp=$(inputId); if(inp&&said){ inp.value=said; } };
+  rec.onend=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  rec.onerror=function(){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; MIC_ACTIVE=null; };
+  try{ rec.start(); }catch(e){ btn.classList.remove("rec"); btn.textContent="\uD83C\uDFA4"; }
+}
+function fmtInput(inp){
+  var raw=String(inp.value).replace(/[،,\s]/g,"");
+  if(raw===""||raw==="-"){ return; }
+  // اسمح بنقطة عشرية أثناء الكتابة
+  var m=raw.match(/^(-?\d*)(\.\d*)?$/);
+  if(!m) return;
+  var intPart=m[1]||"", decPart=m[2]||"";
+  var formatted=(intPart?(+intPart).toLocaleString("en-US"):"")+decPart;
+  if(inp.value!==formatted){
+    inp.value=formatted;
+  }
+}
+function attachMics(root){
+  var inputs=(root||document).querySelectorAll('input[type="number"], input[type="text"], input.numfmt');
+  for(var i=0;i<inputs.length;i++){
+    var inp=inputs[i];
+    if(!inp.id){ continue; }
+    var isNum=(inp.type==="number")||inp.classList.contains("numfmt");
+    // حوّل خانات الأرقام لنصية بفواصل (نبقي لوحة الأرقام)
+    if(inp.type==="number"){
+      inp.type="text";
+      inp.setAttribute("inputmode","decimal");
+      inp.classList.add("numfmt");
+    }
+    if(isNum && !inp.dataset.fmt){
+      inp.dataset.fmt="1";
+      inp.addEventListener("input",function(){ fmtInput(this); });
+      fmtInput(inp);
+    }
+    if(inp.dataset.mic) continue;
+    inp.dataset.mic="1";
+    var wrap=document.createElement("div");
+    wrap.className="micwrap";
+    inp.parentNode.insertBefore(wrap,inp);
+    wrap.appendChild(inp);
+    var b=document.createElement("button");
+    b.type="button"; b.className="micbtn"; b.textContent="\uD83C\uDFA4";
+    (function(id,bb,isN){ bb.addEventListener("click",function(ev){ ev.stopPropagation(); (isN?startMic:startMicText)(id,bb); }); })(inp.id,b,isNum);
+    wrap.appendChild(b);
+  }
+}
+
+
+function duInit(){ if(!S.duo)S.duo={e:{recv:0,sup:0,ents:[],n:0},m:{recv:0,sup:0,ents:[],n:0}};
+  if(!S.duo.e.ents)S.duo.e.ents=[]; if(!S.duo.m.ents)S.duo.m.ents=[];
+  if(S.duo.e.rin===undefined){ S.duo.e.rin=S.duo.e.recv||0; S.duo.e.rex=0; }
+  if(S.duo.m.rin===undefined){ S.duo.m.rin=S.duo.m.recv||0; S.duo.m.rex=0; }
+  if(S.duo.e.nAdj===undefined)S.duo.e.nAdj=S.duo.e.n||0;
+  if(S.duo.m.nAdj===undefined)S.duo.m.nAdj=S.duo.m.n||0;
+  return S.duo; }
+function duAutoN(d){ var c9=0;
+  for(var i=0;i<d.ents.length;i++){ var tg=tgOf(d.ents[i].a); if(tg.cur&&tg.cur.lv>=1)c9++; }
+  return c9; }
+function duN(k,dv){ var D=duInit();
+  D[k].nAdj=(D[k].nAdj||0)+dv;
+  var auto=duAutoN(D[k]);
+  if(auto+D[k].nAdj<0)D[k].nAdj=-auto;
+  save(); render(); }
+function duTgx(k,lv){ var D=duInit();
+  if(!D[k].tgx)D[k].tgx={};
+  var v=prompt("أضف عدد حسابات لتارقت ت"+lv+" (سالب يشيل من إضافتك، والأساس ثابت):");
+  if(v===null)return;
+  v=parseInt(String(v).replace(/[،,\s]/g,""),10)||0;
+  if(!v)return;
+  D[k].tgx[lv]=Math.max(0,(D[k].tgx[lv]||0)+v);
+  if(!D[k].tgx[lv])delete D[k].tgx[lv];
+  save(); render(); }
+function duProf(k){ var D=duInit();
+  var v=prompt("أضف مبلغ $ للربح (اكتب سالب للطرح):");
+  if(v===null)return;
+  v=parseFloat(String(v).replace(/[،,\s]/g,""))||0;
+  if(!v)return;
+  D[k].profX=(D[k].profX||0)+v;
+  save(); render(); }
+function duTap(k,i){ var D=duInit();
+  var v=num("du_"+k+"_av");
+  if(v<=0){ alert("اكتب الكونز بخانة «كم دعم» ثم اضغط الحساب \u2014 تنضاف لرصيده بدون ما تتسجل دعم (فك \u00B7 من أحد \u00B7 غيره)."); return; }
+  var ents=D[k].ents; var hit=ents.splice(i,1)[0]; if(!hit)return;
+  hit.a+=v; ents.unshift(hit);
+  $("du_"+k+"_av").value="";
+  save(); render(); }
+function duRecv(k,typ){ var D=duInit(); var v=num("du_"+k+"_in");
+  if(v<=0){ alert("اكتب الكونز."); return; }
+  D[k].recv+=v;
+  if(typ==="ex")D[k].rex=(D[k].rex||0)+v; else D[k].rin=(D[k].rin||0)+v;
+  $("du_"+k+"_in").value="";
+  save(); render(); }
+function duSup(k){ var D=duInit();
+  var n=($("du_"+k+"_an").value||"").trim();
+  var v=num("du_"+k+"_av");
+  if(!n){ alert("اكتب اسم الحساب."); return; }
+  if(v<=0){ alert("اكتب كم الدعم."); return; }
+  var ents=D[k].ents, hit=null;
+  for(var i=0;i<ents.length;i++){ if(ents[i].n===n)hit=ents.splice(i,1)[0]; }
+  if(hit){ hit.a+=v; ents.unshift(hit); }
+  else ents.unshift({n:n,a:v});
+  D[k].sup+=v;
+  $("du_"+k+"_an").value=""; $("du_"+k+"_av").value="";
+  save(); render(); }
+function duReset(k){ var D=duInit(); D[k]={recv:0,sup:0,rin:0,rex:0,ents:[],n:0,profX:0,tgx:{}}; save(); render(); }
+function renderDuo(){ var D=duInit(); var cD=cfg();
+  function entSal(a){ var tg=tgOf(a); return tg.cur?((tg.cur.jazSal||0)+(tg.cur.wakeel||0)):0; }
+  function entLv(a){ var tg=tgOf(a); return tg.cur?tg.cur.lv:0; }
+  var tRecv=0,tSup=0,tProf=0;
+  ["e","m"].forEach(function(k){
+    var d=D[k];
+    var diff=d.sup-d.recv;
+    var auto=0;
+    for(var z=0;z<d.ents.length;z++)auto+=entSal(d.ents[z].a);
+    var prof=auto+(d.profX||0);
+    tRecv+=d.recv; tSup+=d.sup; tProf+=prof;
+    var nTot=duAutoN(d)+(d.nAdj||0); if(nTot<0)nTot=0;
+    d._nTot=nTot;
+    var ne=$("du_"+k+"_n");
+    ne.innerHTML='<span onclick="duN(\''+k+'\',-1)" style="display:inline-block;width:26px;padding:5px 0;border-radius:8px;background:rgba(255,138,128,.2);color:#FF8A80;font-weight:900;cursor:pointer;vertical-align:middle">\u2212</span>'
+      +' <span style="display:inline-block;background:#000;color:#fff;font-size:20px;font-weight:900;padding:3px 15px;border-radius:10px;vertical-align:middle;font-variant-numeric:tabular-nums">'+fmt(nTot)+'</span>'
+      +' <span onclick="duN(\''+k+'\',1)" style="display:inline-block;width:26px;padding:5px 0;border-radius:8px;background:rgba(94,227,166,.2);color:#5EE3A6;font-weight:900;cursor:pointer;vertical-align:middle">+</span>';
+    $("du_"+k+"_rin").textContent=fmt(d.rin||0);
+    $("du_"+k+"_rex").textContent=fmt(d.rex||0);
+    $("du_"+k+"_recv").textContent=fmt(d.recv);
+    $("du_"+k+"_sup").textContent=fmt(d.sup);
+    $("du_"+k+"_usd").textContent="$"+fmt(Math.round(d.recv/cD.rateBuy));
+    $("du_"+k+"_prof").textContent="$"+fmt(Math.round(prof));
+    var de=$("du_"+k+"_diff");
+    de.textContent=(diff>=0?"+":"\u2212")+fmt(Math.abs(diff));
+    de.style.color=diff>=0?"#5EE3A6":"#FF8A80";
+    var tg9=$("du_"+k+"_tg");
+    if(tg9){ var bk={};
+      for(var b9=0;b9<d.ents.length;b9++){ var lv9=entLv(d.ents[b9].a); if(lv9>0)bk[lv9]=(bk[lv9]||0)+1; }
+      var xs=d.tgx||{}; var lvs=[];
+      for(var q1 in bk)lvs.push(parseInt(q1,10));
+      for(var q2 in xs){ if(lvs.indexOf(parseInt(q2,10))===-1)lvs.push(parseInt(q2,10)); }
+      lvs.sort(function(a9,b8){return a9-b8;});
+      var th9='';
+      for(var q3=0;q3<lvs.length;q3++){ var L=lvs[q3];
+        th9+='<div onclick="duTgx(\''+k+'\','+L+')" style="background:rgba(255,255,255,.08);border-radius:8px;padding:4px 2px;text-align:center;cursor:pointer">'
+          +'<div style="font-size:8px;font-weight:800;color:#8FD3FE">ت'+L+'</div>'
+          +'<div style="font-size:11px;font-weight:900;color:#fff">'+((bk[L]||0)+(xs[L]||0))+'</div></div>'; }
+      tg9.innerHTML=th9; }
+    var ee=$("du_"+k+"_ents");
+    if(ee){ var eh='';
+      for(var i=0;i<d.ents.length;i++){ var en=d.ents[i];
+        var lv=entLv(en.a), sl=entSal(en.a);
+        eh+='<div onclick="duTap(\''+k+'\','+i+')" style="background:'+(en.a<cD.thr?'rgba(255,138,128,.28)':'rgba(255,255,255,.07)')+';border-radius:9px;padding:6px 3px;text-align:center;cursor:pointer">'
+          +'<div style="font-size:8.5px;font-weight:800;color:#BBAEFF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+en.n+'</div>'
+          +'<div style="font-size:9.5px;font-weight:800;color:#FFD37E;margin-top:2px">'+fmt(en.a)+'</div>'
+          +'<div style="font-size:8px;font-weight:800;color:#5EE3A6;margin-top:1px">'+(lv?('ت'+lv+' \u00B7 $'+fmt(sl)):'\u2014')+'</div></div>'; }
+      ee.innerHTML=eh||'<div class="empty" style="grid-column:1/-1;padding:8px">ما فيه حسابات</div>'; }
+  });
+  var tDiff=tSup-tRecv;
+  var tde=$("du_tdiff");
+  tde.textContent=(tDiff>=0?"+":"\u2212")+fmt(Math.abs(tDiff));
+  tde.style.color=tDiff>=0?"#5EE3A6":"#FF8A80";
+  var tdu=$("du_tdiffUsd");
+  var retD=tProf-Math.round(tRecv/cD.rateBuy);
+  tdu.textContent="المردود \u2212 الشحن: "+(retD>=0?"+":"\u2212")+"$"+fmt(Math.abs(Math.round(retD)));
+  tdu.style.color=retD>=0?"#5EE3A6":"#FF8A80";
+  $("du_trecv").textContent=fmt(tRecv);
+  $("du_tsup").textContent=fmt(tSup);
+  $("du_tusd").textContent="$"+fmt(Math.round(tRecv/cD.rateBuy));
+  $("du_tprof").textContent="$"+fmt(Math.round(tProf));
+  $("du_sub").textContent="قفلت: ELENOR "+fmt(D.e._nTot||0)+" \u00B7 MOTAIM "+fmt(D.m._nTot||0);
+}
+
+load(); duInit(); render(); attachMics();
+</script>
+</body>
+</html>
