@@ -828,6 +828,81 @@
   <div class="resetbar"><button class="resetBtn" data-r="sc" onclick="doReset('sc',this)">تصفير السيناريو</button></div>
 </div>
 
+<!-- ============ تبويب 14: الثنائي ============ -->
+<div class="pane" id="pane14">
+  <div class="hero">
+    <div class="l">الفارق الكلي (دعم − شحن)</div>
+    <div class="big2" id="du_tdiff">0</div>
+    <div class="s" id="du_tdiffUsd" style="font-weight:800;margin-top:2px"></div>
+    <div class="mini" style="margin-top:8px">
+      <div class="c"><div class="l">شحن الكل</div><div class="v n-blue" id="du_trecv">0</div></div>
+      <div class="c"><div class="l">دعم الكل</div><div class="v v-gold" id="du_tsup">0</div></div>
+      <div class="c"><div class="l">الشحن بالدولار</div><div class="v n-blue" id="du_tusd">$0</div></div>
+      <div class="c"><div class="l">المردود بالدولار</div><div class="v n-green" id="du_tprof">$0</div></div>
+    </div>
+    <div class="s" id="du_sub" style="margin-top:7px"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="stage stg-room" style="padding:10px">
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#5EE3A6" id="du_e_n">قفل 0 حساب</div>
+      <div id="du_e_tg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px"></div>
+      <div style="text-align:center;font-size:15px;font-weight:900;color:#F5A0BC;letter-spacing:1px">ELENOR</div>
+      <input id="du_e_in" type="number" inputmode="numeric" placeholder="كونز" style="margin-top:8px">
+      <div class="rbtns" style="margin-top:6px">
+        <button class="btn blu sm" onclick="duRecv('e','in')" style="flex:1">شحن داخلي</button>
+        <button class="btn red sm" onclick="duRecv('e','ex')" style="flex:1">شحن خارجي</button>
+      </div>
+      <div class="mini" style="margin-top:6px">
+        <div class="c"><div class="l">الشحن الداخلي</div><div class="v n-blue" id="du_e_rin" style="font-size:11px">0</div></div>
+        <div class="c"><div class="l">الشحن الخارجي</div><div class="v v-red" id="du_e_rex" style="font-size:11px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px;grid-template-columns:1fr">
+        <div class="c"><div class="l">الشحن</div><div class="v n-blue" id="du_e_recv">0</div></div>
+        <div class="c"><div class="l">الدعم</div><div class="v v-gold" id="du_e_sup">0</div></div>
+        <div class="c"><div class="l">الفارق (دعم − شحن)</div><div class="v" id="du_e_diff" style="font-size:13px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px">
+        <div class="c"><div class="l">قيمة الشحن</div><div class="v n-blue" id="du_e_usd" style="font-size:12px">$0</div></div>
+        <div class="c" onclick="duProf('e')" style="cursor:pointer"><div class="l">المردود</div><div class="v n-green" id="du_e_prof" style="font-size:12px">$0</div></div>
+      </div>
+      <input id="du_e_an" type="text" placeholder="اسم الحساب" style="margin-top:8px;padding:10px">
+      <input id="du_e_av" type="number" inputmode="numeric" placeholder="كم دعم (كونز)" style="margin-top:6px;padding:10px">
+      <button class="btn gold sm" onclick="duSup('e')" style="width:100%;margin-top:6px">+ دعم حساب</button>
+      <div id="du_e_ents" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px"></div>
+
+    </div>
+    <div class="stage stg-agency" style="padding:10px">
+      <div style="text-align:center;font-size:10px;font-weight:800;color:#5EE3A6" id="du_m_n">قفل 0 حساب</div>
+      <div id="du_m_tg" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px"></div>
+      <div style="text-align:center;font-size:15px;font-weight:900;color:#5EE3A6;letter-spacing:1px">MOTAIM</div>
+      <input id="du_m_in" type="number" inputmode="numeric" placeholder="كونز" style="margin-top:8px">
+      <div class="rbtns" style="margin-top:6px">
+        <button class="btn blu sm" onclick="duRecv('m','in')" style="flex:1">شحن داخلي</button>
+        <button class="btn red sm" onclick="duRecv('m','ex')" style="flex:1">شحن خارجي</button>
+      </div>
+      <div class="mini" style="margin-top:6px">
+        <div class="c"><div class="l">الشحن الداخلي</div><div class="v n-blue" id="du_m_rin" style="font-size:11px">0</div></div>
+        <div class="c"><div class="l">الشحن الخارجي</div><div class="v v-red" id="du_m_rex" style="font-size:11px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px;grid-template-columns:1fr">
+        <div class="c"><div class="l">الشحن</div><div class="v n-blue" id="du_m_recv">0</div></div>
+        <div class="c"><div class="l">الدعم</div><div class="v v-gold" id="du_m_sup">0</div></div>
+        <div class="c"><div class="l">الفارق (دعم − شحن)</div><div class="v" id="du_m_diff" style="font-size:13px">0</div></div>
+      </div>
+      <div class="mini" style="margin-top:5px">
+        <div class="c"><div class="l">قيمة الشحن</div><div class="v n-blue" id="du_m_usd" style="font-size:12px">$0</div></div>
+        <div class="c" onclick="duProf('m')" style="cursor:pointer"><div class="l">المردود</div><div class="v n-green" id="du_m_prof" style="font-size:12px">$0</div></div>
+      </div>
+      <input id="du_m_an" type="text" placeholder="اسم الحساب" style="margin-top:8px;padding:10px">
+      <input id="du_m_av" type="number" inputmode="numeric" placeholder="كم دعم (كونز)" style="margin-top:6px;padding:10px">
+      <button class="btn gold sm" onclick="duSup('m')" style="width:100%;margin-top:6px">+ دعم حساب</button>
+      <div id="du_m_ents" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px"></div>
+
+    </div>
+  </div>
+  <div class="resetbar"><button class="resetBtn" data-r="duo" onclick="doReset('duo',this)">تصفير الثنائي كامل</button></div>
+</div>
+
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
 <canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
@@ -843,6 +918,7 @@
 <!-- شريط التبويبات -->
 <div class="tabbar">
   <div class="tb" data-p="pane13" onclick="switchTab('pane13',this)"><span class="i">&#127916;</span>سيناريو</div>
+  <div class="tb" data-p="pane14" onclick="switchTab('pane14',this)"><span class="i">&#129309;</span>الثنائي</div>
   <div class="tb on" data-p="pane1" onclick="switchTab('pane1',this)"><span class="i">&#127963;</span>التقفيل</div>
   <div class="tb" data-p="pane12" onclick="switchTab('pane12',this)"><span class="i">&#128274;</span>تقفيل ملف</div>
   <div class="tb" data-p="pane2" onclick="switchTab('pane2',this)"><span class="i">&#129518;</span>حاسبة روم</div>
@@ -859,6 +935,126 @@
 <script>
 var FK3={tg:null};
 var FK6={rows:[{lv:9,n:0}]};
+function duInit(){ if(!S.duo)S.duo={e:{recv:0,sup:0,ents:[],n:0},m:{recv:0,sup:0,ents:[],n:0}};
+  if(!S.duo.e.ents)S.duo.e.ents=[]; if(!S.duo.m.ents)S.duo.m.ents=[];
+  if(S.duo.e.rin===undefined){ S.duo.e.rin=S.duo.e.recv||0; S.duo.e.rex=0; }
+  if(S.duo.m.rin===undefined){ S.duo.m.rin=S.duo.m.recv||0; S.duo.m.rex=0; }
+  if(S.duo.e.nAdj===undefined)S.duo.e.nAdj=S.duo.e.n||0;
+  if(S.duo.m.nAdj===undefined)S.duo.m.nAdj=S.duo.m.n||0;
+  return S.duo; }
+function duAutoN(d){ var c9=0;
+  for(var i=0;i<d.ents.length;i++){ var tg=tgOf(d.ents[i].a); if(tg.cur&&tg.cur.lv>=1)c9++; }
+  return c9; }
+function duN(k,dv){ var D=duInit();
+  D[k].nAdj=(D[k].nAdj||0)+dv;
+  var auto=duAutoN(D[k]);
+  if(auto+D[k].nAdj<0)D[k].nAdj=-auto;
+  save(); render(); }
+function duTgx(k,lv){ var D=duInit();
+  if(!D[k].tgx)D[k].tgx={};
+  var v=prompt("أضف عدد حسابات لتارقت ت"+lv+" (سالب يشيل من إضافتك، والأساس ثابت):");
+  if(v===null)return;
+  v=parseInt(String(v).replace(/[،,\s]/g,""),10)||0;
+  if(!v)return;
+  D[k].tgx[lv]=Math.max(0,(D[k].tgx[lv]||0)+v);
+  if(!D[k].tgx[lv])delete D[k].tgx[lv];
+  save(); render(); }
+function duProf(k){ var D=duInit();
+  var v=prompt("أضف مبلغ $ للربح (اكتب سالب للطرح):");
+  if(v===null)return;
+  v=parseFloat(String(v).replace(/[،,\s]/g,""))||0;
+  if(!v)return;
+  D[k].profX=(D[k].profX||0)+v;
+  save(); render(); }
+function duTap(k,i){ var D=duInit();
+  var v=num("du_"+k+"_av");
+  if(v<=0){ alert("اكتب الكونز بخانة «كم دعم» ثم اضغط الحساب \u2014 تنضاف لرصيده بدون ما تتسجل دعم (فك \u00B7 من أحد \u00B7 غيره)."); return; }
+  var ents=D[k].ents; var hit=ents.splice(i,1)[0]; if(!hit)return;
+  hit.a+=v; ents.unshift(hit);
+  $("du_"+k+"_av").value="";
+  save(); render(); }
+function duRecv(k,typ){ var D=duInit(); var v=num("du_"+k+"_in");
+  if(v<=0){ alert("اكتب الكونز."); return; }
+  D[k].recv+=v;
+  if(typ==="ex")D[k].rex=(D[k].rex||0)+v; else D[k].rin=(D[k].rin||0)+v;
+  $("du_"+k+"_in").value="";
+  save(); render(); }
+function duSup(k){ var D=duInit();
+  var n=($("du_"+k+"_an").value||"").trim();
+  var v=num("du_"+k+"_av");
+  if(!n){ alert("اكتب اسم الحساب."); return; }
+  if(v<=0){ alert("اكتب كم الدعم."); return; }
+  var ents=D[k].ents, hit=null;
+  for(var i=0;i<ents.length;i++){ if(ents[i].n===n)hit=ents.splice(i,1)[0]; }
+  if(hit){ hit.a+=v; ents.unshift(hit); }
+  else ents.unshift({n:n,a:v});
+  D[k].sup+=v;
+  $("du_"+k+"_an").value=""; $("du_"+k+"_av").value="";
+  save(); render(); }
+function duReset(k){ var D=duInit(); D[k]={recv:0,sup:0,rin:0,rex:0,ents:[],n:0,profX:0,tgx:{}}; save(); render(); }
+function renderDuo(){ var D=duInit(); var cD=cfg();
+  function entSal(a){ var tg=tgOf(a); return tg.cur?((tg.cur.jazSal||0)+(tg.cur.wakeel||0)):0; }
+  function entLv(a){ var tg=tgOf(a); return tg.cur?tg.cur.lv:0; }
+  var tRecv=0,tSup=0,tProf=0;
+  ["e","m"].forEach(function(k){
+    var d=D[k];
+    var diff=d.sup-d.recv;
+    var auto=0;
+    for(var z=0;z<d.ents.length;z++)auto+=entSal(d.ents[z].a);
+    var prof=auto+(d.profX||0);
+    tRecv+=d.recv; tSup+=d.sup; tProf+=prof;
+    var nTot=duAutoN(d)+(d.nAdj||0); if(nTot<0)nTot=0;
+    d._nTot=nTot;
+    var ne=$("du_"+k+"_n");
+    ne.innerHTML='<span onclick="duN(\''+k+'\',-1)" style="display:inline-block;width:26px;padding:5px 0;border-radius:8px;background:rgba(255,138,128,.2);color:#FF8A80;font-weight:900;cursor:pointer;vertical-align:middle">\u2212</span>'
+      +' <span style="display:inline-block;background:#000;color:#fff;font-size:20px;font-weight:900;padding:3px 15px;border-radius:10px;vertical-align:middle;font-variant-numeric:tabular-nums">'+fmt(nTot)+'</span>'
+      +' <span onclick="duN(\''+k+'\',1)" style="display:inline-block;width:26px;padding:5px 0;border-radius:8px;background:rgba(94,227,166,.2);color:#5EE3A6;font-weight:900;cursor:pointer;vertical-align:middle">+</span>';
+    $("du_"+k+"_rin").textContent=fmt(d.rin||0);
+    $("du_"+k+"_rex").textContent=fmt(d.rex||0);
+    $("du_"+k+"_recv").textContent=fmt(d.recv);
+    $("du_"+k+"_sup").textContent=fmt(d.sup);
+    $("du_"+k+"_usd").textContent="$"+fmt(Math.round(d.recv/cD.rateBuy));
+    $("du_"+k+"_prof").textContent="$"+fmt(Math.round(prof));
+    var de=$("du_"+k+"_diff");
+    de.textContent=(diff>=0?"+":"\u2212")+fmt(Math.abs(diff));
+    de.style.color=diff>=0?"#5EE3A6":"#FF8A80";
+    var tg9=$("du_"+k+"_tg");
+    if(tg9){ var bk={};
+      for(var b9=0;b9<d.ents.length;b9++){ var lv9=entLv(d.ents[b9].a); if(lv9>0)bk[lv9]=(bk[lv9]||0)+1; }
+      var xs=d.tgx||{}; var lvs=[];
+      for(var q1 in bk)lvs.push(parseInt(q1,10));
+      for(var q2 in xs){ if(lvs.indexOf(parseInt(q2,10))===-1)lvs.push(parseInt(q2,10)); }
+      lvs.sort(function(a9,b8){return a9-b8;});
+      var th9='';
+      for(var q3=0;q3<lvs.length;q3++){ var L=lvs[q3];
+        th9+='<div onclick="duTgx(\''+k+'\','+L+')" style="background:rgba(255,255,255,.08);border-radius:8px;padding:4px 2px;text-align:center;cursor:pointer">'
+          +'<div style="font-size:8px;font-weight:800;color:#8FD3FE">ت'+L+'</div>'
+          +'<div style="font-size:11px;font-weight:900;color:#fff">'+((bk[L]||0)+(xs[L]||0))+'</div></div>'; }
+      tg9.innerHTML=th9; }
+    var ee=$("du_"+k+"_ents");
+    if(ee){ var eh='';
+      for(var i=0;i<d.ents.length;i++){ var en=d.ents[i];
+        var lv=entLv(en.a), sl=entSal(en.a);
+        eh+='<div onclick="duTap(\''+k+'\','+i+')" style="background:'+(en.a<cD.thr?'rgba(255,138,128,.28)':'rgba(255,255,255,.07)')+';border-radius:9px;padding:6px 3px;text-align:center;cursor:pointer">'
+          +'<div style="font-size:8.5px;font-weight:800;color:#BBAEFF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+en.n+'</div>'
+          +'<div style="font-size:9.5px;font-weight:800;color:#FFD37E;margin-top:2px">'+fmt(en.a)+'</div>'
+          +'<div style="font-size:8px;font-weight:800;color:#5EE3A6;margin-top:1px">'+(lv?('ت'+lv+' \u00B7 $'+fmt(sl)):'\u2014')+'</div></div>'; }
+      ee.innerHTML=eh||'<div class="empty" style="grid-column:1/-1;padding:8px">ما فيه حسابات</div>'; }
+  });
+  var tDiff=tSup-tRecv;
+  var tde=$("du_tdiff");
+  tde.textContent=(tDiff>=0?"+":"\u2212")+fmt(Math.abs(tDiff));
+  tde.style.color=tDiff>=0?"#5EE3A6":"#FF8A80";
+  var tdu=$("du_tdiffUsd");
+  var retD=tProf-Math.round(tRecv/cD.rateBuy);
+  tdu.textContent="المردود \u2212 الشحن: "+(retD>=0?"+":"\u2212")+"$"+fmt(Math.abs(Math.round(retD)));
+  tdu.style.color=retD>=0?"#5EE3A6":"#FF8A80";
+  $("du_trecv").textContent=fmt(tRecv);
+  $("du_tsup").textContent=fmt(tSup);
+  $("du_tusd").textContent="$"+fmt(Math.round(tRecv/cD.rateBuy));
+  $("du_tprof").textContent="$"+fmt(Math.round(tProf));
+  $("du_sub").textContent="قفلت: ELENOR "+fmt(D.e._nTot||0)+" \u00B7 MOTAIM "+fmt(D.m._nTot||0);
+}
 var SC_DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 function scInit(){
   if(!S.sc||S.sc.v!==3)S.sc={v:3,week:1,day:1,charge:0,shipK:0,supK:0,closes:0,
@@ -1376,7 +1572,7 @@ function cancelRoom(rid){
 }
 function closeRoom(rid){ var R=findRoom(rid); if(!R)return; var c=cfg(); var owner=null; if(R.isCup){ owner=findAcc(S.selAcc)||findAcc(R.fromAcc); } if(!owner){ for(var i=0;i<S.accounts.length;i++){ if(S.accounts[i].name===R.name){ owner=S.accounts[i]; break; } } } if(!owner){ owner={id:S.seq++,name:R.name,bal:0,fedKonz:0,fedUsdCum:0,boxTier:0,isMain:false,isShip:false}; S.accounts.push(owner); } if(R.isCup){ S.shipBal+=c.cupShip; S.shipIn+=c.cupShip; var sa=findShipAcct(); if(!sa)sa=owner; sa.bal+=c.cupGift; sa._cupDest=sa.name; S.prizeTot=(S.prizeTot||0)+c.cupGift; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.cupGift,cupShip:c.cupShip,cupTo:sa.name,isCup:true}); } else { owner.bal+=c.roomPrize; S.prizeTot=(S.prizeTot||0)+c.roomPrize; S.rooms.unshift({id:S.seq++,name:R.name,accounts:R.accounts,prize:c.roomPrize}); } if(R.isCup){ var sacc=findShipAcct(); logAct("\uD83C\uDFC6","أقفلنا كاس «"+R.name+"» ("+R.accounts+" حساب مكتمل) · "+fmt(c.cupShip)+" لرصيد الشحن + "+fmt(c.cupGift)+" لحساب وكيل الشحن «"+(sacc?sacc.name:owner.name)+"»"); } else { logAct("\uD83D\uDD12","أقفلنا «"+R.name+"» ("+R.accounts+" حساب مكتمل) · جائزة "+fmt(c.roomPrize)); } for(var j=0;j<S.openRooms.length;j++){ if(S.openRooms[j].rid===rid){ S.openRooms.splice(j,1); break; } } save(); }
 function endWeek(){ S.weeks.push({n:S.weeks.length+1,acc:S.closedAccounts}); render(); }
-var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة",alerts:"مسح كل التنبيهات",ppl:"تصفير الأشخاص",sc:"تصفير السيناريو"};
+var resetArm={}, resetTimer={}, resetLabel={taqfeel:"تصفير نظام التقفيل",fakcup:"تصفير الفك والكاس",summary:"تصفير الخصومات",salary:"تصفير الرواتب",play:"تصفير حسابات اللعب",board:"تصفير اللوحة",alerts:"مسح كل التنبيهات",ppl:"تصفير الأشخاص",sc:"تصفير السيناريو",duo:"تصفير الثنائي كامل"};
 function armBtn(el,on){ if(on){ el.textContent="اضغط مرة ثانية للتأكيد"; el.style.color="#fff"; el.style.background="var(--red)"; el.style.padding="9px 16px"; el.style.borderRadius="10px"; el.style.textDecoration="none"; } else { el.textContent=resetLabel[el.getAttribute("data-r")]||"تصفير"; el.style.background="none"; el.style.color="var(--red)"; el.style.padding="0"; el.style.textDecoration="underline"; } }
 function doReset(kind,el){
   if(!resetArm[kind]){
@@ -1388,7 +1584,7 @@ function doReset(kind,el){
   resetArm[kind]=false; if(resetTimer[kind])clearTimeout(resetTimer[kind]);
   if(kind==="taqfeel"){ S.agencyBal=0;S.agencyIn=0;S.drawn=0;S.shipBal=0;S.shipIn=0;S.closedAccounts=0;S.accounts=[];S.active=null;S.openRooms=[];S.rooms=[];S.weeks=[];S.selAcc=null;S.log=[];S.rebateTot=0;S.boxTot=0;S.prizeTot=0;S.fedTot=0;S.pumpKonzTot=0;S.advances=0;S.accDebt=0; }
   else if(kind==="fakcup"){ S.fak=[];S.cup=[]; }
-  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; } else if(kind==="alerts"){ S.alerts=[]; renderAlerts(); } else if(kind==="ppl"){ S.ppl=[]; PP_SEL={}; renderPpl(); } else if(kind==="sc"){ S.sc=null; scInit(); }
+  else if(kind==="summary"){ S.deductions=[]; } else if(kind==="salary"){ S.salGroups=null; } else if(kind==="play"){ S.playAccs=[]; } else if(kind==="board"){ S.brd=null; } else if(kind==="alerts"){ S.alerts=[]; renderAlerts(); } else if(kind==="ppl"){ S.ppl=[]; PP_SEL={}; renderPpl(); } else if(kind==="sc"){ S.sc=null; scInit(); } else if(kind==="duo"){ S.duo=null; duInit(); }
   EDIT=null; armBtn(el,false); render();
 }
 
@@ -3331,6 +3527,7 @@ function render(){
     }
   }
   if($("sc_net")) renderSc();
+  if($("du_trecv")) renderDuo();
   if($("brd_accs")) renderPlan();
   if($("qs_count")) calcQuickSal();
   try{ attachMics(); }catch(e){}
