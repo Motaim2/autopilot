@@ -135,7 +135,8 @@ const BOARD = 400;               // internal board space
    inner drawn frame inset ≈ 8.8% · baseline inset ≈ 10.3% */
 const STRIKER_R = 13.5;
 const PIECE_R = 11;
-const POCKET_R = 20.5;           // pocket r (45.5px @886 span) — pocket centers = wall corners
+const POCKET_R = 20.5;           // pocket r (45.5px @886 span)
+const WALL_M = 6;                // real walls sit ~2.5% OUTSIDE the pocket-center square (measured 908 vs 886)
 const T_RECT = 35;               // inner frame rect inset
 const T_BASE = 41;               // baseline distance from wall
 const T_BEND1 = 76, T_BEND2 = 324; // baseline endpoints
@@ -255,7 +256,7 @@ const Calib = (() => {
   function startEdit() {
     if (!quad) quad = defaultQuad();
     editing=true; locked=false;
-    UI.showMsg('اسحب المقابض أو حرّك الإطار كامل ثم اضغط OK');
+    UI.showMsg('ضع المقابض على مراكز الحفر الأربع ثم اضغط OK');
   }
   function confirm() {
     editing=false; computeH(); locked=true;
@@ -678,44 +679,28 @@ const Detector = (() => {
 })();
 
 /* ============================================================ PHYSICS
-   Striker ray vs walls + circle collision with pieces.
-   On impact: piece flies along center line, striker deflects on
-   the tangent. Both continue with wall reflections r = d-2(d·n)n */
+   Board space: pockets at 0/400, real WALLS at -WALL_M..400+WALL_M.
+   Simple pro view: striker line + at most ONE bounce; if a piece is
+   hit: stop there, highlight the piece, ONE line for where it goes. */
 const Physics = (() => {
-  const EPS=0.001;
-
-  function wallPath(o, dv, maxSeg) {
-    const segs=[], bounces=[];
-    let p={...o}, d={...dv};
-    for (let s=0;s<maxSeg;s++) {
-      const hit=cast(p,d);
-      if (!hit) break;
-      segs.push({a:{...p}, b:{x:hit.x,y:hit.y}});
-      if (s<maxSeg-1) bounces.push({x:hit.x,y:hit.y});
-      if (hit.wall==='left'||hit.wall==='right') d={x:-d.x,y:d.y}; else d={x:d.x,y:-d.y};
-      p={x:hit.x+d.x*EPS, y:hit.y+d.y*EPS};
-    }
-    return { segs, bounces };
-  }
+  const EPS=0.001, LO=-WALL_M, HI=BOARD+WALL_M;
 
   function cast(o,d) {
     let tMin=Infinity, best=null;
     const chk=(t,wall)=>{ if(t<=EPS||t>=tMin)return;
       const x=o.x+d.x*t, y=o.y+d.y*t;
-      if (x<-1||x>BOARD+1||y<-1||y>BOARD+1) return;
-      tMin=t; best={x:Math.max(0,Math.min(BOARD,x)),y:Math.max(0,Math.min(BOARD,y)),wall,t}; };
-    if (d.x<-EPS) chk((0-o.x)/d.x,'left');
-    if (d.x> EPS) chk((BOARD-o.x)/d.x,'right');
-    if (d.y<-EPS) chk((0-o.y)/d.y,'top');
-    if (d.y> EPS) chk((BOARD-o.y)/d.y,'bottom');
+      if (x<LO-1||x>HI+1||y<LO-1||y>HI+1) return;
+      tMin=t; best={x:Math.max(LO,Math.min(HI,x)),y:Math.max(LO,Math.min(HI,y)),wall,t}; };
+    if (d.x<-EPS) chk((LO-o.x)/d.x,'left');
+    if (d.x> EPS) chk((HI-o.x)/d.x,'right');
+    if (d.y<-EPS) chk((LO-o.y)/d.y,'top');
+    if (d.y> EPS) chk((HI-o.y)/d.y,'bottom');
     return best;
   }
 
-  // earliest piece hit along a segment: |O+tD-C| = rSum
-  function circleHit(o, d, len, pieces, rStriker, skip) {
+  function circleHit(o, d, len, pieces, rStriker) {
     let best=null;
     for (const pc of pieces) {
-      if (pc===skip) continue;
       const rSum=rStriker+pc.r;
       const ox=o.x-pc.x, oy=o.y-pc.y;
       const b=ox*d.x+oy*d.y;
@@ -729,31 +714,26 @@ const Physics = (() => {
   }
 
   function compute(origin, dir, pieces, rStriker) {
-    const out={ main:[], mainBounces:[], hit:null, piecePath:null, strikerPost:null };
+    const out={ main:[], mainBounces:[], hit:null, pieceSeg:null };
     let o={...origin}, d={...dir};
 
-    for (let s=0;s<4;s++) {
+    for (let s=0; s<2; s++) {                    // direct + ONE bounce max
       const wall=cast(o,d);
       if (!wall) break;
-      const ch=circleHit(o,d,wall.t,pieces,rStriker,null);
+      const ch=circleHit(o,d,wall.t,pieces,rStriker);
       if (ch) {
-        const S={x:o.x+d.x*ch.t, y:o.y+d.y*ch.t};      // striker center at impact
+        const S={x:o.x+d.x*ch.t, y:o.y+d.y*ch.t};
         out.main.push({a:{...o}, b:S});
         const P=ch.piece;
         let nx=P.x-S.x, ny=P.y-S.y;
-        const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl;   // impact normal (toward piece)
-        // piece departs along center line
-        out.piecePath = wallPath({x:P.x,y:P.y},{x:nx,y:ny},3);
+        const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl;
+        const pw=cast({x:P.x,y:P.y},{x:nx,y:ny});   // ONE line for the piece
+        if (pw) out.pieceSeg={a:{x:P.x,y:P.y}, b:{x:pw.x,y:pw.y}};
         out.hit={ point:S, piece:P };
-        // striker keeps tangential component
-        const dot=d.x*nx+d.y*ny;
-        let tx=d.x-dot*nx, ty=d.y-dot*ny;
-        const tl=Math.hypot(tx,ty);
-        if (tl>0.18) out.strikerPost = wallPath(S,{x:tx/tl,y:ty/tl},2);
         return out;
       }
       out.main.push({a:{...o}, b:{x:wall.x,y:wall.y}});
-      if (s<3) out.mainBounces.push({x:wall.x,y:wall.y});
+      if (s===0) out.mainBounces.push({x:wall.x,y:wall.y});
       if (wall.wall==='left'||wall.wall==='right') d={x:-d.x,y:d.y}; else d={x:d.x,y:-d.y};
       o={x:wall.x+d.x*EPS, y:wall.y+d.y*EPS};
     }
@@ -797,14 +777,13 @@ const Draw = (() => {
   function path(q){ ctx.beginPath(); ctx.moveTo(q[0].x,q[0].y);
     for (let i=1;i<4;i++) ctx.lineTo(q[i].x,q[i].y); ctx.closePath(); }
 
-  // ghost of the KNOWN board artwork (pockets, inner frame, baselines)
-  // drawn faintly so alignment can be verified at a glance
+  // ghost: ONLY the 4 pocket arcs (verified tracker) + the real wall
+  // border drawn slightly OUTSIDE the pocket-center square
   function template(b2v) {
     ctx.save();
-    ctx.lineWidth=1.5;
     const stroke=(fn)=>{ ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=3; fn();
                          ctx.strokeStyle='rgba(120,255,170,0.55)'; ctx.lineWidth=1.2; fn(); };
-    // corner pockets — quarter arcs at the 4 corners
+    // pocket quarter arcs at the 4 corners
     stroke(()=>{ ctx.beginPath();
       const arcs=[ [0,0,0], [BOARD,0,Math.PI/2], [BOARD,BOARD,Math.PI], [0,BOARD,Math.PI*1.5] ];
       const steps=14;
@@ -816,27 +795,12 @@ const Draw = (() => {
         }
       }
       ctx.stroke(); });
-    // inner frame rectangle
+    // wall border (behind the pockets)
     stroke(()=>{ ctx.beginPath();
-      const cs=[{x:T_RECT,y:T_RECT},{x:BOARD-T_RECT,y:T_RECT},
-                {x:BOARD-T_RECT,y:BOARD-T_RECT},{x:T_RECT,y:BOARD-T_RECT}];
+      const cs=[{x:-WALL_M,y:-WALL_M},{x:BOARD+WALL_M,y:-WALL_M},
+                {x:BOARD+WALL_M,y:BOARD+WALL_M},{x:-WALL_M,y:BOARD+WALL_M}];
       cs.forEach((p,i)=>{ const v=b2v(p); i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y); });
       ctx.closePath(); ctx.stroke(); });
-    // 4 baselines with end circles
-    stroke(()=>{ ctx.beginPath();
-      const lines=[
-        [{x:T_BEND1,y:T_BASE},{x:T_BEND2,y:T_BASE}],
-        [{x:T_BEND1,y:BOARD-T_BASE},{x:T_BEND2,y:BOARD-T_BASE}],
-        [{x:T_BASE,y:T_BEND1},{x:T_BASE,y:T_BEND2}],
-        [{x:BOARD-T_BASE,y:T_BEND1},{x:BOARD-T_BASE,y:T_BEND2}]
-      ];
-      for (const [a,b] of lines){ const va=b2v(a), vb=b2v(b);
-        ctx.moveTo(va.x,va.y); ctx.lineTo(vb.x,vb.y); }
-      for (const [a,b] of lines) for (const p of [a,b]) {
-        const v=b2v(p);
-        ctx.moveTo(v.x+9,v.y); ctx.arc(v.x,v.y,9,0,Math.PI*2);
-      }
-      ctx.stroke(); });
     ctx.restore();
   }
 
@@ -1021,6 +985,11 @@ const Draw = (() => {
   ov.addEventListener('pointerup',endPtr);
   ov.addEventListener('pointercancel',endPtr);
 
+  function pieceRadiusPx(b2v, rBoard) {
+    const a=b2v({x:0,y:0}), b=b2v({x:BOARD,y:0});
+    return Math.hypot(b.x-a.x,b.y-a.y)/BOARD * rBoard;
+  }
+
   function loop(now) {
     if (cvReady && Calib.locked && now-lastAnalyze>=ANALYZE_MS) {
       lastAnalyze=now;
@@ -1035,29 +1004,26 @@ const Draw = (() => {
     }
 
     Draw.clear();
-    if (Calib.quad) Draw.quad(Calib.quad, Calib.editing);
-    if (Calib.locked) Draw.template(Calib.boardToVideo);   // ghost of the known artwork
+    if (Calib.quad && Calib.editing) Draw.quad(Calib.quad, true);
+    if (Calib.locked && !Calib.editing) Draw.template(Calib.boardToVideo);
 
     if (linesOn && paths && Calib.locked) {
       const b2v=Calib.boardToVideo;
-      // striker main path — identical to the in-game white dots (measured)
+      // striker path — white dots (direct + one bounce max)
       Draw.dotPath(paths.main, b2v, '#ffffff', 1.9, 10.4);
       Draw.dots(paths.mainBounces, b2v, '#ffb347');
       if (paths.hit) {
-        Draw.ring(paths.hit.point, b2v, 9, '#ffffff');                  // impact
-        // struck piece path — gold dots
-        if (paths.piecePath) {
-          Draw.dotPath(paths.piecePath.segs, b2v, '#ffb347', 1.9, 10.4);
-          Draw.dots(paths.piecePath.bounces, b2v, '#ffdca0');
-        }
-        // striker after impact — cyan dots
-        if (paths.strikerPost) {
-          Draw.dotPath(paths.strikerPost.segs, b2v, '#35e0ff', 1.6, 10.4);
-          Draw.dots(paths.strikerPost.bounces, b2v, '#aef2ff');
-        }
+        // highlight the target piece with a circle
+        const pr = Math.max(10, pieceRadiusPx(b2v, paths.hit.piece.r*1.35));
+        Draw.ring({x:paths.hit.piece.x, y:paths.hit.piece.y}, b2v, pr,
+          paths.hit.piece.color==='red' ? '#ff4d4d' :
+          paths.hit.piece.color==='black' ? '#b8f7ff' : '#ffe9a8');
+        // ONE gold line: where that piece goes
+        if (paths.pieceSeg) Draw.dotPath([paths.pieceSeg], b2v, '#ffb347', 1.9, 10.4);
       }
       if (result && result.striker)
-        Draw.ring({x:result.striker.x,y:result.striker.y}, b2v, 11, '#35b6ff');
+        Draw.ring({x:result.striker.x,y:result.striker.y}, b2v,
+          pieceRadiusPx(b2v, result.strikerR), '#35b6ff');
     }
 
     frames++;
