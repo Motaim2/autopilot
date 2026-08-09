@@ -139,11 +139,6 @@ html, body {
 </div>
 
 <script>
-var Module = { onRuntimeInitialized: function(){ window.dispatchEvent(new Event('opencv-ready')); } };
-</script>
-<script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
-
-<script>
 'use strict';
 
 const BOARD = 400;               // internal board space
@@ -158,6 +153,54 @@ const POCKET_R = 20.5;           // pocket r (45.5px @886 span)
 let WALLS = { t:7.5, r:4, b:4.5, l:6.5 };
 try { const s=localStorage.getItem('carrom_walls'); if (s) WALLS=JSON.parse(s); } catch(e){}
 function saveWalls(){ try{ localStorage.setItem('carrom_walls', JSON.stringify(WALLS)); }catch(e){} }
+
+/* Pure-JS perspective transform (no OpenCV needed) — solves the 8x8
+   system for the homography mapping src[4] -> dst[4]. Lets calibration
+   and warping run the instant the page loads. */
+function computeHomographyJS(src, dst) {
+  const A=[], b=[];
+  for (let i=0;i<4;i++){
+    const {x,y}=src[i], {x:X,y:Y}=dst[i];
+    A.push([x,y,1,0,0,0,-X*x,-X*y]); b.push(X);
+    A.push([0,0,0,x,y,1,-Y*x,-Y*y]); b.push(Y);
+  }
+  const hv=solve8(A,b);                       // [a b c d e f g h]
+  return new Float64Array([hv[0],hv[1],hv[2], hv[3],hv[4],hv[5], hv[6],hv[7],1]);
+}
+function invertHomographyJS(H) {
+  const m=[[H[0],H[1],H[2]],[H[3],H[4],H[5]],[H[6],H[7],H[8]]];
+  const inv=inv3(m);
+  return new Float64Array([inv[0][0],inv[0][1],inv[0][2],
+                           inv[1][0],inv[1][1],inv[1][2],
+                           inv[2][0],inv[2][1],inv[2][2]]);
+}
+function solve8(A,b){                          // Gaussian elimination 8x8
+  const n=8, M=A.map((r,i)=>[...r,b[i]]);
+  for (let col=0;col<n;col++){
+    let piv=col;
+    for (let r=col+1;r<n;r++) if (Math.abs(M[r][col])>Math.abs(M[piv][col])) piv=r;
+    [M[col],M[piv]]=[M[piv],M[col]];
+    const d=M[col][col]||1e-9;
+    for (let c=col;c<=n;c++) M[col][c]/=d;
+    for (let r=0;r<n;r++){ if (r===col) continue;
+      const f=M[r][col];
+      for (let c=col;c<=n;c++) M[r][c]-=f*M[col][c];
+    }
+  }
+  return M.map(r=>r[n]);
+}
+function inv3(m){
+  const a=m[0][0],b=m[0][1],c=m[0][2],d=m[1][0],e=m[1][1],f=m[1][2],g=m[2][0],hh=m[2][1],i=m[2][2];
+  const A=e*i-f*hh, B=-(d*i-f*g), C=d*hh-e*g,
+        D=-(b*i-c*hh), E=a*i-c*g, F=-(a*hh-b*g),
+        G=b*f-c*e, H2=-(a*f-c*d), I=a*e-b*d;
+  const det=a*A+b*B+c*C||1e-9, s=1/det;
+  return [[A*s,D*s,G*s],[B*s,E*s,H2*s],[C*s,F*s,I*s]];
+}
+function warpPointsJS(H, srcCanvas, sw, sh, outW, outH) {
+  // maps SOURCE pixels through H(video->board) inverse to sample board
+  return null; // (unused placeholder)
+}
 const T_RECT = 35;               // inner frame rect inset
 const T_BASE = 41;               // baseline distance from wall
 const T_BEND1 = 76, T_BEND2 = 324; // baseline endpoints
@@ -287,12 +330,9 @@ const Calib = (() => {
   function reset(){ quad=null; editing=false; locked=false; H=Hinv=null; drag=null; UI.hideMsg(); }
 
   function computeH() {
-    const src=cv.matFromArray(4,1,cv.CV_32FC2,[
-      quad[0].x,quad[0].y, quad[1].x,quad[1].y, quad[2].x,quad[2].y, quad[3].x,quad[3].y]);
-    const dst=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,BOARD,0,BOARD,BOARD,0,BOARD]);
-    const M=cv.getPerspectiveTransform(src,dst), Mi=cv.getPerspectiveTransform(dst,src);
-    H=new Float64Array(M.data64F); Hinv=new Float64Array(Mi.data64F);
-    src.delete(); dst.delete(); M.delete(); Mi.delete();
+    const dst=[{x:0,y:0},{x:BOARD,y:0},{x:BOARD,y:BOARD},{x:0,y:BOARD}];
+    H=computeHomographyJS(quad, dst);
+    Hinv=invertHomographyJS(H);
   }
   function apply(M,p){ const w=M[6]*p.x+M[7]*p.y+M[8];
     return {x:(M[0]*p.x+M[1]*p.y+M[2])/w, y:(M[3]*p.x+M[4]*p.y+M[5])/w}; }
@@ -360,8 +400,12 @@ const AutoFit = (() => {
     cx2.drawImage(v, 0, 0, c.width, c.height);
     const img = cx2.getImageData(0, 0, c.width, c.height);
 
-    const woodQuad = fitWood();
-    if (!woodQuad) return fail('ما لقيت اللوحة — قرّب الكاميرا أو حسّن الإضاءة');
+    const woodQuadV = fitWood();     // VIDEO coords
+    if (!woodQuadV) return fail('ما لقيت اللوحة — قرّب الكاميرا أو حسّن الإضاءة');
+
+    const scl=AW/Source.video.videoVideoW||AW/Source.video.videoWidth;
+    const s=AW/Source.video.videoWidth;
+    const woodQuad = woodQuadV.map(p=>({x:p.x*s, y:p.y*s}));  // proc coords
 
     // dark map
     const W=img.width, H=img.height, d=img.data;
@@ -375,18 +419,17 @@ const AutoFit = (() => {
                 dist(woodQuad[2],woodQuad[3])+dist(woodQuad[3],woodQuad[0]))/4;
     const rExp=span*R_POCKET, wr=Math.max(8,span*0.075);
 
-    const refined=[]; let good=0, scoreSum=0;
+    const refined=[]; let good=0;
     for (const corner of woodQuad) {
-      const f=findPocket(dark,W,H,corner.x,corner.y,rExp,wr);
-      if (f.score>0.35){ refined.push({x:f.x,y:f.y}); good++; scoreSum+=f.score; }
+      const f=findPocket(dark,W,H,Math.round(corner.x),Math.round(corner.y),rExp,wr);
+      if (f.score>0.35){ refined.push({x:f.x,y:f.y}); good++; }
       else refined.push(corner);
     }
 
     let quad=woodQuad, mode='wood';
     if (good>=3 && squareOK(refined)) { quad=refined; mode='pockets'; }
 
-    const scl=AW/Source.video.videoWidth;
-    Calib.setQuad(quad.map(p=>({x:p.x/scl, y:p.y/scl})));
+    Calib.setQuad(quad.map(p=>({x:p.x/s, y:p.y/s})));
 
     if (mode==='pockets') {
       const queen=queenOK(img, quad);
@@ -454,42 +497,33 @@ const AutoFit = (() => {
 
   function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
 
-  // wood field -> approximate 4 corners (returns quad in proc coords or null)
+  // wood field -> approximate 4 corners, PURE JS (no OpenCV)
   function fitWood() {
-    let src=null, mask=null, kernel=null, kernel2=null, contours=null, hier=null, hull=null;
-    try {
-      src = cv.imread(c);
-      mask = new cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
-      const sd=src.data, md=mask.data, MW=src.cols;
-      for (let y=0;y<src.rows;y++){ const row=y*MW;
-        for (let x=0;x<MW;x++){ const i=(row+x)*4, r=sd[i],g=sd[i+1],b=sd[i+2];
-          if (r>135&&g>90&&b>40&&r-b>28&&r-b<170&&r>=g&&g>=b) md[row+x]=255; } }
-      kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(9,9));
-      cv.morphologyEx(mask,mask,cv.MORPH_CLOSE,kernel);
-      kernel2=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(5,5));
-      cv.morphologyEx(mask,mask,cv.MORPH_OPEN,kernel2);
-      contours=new cv.MatVector(); hier=new cv.Mat();
-      cv.findContours(mask,contours,hier,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
-      let bi=-1, ba=0;
-      for (let i=0;i<contours.size();i++){ const a=cv.contourArea(contours.get(i));
-        if (a>ba){ ba=a; bi=i; } }
-      if (bi<0 || ba<c.width*c.height*0.10) return null;
-      hull=new cv.Mat();
-      cv.convexHull(contours.get(bi),hull);
-      const peri=cv.arcLength(hull,true);
-      const approx=new cv.Mat();
-      cv.approxPolyDP(hull,approx,0.03*peri,true);
-      let pts;
-      if (approx.rows===4){ pts=[];
-        for (let i=0;i<4;i++) pts.push({x:approx.data32S[i*2],y:approx.data32S[i*2+1]}); }
-      else { const rr=cv.minAreaRect(hull); pts=cv.RotatedRect.points(rr).map(p=>({x:p.x,y:p.y})); }
-      approx.delete();
-      return order(pts);
-    } catch(err){ console.error(err); return null; }
-    finally {
-      [src,mask,kernel,kernel2,hier,hull].forEach(m=>{if(m)m.delete();});
-      if (contours) contours.delete();
-    }
+    const v=Source.video, scale=AW/v.videoWidth;
+    const W=c.width, H=c.height, d=cx2.getImageData(0,0,W,H).data;
+    // wood bitmap
+    const bit=new Uint8Array(W*H);
+    let minx=W,maxx=0,miny=H,maxy=0,cnt=0;
+    for (let y=0;y<H;y++){ const row=y*W;
+      for (let x=0;x<W;x++){ const i=(row+x)*4, r=d[i],g=d[i+1],b=d[i+2];
+        if (r>135&&g>90&&b>40&&r-b>28&&r-b<170&&r>=g&&g>=b){
+          bit[row+x]=1; cnt++;
+          if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y;
+        } } }
+    if (cnt < W*H*0.06) return null;
+    // extreme corners: for each of TL/TR/BR/BL, the wood pixel that
+    // minimizes/maximizes (x±y) — robust to the rounded board corners
+    let TL=null,TR=null,BR=null,BL=null,
+        tl=1e9,tr=-1e9,br=-1e9,bl=1e9;
+    for (let y=miny;y<=maxy;y++){ const row=y*W;
+      for (let x=minx;x<=maxx;x++){ if(!bit[row+x]) continue;
+        const s=x+y, dgn=x-y;
+        if (s<tl){tl=s;TL={x,y};} if (s>br){br=s;BR={x,y};}
+        if (dgn>tr){tr=dgn;TR={x,y};} if (dgn<bl){bl=dgn;BL={x,y};}
+      } }
+    if(!TL||!TR||!BR||!BL) return null;
+    return [ {x:TL.x/scale,y:TL.y/scale},{x:TR.x/scale,y:TR.y/scale},
+             {x:BR.x/scale,y:BR.y/scale},{x:BL.x/scale,y:BL.y/scale} ];
   }
 
   function order(pts) {
@@ -519,26 +553,24 @@ const Detector = (() => {
   let striker=null, strikerSeen=0, strikerR=STRIKER_R;
   let pieces=[];
   const HOLD_MS=700, STRIKER_HOLD=1500;
-  const SMOOTH=0.15, DEAD_ANG=0.022, DEAD_POS=4;
+  const SMOOTH=0.5, DEAD_ANG=0.006, DEAD_POS=1.5;
 
+  // board->video homography (pure JS); warp samples the source frame
+  let boardToProc=null, warpBuf=null, procData=null;
   function initMats(vw,vh) {
-    dispose();
     procScale=PROC_W/vw;
     pc.width=PROC_W; pc.height=Math.round(vh*procScale);
-    srcMat=new cv.Mat(pc.height,pc.width,cv.CV_8UC4);
-    warped=new cv.Mat(BOARD,BOARD,cv.CV_8UC4);
+    warpBuf=new Uint8ClampedArray(BOARD*BOARD*4);
     ready=true;
   }
-  function dispose(){ [srcMat,warped,warpM].forEach(m=>{if(m)m.delete();}); srcMat=warped=warpM=null; ready=false; }
+  function dispose(){ ready=false; boardToProc=null; warpBuf=null; procData=null; }
 
   function buildWarp(quad) {
-    if (warpM){ warpM.delete(); warpM=null; }
-    const src=cv.matFromArray(4,1,cv.CV_32FC2,[
-      quad[0].x*procScale,quad[0].y*procScale, quad[1].x*procScale,quad[1].y*procScale,
-      quad[2].x*procScale,quad[2].y*procScale, quad[3].x*procScale,quad[3].y*procScale]);
-    const dst=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,BOARD,0,BOARD,BOARD,0,BOARD]);
-    warpM=cv.getPerspectiveTransform(src,dst);
-    src.delete(); dst.delete();
+    // src = board corners -> dst = quad in PROC pixels, so for each board
+    // pixel we know exactly where to sample in the downscaled frame
+    const src=[{x:0,y:0},{x:BOARD,y:0},{x:BOARD,y:BOARD},{x:0,y:BOARD}];
+    const dst=quad.map(p=>({x:p.x*procScale, y:p.y*procScale}));
+    boardToProc=computeHomographyJS(src, dst);
   }
 
   const CELL=4, GW=BOARD/CELL;
@@ -579,15 +611,27 @@ const Detector = (() => {
   }
 
   function detect(video) {
-    if (!ready||!warpM) return output();
+    if (!ready||!boardToProc) return output();
 
     pctx.drawImage(video,0,0,pc.width,pc.height);
-    srcMat.data.set(pctx.getImageData(0,0,pc.width,pc.height).data);
-    cv.warpPerspective(srcMat,warped,warpM,new cv.Size(BOARD,BOARD),
-      cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar());
+    procData=pctx.getImageData(0,0,pc.width,pc.height);
+    const sd=procData.data, sw=pc.width, sh=pc.height, H0=boardToProc;
+    const d=warpBuf;
+    // nearest-neighbour warp with incremental homography (no per-pixel
+    // multiply for the linear terms — only the row start is recomputed)
+    for (let by=0; by<BOARD; by++) {
+      let nx=H0[1]*by+H0[2], ny=H0[4]*by+H0[5], nw=H0[7]*by+H0[8];
+      const o0=by*BOARD*4;
+      for (let bx=0, o=o0; bx<BOARD; bx++, o+=4) {
+        const sx=(nx/nw)|0, sy=(ny/nw)|0;
+        nx+=H0[0]; ny+=H0[3]; nw+=H0[6];
+        if (sx<0||sy<0||sx>=sw||sy>=sh){ d[o]=d[o+1]=d[o+2]=0; continue; }
+        const si=(sy*sw+sx)*4;
+        d[o]=sd[si]; d[o+1]=sd[si+1]; d[o+2]=sd[si+2];
+      }
+    }
 
     gWhite.fill(0); gRed.fill(0); gBlack.fill(0); gYellow.fill(0);
-    const d=warped.data;
     let arrowX=0,arrowY=0,arrowN=0;
 
     for (let y=6;y<BOARD-6;y++) {
@@ -641,8 +685,8 @@ const Detector = (() => {
 
     if (strikerCand) {
       if (striker) {
-        striker.x += (strikerCand.x-striker.x)*0.4;
-        striker.y += (strikerCand.y-striker.y)*0.4;
+        striker.x += (strikerCand.x-striker.x)*0.6;
+        striker.y += (strikerCand.y-striker.y)*0.6;
       } else striker = strikerCand;
       strikerR = strikerCand.r;
       strikerSeen = performance.now();
@@ -963,14 +1007,14 @@ const Draw = (() => {
 
 /* ============================================================ APP */
 (() => {
-  const ANALYZE_MS=45;
+  const ANALYZE_MS=28;
   const fpsEl=document.getElementById('fps'), latEl=document.getElementById('lat'),
         cvEl=document.getElementById('cvStatus'),
         btnCal=document.getElementById('btnCalibrate'),
         btnLines=document.getElementById('btnLines'),
         picker=document.getElementById('picker');
 
-  let cvReady=false, camReady=false, linesOn=true;
+  let cvReady=true, camReady=false, linesOn=true;   // no OpenCV — ready at once
   let lastAnalyze=0, latency=0, frames=0, fpsTime=performance.now();
   let result=null, paths=null, dispAim=null;
   let edgeDrag=null;               // wall-edge tuning drag
@@ -979,16 +1023,13 @@ const Draw = (() => {
 
   Calib.onChanged = () => { Detector.buildWarp(Calib.quad); Detector.resetAim(); };
 
-  window.addEventListener('opencv-ready', () => {
-    cvReady=true; cvEl.textContent='CV READY'; cvEl.classList.add('ok');
-    if (camReady) Detector.initMats(Source.video.videoWidth, Source.video.videoHeight);
-    if (autoQueued){ autoQueued=false; setTimeout(runAuto, 200); }
-  });
+  // engine is pure JS — mark ready straight away
+  cvEl.textContent='READY'; cvEl.classList.add('ok');
 
   function begin(promise) {
     promise.then(({w,h})=>{
       picker.style.display='none'; camReady=true;
-      if (cvReady) Detector.initMats(w,h);
+      Detector.initMats(w,h);
       UI.showMsg('اضغط AUTO ⌖ للمطابقة الذاتية', 3500);
       requestAnimationFrame(loop);
     }).catch(err=>{ UI.showMsg('ERROR: '+err.name,4000); console.error(err); });
@@ -996,26 +1037,18 @@ const Draw = (() => {
   document.getElementById('pickCamera').addEventListener('click',()=>begin(Source.startCamera()));
   document.getElementById('pickScreen').addEventListener('click',()=>begin(Source.startScreen()));
 
-  // AUTO FIT (queues itself if CV is still loading)
-  let autoQueued=false;
-  function runAuto(){
+  // AUTO FIT — pure JS, instant
+  document.getElementById('btnAuto').addEventListener('click',()=>{
+    if (!camReady){ UI.showMsg('افتح المصدر أول',1500); return; }
     UI.showMsg('جاري المطابقة...');
     setTimeout(()=>{
       if (AutoFit.run()) { btnCal.textContent='ADJUST'; btnCal.classList.remove('ok'); }
-    }, 30);
-  }
-  document.getElementById('btnAuto').addEventListener('click',()=>{
-    if (!cvReady){
-      autoQueued=true;
-      UI.showMsg('المكتبة تحمّل... المطابقة بتشتغل تلقائيًا أول ما تجهز');
-      return;
-    }
-    runAuto();
+    }, 20);
   });
 
   // manual adjust
   btnCal.addEventListener('click',()=>{
-    if (!cvReady){ UI.showMsg('WAIT — CV LOADING',1500); return; }
+    if (!camReady){ UI.showMsg('افتح المصدر أول',1500); return; }
     if (Calib.editing){ Calib.confirm(); btnCal.textContent='ADJUST'; btnCal.classList.remove('ok'); }
     else { Calib.startEdit(); btnCal.textContent='OK ✓'; btnCal.classList.add('ok'); }
   });
@@ -1109,7 +1142,7 @@ const Draw = (() => {
   }
 
   function loop(now) {
-    if (cvReady && Calib.locked && now-lastAnalyze>=ANALYZE_MS) {
+    if (Calib.locked && now-lastAnalyze>=ANALYZE_MS) {
       lastAnalyze=now;
       const t0=performance.now();
       try { result = Detector.detect(Source.video); }
@@ -1125,9 +1158,12 @@ const Draw = (() => {
       else {
         let dA=tAng-dispAim.ang;
         while(dA>Math.PI)dA-=2*Math.PI; while(dA<-Math.PI)dA+=2*Math.PI;
-        dispAim.ang+=dA*0.10;
-        dispAim.x+=(target.origin.x-dispAim.x)*0.10;
-        dispAim.y+=(target.origin.y-dispAim.y)*0.10;
+        // snap fast when the change is large (live tracking), smooth when tiny (kill jitter)
+        const mag=Math.abs(dA);
+        const k = mag>0.05 ? 0.6 : 0.3;
+        dispAim.ang+=dA*k;
+        dispAim.x+=(target.origin.x-dispAim.x)*0.5;
+        dispAim.y+=(target.origin.y-dispAim.y)*0.5;
       }
       paths=Physics.compute({x:dispAim.x,y:dispAim.y},
         {x:Math.cos(dispAim.ang),y:Math.sin(dispAim.ang)},
