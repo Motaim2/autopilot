@@ -135,7 +135,7 @@ const BOARD = 400;               // internal board space
    inner drawn frame inset ≈ 8.8% · baseline inset ≈ 10.3% */
 const STRIKER_R = 13.5;
 const PIECE_R = 11;
-const POCKET_R = 25;
+const POCKET_R = 20.5;           // pocket r (45.5px @886 span) — pocket centers = wall corners
 const T_RECT = 35;               // inner frame rect inset
 const T_BASE = 41;               // baseline distance from wall
 const T_BEND1 = 76, T_BEND2 = 324; // baseline endpoints
@@ -317,125 +317,166 @@ const Calib = (() => {
 })();
 
 /* ============================================================ AUTO FIT
-   The board artwork never changes, so we lock onto its most stable
-   feature: the tan WOOD playing field itself. Largest wood region →
-   quad = the walls exactly. Corners refined to sub-pixel, then
-   validated against the 4 dark corner pockets. */
+   Verified on the user's real iPhone screenshot (99.4% square match):
+   1. Approximate quad from the tan WOOD field (largest component)
+   2. Lock each corner to its POCKET CENTER using a matched filter:
+      "dark disk surrounded by bright ring" — only the pockets look
+      like that (UI circles / frame / background all fail the ring)
+   3. Validate: near-square sides+diagonals, red queen at the center
+   Works at any camera distance/zoom since everything is relative. */
 const AutoFit = (() => {
   const AW = 640;
   const c = document.createElement('canvas');
   const cx2 = c.getContext('2d', { willReadFrequently:true });
+  const R_POCKET = 0.0513;      // pocket radius / wall span (measured)
 
   function run() {
     const v = Source.video;
     const scale = AW / v.videoWidth;
     c.width = AW; c.height = Math.round(v.videoHeight*scale);
     cx2.drawImage(v, 0, 0, c.width, c.height);
+    const img = cx2.getImageData(0, 0, c.width, c.height);
 
-    let src=null, mask=null, kernel=null, kernel2=null, contours=null, hier=null, gray=null, hull=null;
+    const woodQuad = fitWood();
+    if (!woodQuad) return fail('ما لقيت اللوحة — قرّب الكاميرا أو حسّن الإضاءة');
+
+    // dark map
+    const W=img.width, H=img.height, d=img.data;
+    const dark=new Uint8Array(W*H);
+    for (let i=0,p=0;i<W*H;i++,p+=4)
+      if (Math.max(d[p],d[p+1],d[p+2])<85) dark[i]=1;
+
+    const span=(dist(woodQuad[0],woodQuad[1])+dist(woodQuad[1],woodQuad[2])+
+                dist(woodQuad[2],woodQuad[3])+dist(woodQuad[3],woodQuad[0]))/4;
+    const rExp=span*R_POCKET, wr=Math.max(8,span*0.075);
+
+    const refined=[]; let good=0, scoreSum=0;
+    for (const corner of woodQuad) {
+      const f=findPocket(dark,W,H,corner.x,corner.y,rExp,wr);
+      if (f.score>0.35){ refined.push({x:f.x,y:f.y}); good++; scoreSum+=f.score; }
+      else refined.push(corner);
+    }
+
+    let quad=woodQuad, mode='wood';
+    if (good>=3 && squareOK(refined)) { quad=refined; mode='pockets'; }
+
+    const scl=AW/Source.video.videoWidth;
+    Calib.setQuad(quad.map(p=>({x:p.x/scl, y:p.y/scl})));
+
+    if (mode==='pockets') {
+      const queen=queenOK(img, quad);
+      UI.showMsg(queen
+        ? 'مطابقة بالحفر '+good+'/4 + الحجر الأحمر ✓'
+        : 'مطابقة بالحفر '+good+'/4 ✓', 2400);
+    } else {
+      UI.showMsg('مطابقة عبر الخشب ✓ (الحفر غير واضحة — عدّل الإضاءة)', 2600);
+    }
+    return true;
+  }
+
+  // matched filter: maximize (dark inside disk) - (dark inside ring)
+  function findPocket(dark,W,H,cx,cy,rExp,wr) {
+    const rOut=rExp*1.55, rIn=rExp*1.12, k=Math.ceil(rOut);
+    function score(px,py,step) {
+      let din=0,nin=0,dout=0,nout=0;
+      for (let oy=-k;oy<=k;oy+=step) for (let ox=-k;ox<=k;ox+=step) {
+        const x=px+ox, y=py+oy;
+        if (x<0||y<0||x>=W||y>=H) continue;
+        const dd=Math.hypot(ox,oy);
+        if (dd<=rExp){ nin++; din+=dark[y*W+x]; }
+        else if (dd>rIn&&dd<=rOut){ nout++; dout+=dark[y*W+x]; }
+      }
+      if (!nin||!nout) return -1;
+      return din/nin - dout/nout;
+    }
+    // coarse then fine
+    let best={x:cx,y:cy,score:-1};
+    for (let py=cy-wr;py<=cy+wr;py+=3) for (let px=cx-wr;px<=cx+wr;px+=3) {
+      const s=score(Math.round(px),Math.round(py),2);
+      if (s>best.score) best={x:Math.round(px),y:Math.round(py),score:s};
+    }
+    for (let py=best.y-3;py<=best.y+3;py++) for (let px=best.x-3;px<=best.x+3;px++) {
+      const s=score(px,py,1);
+      if (s>best.score) best={x:px,y:py,score:s};
+    }
+    return best;
+  }
+
+  function squareOK(q) {
+    const s=[dist(q[0],q[1]),dist(q[1],q[2]),dist(q[2],q[3]),dist(q[3],q[0])];
+    const d1=dist(q[0],q[2]), d2=dist(q[1],q[3]);
+    const sMin=Math.min(...s), sMax=Math.max(...s);
+    if (sMin<30 || sMax/sMin>1.45) return false;
+    if (Math.abs(d1-d2)/Math.max(d1,d2)>0.16) return false;
+    const dr=(d1+d2)/2/((sMin+sMax)/2);
+    return dr>1.2 && dr<1.62;
+  }
+
+  function queenOK(img, q) {
+    const W=img.width, d=img.data;
+    const cx=(q[0].x+q[1].x+q[2].x+q[3].x)/4, cy=(q[0].y+q[1].y+q[2].y+q[3].y)/4;
+    const span=(dist(q[0],q[2])+dist(q[1],q[3]))/4;
+    const lim=Math.round(span*0.2);
+    let n=0,sx=0,sy=0;
+    for (let oy=-lim;oy<=lim;oy+=2) for (let ox=-lim;ox<=lim;ox+=2) {
+      const px=Math.round(cx+ox), py=Math.round(cy+oy);
+      if (px<0||py<0||px>=W||py>=img.height) continue;
+      const i=(py*W+px)*4;
+      if (d[i]>170 && d[i+1]<95 && d[i+2]<95){ n++; sx+=px; sy+=py; }
+    }
+    return n>6 && Math.hypot(sx/n-cx, sy/n-cy)<span*0.15;
+  }
+
+  function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+
+  // wood field -> approximate 4 corners (returns quad in proc coords or null)
+  function fitWood() {
+    let src=null, mask=null, kernel=null, kernel2=null, contours=null, hier=null, hull=null;
     try {
       src = cv.imread(c);
-
-      // wood mask (tan color measured from the reference screenshot)
       mask = new cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
-      const sd = src.data, md = mask.data, MW = src.cols;
-      for (let y=0; y<src.rows; y++) {
-        const row = y*MW;
-        for (let x=0; x<MW; x++) {
-          const i=(row+x)*4, r=sd[i], g=sd[i+1], b=sd[i+2];
-          if (r>145 && r<255 && g>100 && g<220 && b>55 && b<185 &&
-              r-b>30 && r-b<140 && r>=g && g>=b) md[row+x]=255;
-        }
-      }
-      kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(9,9));
-      cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
-      kernel2 = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5,5));
-      cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel2);
-
-      contours = new cv.MatVector(); hier = new cv.Mat();
-      cv.findContours(mask, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-      let bestIdx=-1, bestArea=0;
-      for (let i=0;i<contours.size();i++) {
-        const a = cv.contourArea(contours.get(i));
-        if (a>bestArea) { bestArea=a; bestIdx=i; }
-      }
-      if (bestIdx<0 || bestArea < c.width*c.height*0.10)
-        return fail('ما لقيت لوحة الخشب — قرّب الكاميرا أو حسّن الإضاءة');
-
-      // convex hull → 4 corners
-      hull = new cv.Mat();
-      cv.convexHull(contours.get(bestIdx), hull);
-      const peri = cv.arcLength(hull, true);
-      const approx = new cv.Mat();
-      cv.approxPolyDP(hull, approx, 0.03*peri, true);
+      const sd=src.data, md=mask.data, MW=src.cols;
+      for (let y=0;y<src.rows;y++){ const row=y*MW;
+        for (let x=0;x<MW;x++){ const i=(row+x)*4, r=sd[i],g=sd[i+1],b=sd[i+2];
+          if (r>145&&g>100&&b>55&&r-b>30&&r-b<145&&r>=g&&g>=b) md[row+x]=255; } }
+      kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(9,9));
+      cv.morphologyEx(mask,mask,cv.MORPH_CLOSE,kernel);
+      kernel2=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(5,5));
+      cv.morphologyEx(mask,mask,cv.MORPH_OPEN,kernel2);
+      contours=new cv.MatVector(); hier=new cv.Mat();
+      cv.findContours(mask,contours,hier,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+      let bi=-1, ba=0;
+      for (let i=0;i<contours.size();i++){ const a=cv.contourArea(contours.get(i));
+        if (a>ba){ ba=a; bi=i; } }
+      if (bi<0 || ba<c.width*c.height*0.10) return null;
+      hull=new cv.Mat();
+      cv.convexHull(contours.get(bi),hull);
+      const peri=cv.arcLength(hull,true);
+      const approx=new cv.Mat();
+      cv.approxPolyDP(hull,approx,0.03*peri,true);
       let pts;
-      if (approx.rows === 4) {
-        pts = [];
-        for (let i=0;i<4;i++) pts.push({ x:approx.data32S[i*2], y:approx.data32S[i*2+1] });
-      } else {
-        const rr = cv.minAreaRect(hull);
-        const vs = cv.RotatedRect.points(rr);
-        pts = vs.map(p=>({x:p.x,y:p.y}));
-      }
+      if (approx.rows===4){ pts=[];
+        for (let i=0;i<4;i++) pts.push({x:approx.data32S[i*2],y:approx.data32S[i*2+1]}); }
+      else { const rr=cv.minAreaRect(hull); pts=cv.RotatedRect.points(rr).map(p=>({x:p.x,y:p.y})); }
       approx.delete();
-
-      // order TL,TR,BR,BL
-      pts.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
-      const TL=pts[0], BR=pts[3];
-      const [p1,p2]=[pts[1],pts[2]];
-      const TR = p1.x-p1.y > p2.x-p2.y ? p1 : p2;
-      const BL = TR===p1 ? p2 : p1;
-      let quad=[TL,TR,BR,BL];
-
-      // sub-pixel refine on grayscale
-      gray = new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-      const cm = cv.matFromArray(4,1,cv.CV_32FC2,
-        [TL.x,TL.y, TR.x,TR.y, BR.x,BR.y, BL.x,BL.y]);
-      try {
-        cv.cornerSubPix(gray, cm, new cv.Size(6,6), new cv.Size(-1,-1),
-          new cv.TermCriteria(cv.TermCriteria_EPS + cv.TermCriteria_MAX_ITER, 20, 0.03));
-        quad = [0,1,2,3].map(i=>({ x:cm.data32F[i*2], y:cm.data32F[i*2+1] }));
-      } catch(e){}
-      cm.delete();
-
-      // validate with dark corner pockets (sample just inside each corner)
-      const d = src.data, W = src.cols;
-      let darkCorners = 0;
-      for (const [ci,di] of [[0,2],[1,3],[2,0],[3,1]]) {   // corner, its diagonal
-        const cP=quad[ci], dP=quad[di];
-        const ux=(dP.x-cP.x), uy=(dP.y-cP.y);
-        const L=Math.hypot(ux,uy)||1;
-        const sx=cP.x+ux/L*L*0.055, sy=cP.y+uy/L*L*0.055; // ~5.5% toward center
-        let dark=0, tot=0;
-        for (let oy=-4;oy<=4;oy++) for (let ox=-4;ox<=4;ox++) {
-          const px=Math.round(sx+ox), py=Math.round(sy+oy);
-          if (px<0||py<0||px>=W||py>=src.rows) continue;
-          const i=(py*W+px)*4;
-          if (Math.max(d[i],d[i+1],d[i+2])<95) dark++;
-          tot++;
-        }
-        if (tot && dark/tot>0.45) darkCorners++;
-      }
-      if (darkCorners < 2) return fail('الزوايا ما تطابق حفر الكيرم — جرب ثبّت الكاميرا واضغط AUTO مرة ثانية');
-
-      // scale back to video coords + apply
-      const q = quad.map(p=>({ x:p.x/scale, y:p.y/scale }));
-      Calib.setQuad(q);
-      UI.showMsg('تمت المطابقة تلقائيًا ✓ (حفر مطابقة: '+darkCorners+'/4)', 2200);
-      return true;
-
-    } catch(err) {
-      console.error(err);
-      return fail('خطأ أثناء المطابقة — جرب مرة ثانية');
-    } finally {
-      [src,mask,kernel,kernel2,hier,gray,hull].forEach(m=>{ if(m) m.delete(); });
+      return order(pts);
+    } catch(err){ console.error(err); return null; }
+    finally {
+      [src,mask,kernel,kernel2,hier,hull].forEach(m=>{if(m)m.delete();});
       if (contours) contours.delete();
     }
   }
 
-  function fail(msg){ UI.showMsg(msg, 3000); return false; }
+  function order(pts) {
+    const p=[...pts].sort((a,b)=>(a.x+a.y)-(b.x+b.y));
+    const TL=p[0], BR=p[3];
+    const [m1,m2]=[p[1],p[2]];
+    const TR=m1.x-m1.y>m2.x-m2.y?m1:m2;
+    const BL=TR===m1?m2:m1;
+    return [TL,TR,BR,BL];
+  }
+
+  function fail(m){ UI.showMsg(m,3000); return false; }
   return { run };
 })();
 
@@ -799,33 +840,42 @@ const Draw = (() => {
     ctx.restore();
   }
 
-  // dotted path — same style as the in-game aim dots
-  function dotPath(segs, b2v, color, glow, dotR, gap) {
+  // dotted path — measured from the real game video:
+  // dot Ø ≈ 3 board-units, spacing ≈ 10.4, dots taper toward the end,
+  // each dot has a small drop-shadow offset downward
+  function dotPath(segs, b2v, color, baseR, gap) {
     if (!segs || !segs.length) return;
     ctx.save();
-    let carry=0;
+    // pixels-per-board-unit from the current homography
+    const o0=b2v({x:0,y:0}), o1=b2v({x:BOARD,y:0});
+    const scale=Math.hypot(o1.x-o0.x,o1.y-o0.y)/BOARD;
+    const totalLen = segs.reduce((s,seg)=>s+Math.hypot(seg.b.x-seg.a.x,seg.b.y-seg.a.y),0)||1;
+    let walked=0;
     for (const s of segs) {
       const dx=s.b.x-s.a.x, dy=s.b.y-s.a.y;
       const len=Math.hypot(dx,dy);
       if (len<0.5) continue;
       const ux=dx/len, uy=dy/len;
-      for (let t=carry; t<=len; t+=gap) {
+      for (let t=0; t<=len; t+=gap) {
+        const taper = 1.15 - 0.4*((walked+t)/totalLen);   // shrink like the game
+        const rr = Math.max(2, baseR*scale*taper);
         const v=b2v({x:s.a.x+ux*t, y:s.a.y+uy*t});
-        if (glow){ ctx.fillStyle=glow;
-          ctx.beginPath(); ctx.arc(v.x,v.y,dotR+2.5,0,Math.PI*2); ctx.fill(); }
+        ctx.fillStyle='rgba(45,28,12,0.4)';                // drop shadow
+        ctx.beginPath(); ctx.arc(v.x, v.y+rr*0.8, rr, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle=color;
-        ctx.beginPath(); ctx.arc(v.x,v.y,dotR,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(v.x, v.y, rr, 0, Math.PI*2); ctx.fill();
       }
-      carry = 0;
+      walked+=len;
     }
-    // arrowhead at the very end
+    // arrowhead at the very end, scaled
     const l=segs[segs.length-1], a=b2v(l.a), b=b2v(l.b);
     const ang=Math.atan2(b.y-a.y,b.x-a.x);
+    const ah=Math.max(9, 5.5*scale);
     ctx.fillStyle=color;
     ctx.beginPath();
-    ctx.moveTo(b.x+8*Math.cos(ang), b.y+8*Math.sin(ang));
-    ctx.lineTo(b.x-10*Math.cos(ang-0.45), b.y-10*Math.sin(ang-0.45));
-    ctx.lineTo(b.x-10*Math.cos(ang+0.45), b.y-10*Math.sin(ang+0.45));
+    ctx.moveTo(b.x+ah*0.7*Math.cos(ang), b.y+ah*0.7*Math.sin(ang));
+    ctx.lineTo(b.x-ah*Math.cos(ang-0.45), b.y-ah*Math.sin(ang-0.45));
+    ctx.lineTo(b.x-ah*Math.cos(ang+0.45), b.y-ah*Math.sin(ang+0.45));
     ctx.closePath(); ctx.fill();
     ctx.restore();
   }
@@ -990,19 +1040,19 @@ const Draw = (() => {
 
     if (linesOn && paths && Calib.locked) {
       const b2v=Calib.boardToVideo;
-      // striker main path — white dots, exactly like the in-game guide
-      Draw.dotPath(paths.main, b2v, '#ffffff', 'rgba(53,182,255,0.35)', 3, 13);
+      // striker main path — identical to the in-game white dots (measured)
+      Draw.dotPath(paths.main, b2v, '#ffffff', 1.9, 10.4);
       Draw.dots(paths.mainBounces, b2v, '#ffb347');
       if (paths.hit) {
         Draw.ring(paths.hit.point, b2v, 9, '#ffffff');                  // impact
         // struck piece path — gold dots
         if (paths.piecePath) {
-          Draw.dotPath(paths.piecePath.segs, b2v, '#ffb347', 'rgba(255,179,71,0.3)', 3, 13);
+          Draw.dotPath(paths.piecePath.segs, b2v, '#ffb347', 1.9, 10.4);
           Draw.dots(paths.piecePath.bounces, b2v, '#ffdca0');
         }
         // striker after impact — cyan dots
         if (paths.strikerPost) {
-          Draw.dotPath(paths.strikerPost.segs, b2v, '#35e0ff', 'rgba(53,224,255,0.25)', 2.5, 13);
+          Draw.dotPath(paths.strikerPost.segs, b2v, '#35e0ff', 1.6, 10.4);
           Draw.dots(paths.strikerPost.bounces, b2v, '#aef2ff');
         }
       }
