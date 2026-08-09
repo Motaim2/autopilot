@@ -64,6 +64,18 @@ html, body {
 #controls button:active { background:rgba(127,214,255,.25); }
 #controls button.active { border-color:#35b6ff; color:#fff; box-shadow:0 0 10px rgba(53,182,255,.35) inset; }
 #controls button.ok { border-color:#ffb347; color:#ffd9a0; box-shadow:0 0 10px rgba(255,179,71,.3) inset; }
+
+#modeRow {
+  position:absolute; bottom:76px; left:0; right:0;
+  display:flex; justify-content:center; gap:8px; z-index:20;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#modeRow button {
+  min-width:110px; padding:10px 8px; border-radius:8px;
+  border:1px solid rgba(127,214,255,.4); background:rgba(10,18,28,.85);
+  color:#9fc3dd; font-family:inherit; font-size:12px; font-weight:700; letter-spacing:.5px; cursor:pointer;
+}
+#modeRow button.active { border-color:#35b6ff; color:#fff; box-shadow:0 0 10px rgba(53,182,255,.35) inset; }
 #btnAuto { border-color:rgba(109,255,158,.55) !important; color:#c9ffdd !important; }
 #btnAuto:active { background:rgba(109,255,158,.2) !important; }
 
@@ -100,6 +112,11 @@ html, body {
     <button id="zoomIn">＋</button>
     <span id="zoomVal">1.0x</span>
     <button id="zoomOut">－</button>
+  </div>
+
+  <div id="modeRow">
+    <button id="modeWall">جدار ⟲</button>
+    <button id="modeHit" class="active">ضرب 🎯</button>
   </div>
 
   <div id="controls">
@@ -523,7 +540,8 @@ const Detector = (() => {
   }
 
   const CELL=4, GW=BOARD/CELL;
-  const gWhite=new Float32Array(GW*GW*3), gRed=new Float32Array(GW*GW*3), gBlack=new Float32Array(GW*GW*3);
+  const gWhite=new Float32Array(GW*GW*3), gRed=new Float32Array(GW*GW*3),
+        gBlack=new Float32Array(GW*GW*3), gYellow=new Float32Array(GW*GW*3);
 
   function blobs(grid, minCellCnt) {
     const out=[], seen=new Uint8Array(GW*GW);
@@ -543,7 +561,11 @@ const Detector = (() => {
           if (!seen[n] && grid[n*3]>=minCellCnt){ seen[n]=1; st.push(n); }
         }
       }
-      out.push({ x:sx/cnt, y:sy/cnt, cnt, span:Math.max(maxx-minx,maxy-miny) });
+      const spanX=maxx-minx, spanY=maxy-miny;
+      const span=Math.max(spanX,spanY);
+      out.push({ x:sx/cnt, y:sy/cnt, cnt, span, spanX, spanY,
+                 round: Math.min(spanX,spanY)/Math.max(spanX,spanY,1),
+                 fill: cnt/(Math.PI*Math.pow(span/2+CELL,2)) });
     }
     return out;
   }
@@ -562,7 +584,7 @@ const Detector = (() => {
     cv.warpPerspective(srcMat,warped,warpM,new cv.Size(BOARD,BOARD),
       cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar());
 
-    gWhite.fill(0); gRed.fill(0); gBlack.fill(0);
+    gWhite.fill(0); gRed.fill(0); gBlack.fill(0); gYellow.fill(0);
     const d=warped.data;
     let arrowX=0,arrowY=0,arrowN=0;
 
@@ -573,32 +595,44 @@ const Detector = (() => {
         const mn=Math.min(r,g,b), mx=Math.max(r,g,b);
         const ci=(((y/CELL)|0)*GW+((x/CELL)|0))*3;
         if (mn>200 && mx-mn<42) { gWhite[ci]++; gWhite[ci+1]+=x; gWhite[ci+2]+=y; }
-        else if (r>165 && g<115 && b<130 && r-g>70) {
+        else if (r>175 && g<100 && b<130 && r-g>90) {
+          // STRICT red: queen + striker mandala only — the orange
+          // artwork circles on the wood fail the r-g>90 test
           gRed[ci]++; gRed[ci+1]+=x; gRed[ci+2]+=y;
-          if (g>55 && b<95) { arrowX+=x; arrowY+=y; arrowN++; }   // orange arrow overlaps red-ish
+        }
+        else if (r>215 && g>170 && b<120 && g-b>75) {
+          // yellow selection glow around the striker
+          gYellow[ci]++; gYellow[ci+1]+=x; gYellow[ci+2]+=y;
+        }
+        else if (r>210 && g>55 && g<160 && b<75 && r-b>150) {
+          arrowX+=x; arrowY+=y; arrowN++;      // vivid aim arrow (fallback)
         }
         else if (mx<92) { gBlack[ci]++; gBlack[ci+1]+=x; gBlack[ci+2]+=y; }
       }
     }
 
-    const wb=blobs(gWhite,2), rb=blobs(gRed,2), bb=blobs(gBlack,3);
+    const wb=blobs(gWhite,2), rb=blobs(gRed,2), bb=blobs(gBlack,3), yb=blobs(gYellow,2);
 
-    // classify
+    // classify — real pieces are ROUND and FILLED; the artwork on the
+    // wood (arrows, arcs, thin circles) is thin lines and fails both
     const dots=[], whitePieces=[];
     let strikerCand=null;
     for (const w of wb) {
       if (w.cnt>=4 && w.cnt<=90 && w.span<14) { dots.push({x:w.x,y:w.y,w:w.cnt}); continue; }
-      if (w.span>=13 && w.span<=40 && w.cnt>90) {
-        // striker = white disc with red mandala inside
+      if (w.span>=13 && w.span<=42 && w.cnt>90 && w.round>0.55) {
+        // striker = white disc with the red mandala inside OR wrapped
+        // by the yellow selection glow
         const red = rb.find(r=>r.span<22 && Math.hypot(r.x-w.x,r.y-w.y) < w.span*0.6);
-        if (red) strikerCand={ x:w.x, y:w.y, r:Math.max(11,Math.min(16,w.span/2+2)) };
-        else whitePieces.push({ x:w.x, y:w.y, r:PIECE_R, color:'white' });
+        const glow = yb.find(yy=>yy.cnt>15 && Math.hypot(yy.x-w.x,yy.y-w.y) < w.span*0.9);
+        if (red || glow) strikerCand={ x:w.x, y:w.y, r:Math.max(11,Math.min(16,w.span/2+2)) };
+        else if (w.fill>0.4) whitePieces.push({ x:w.x, y:w.y, r:PIECE_R, color:'white' });
       }
     }
-    const queen = rb.filter(r=>r.cnt>50 && r.span>=8 && r.span<=24 &&
+    const queen = rb.filter(r=>r.cnt>50 && r.span>=8 && r.span<=24 && r.round>0.55 &&
       (!strikerCand || Math.hypot(r.x-strikerCand.x,r.y-strikerCand.y)>strikerCand.r*1.5))
       .map(r=>({x:r.x,y:r.y,r:PIECE_R,color:'red'}));
-    const blackPieces = bb.filter(b=>b.cnt>50 && b.span>=8 && b.span<=26 && !nearPocket(b.x,b.y))
+    const blackPieces = bb.filter(b=>b.cnt>50 && b.span>=8 && b.span<=26 &&
+      b.round>0.6 && b.fill>0.4 && !nearPocket(b.x,b.y))
       .map(b=>({x:b.x,y:b.y,r:PIECE_R,color:'black'}));
 
     pieces = whitePieces.concat(queen, blackPieces);
@@ -612,7 +646,23 @@ const Detector = (() => {
       strikerSeen = performance.now();
     } else if (striker && performance.now()-strikerSeen>STRIKER_HOLD) striker=null;
 
-    // aim line from dots, ORIGIN LOCKED TO STRIKER CENTER
+    // aim line, ORIGIN LOCKED TO STRIKER CENTER
+    if (striker && dots.length>=2) {
+      // most stable: mean unit-vector from the striker to each dot —
+      // correct sign automatically + rejects scattered highlights
+      let dx=0,dy=0,Wsum=0;
+      for (const p of dots) {
+        const vx=p.x-striker.x, vy=p.y-striker.y;
+        const L=Math.hypot(vx,vy);
+        if (L<striker.r*0.9 || L>BOARD) continue;
+        dx+=p.w*vx/L; dy+=p.w*vy/L; Wsum+=p.w;
+      }
+      const n=Math.hypot(dx,dy);
+      if (Wsum>0 && n/Wsum>0.85) {          // dots well-aligned, not glints
+        update({x:striker.x,y:striker.y}, {x:dx/n,y:dy/n});
+        return output();
+      }
+    }
     if (dots.length>=3) {
       const fit=fitLine(dots);
       if (fit) {
@@ -720,7 +770,7 @@ const Physics = (() => {
   }
 
   function compute(origin, dir, pieces, rStriker) {
-    const out={ main:[], mainBounces:[], hit:null, pieceSeg:null };
+    const out={ main:[], mainBounces:[], hit:null, pieceSegs:null };
     let o={...origin}, d={...dir};
 
     for (let s=0; s<2; s++) {                    // direct + ONE bounce max
@@ -733,8 +783,16 @@ const Physics = (() => {
         const P=ch.piece;
         let nx=P.x-S.x, ny=P.y-S.y;
         const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl;
-        const pw=cast({x:P.x,y:P.y},{x:nx,y:ny});   // ONE line for the piece
-        if (pw) out.pieceSeg={a:{x:P.x,y:P.y}, b:{x:pw.x,y:pw.y}};
+        // piece line: one continuous line WITH its wall bounce
+        out.pieceSegs=[];
+        let po={x:P.x,y:P.y}, pd={x:nx,y:ny};
+        for (let k=0;k<2;k++) {
+          const pw=cast(po,pd);
+          if (!pw) break;
+          out.pieceSegs.push({a:{...po}, b:{x:pw.x,y:pw.y}});
+          if (pw.wall==='left'||pw.wall==='right') pd={x:-pd.x,y:pd.y}; else pd={x:pd.x,y:-pd.y};
+          po={x:pw.x+pd.x*EPS, y:pw.y+pd.y*EPS};
+        }
         out.hit={ point:S, piece:P };
         return out;
       }
@@ -787,18 +845,27 @@ const Draw = (() => {
   // border drawn slightly OUTSIDE the pocket-center square
   function template(b2v) {
     ctx.save();
-    const stroke=(fn)=>{ ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=3; fn();
-                         ctx.strokeStyle='rgba(120,255,170,0.55)'; ctx.lineWidth=1.2; fn(); };
-    // pocket quarter arcs at the 4 corners
+    const stroke=(fn)=>{ ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=4.5; fn();
+                         ctx.strokeStyle='rgba(120,255,170,0.75)'; ctx.lineWidth=2; fn(); };
+    // FULL pocket circles at the 4 corners — big clear anchors for
+    // judging the calibration and tuning the wall edges
     stroke(()=>{ ctx.beginPath();
-      const arcs=[ [0,0,0], [BOARD,0,Math.PI/2], [BOARD,BOARD,Math.PI], [0,BOARD,Math.PI*1.5] ];
-      const steps=14;
-      for (const [cx,cy,a0] of arcs) {
+      const R=POCKET_R*1.18, steps=26;
+      for (const [cx,cy] of [[0,0],[BOARD,0],[BOARD,BOARD],[0,BOARD]]) {
         for (let s=0;s<=steps;s++) {
-          const a=a0+(s/steps)*Math.PI/2;
-          const v=b2v({ x:cx+Math.cos(a)*POCKET_R, y:cy+Math.sin(a)*POCKET_R });
+          const a=(s/steps)*Math.PI*2;
+          const v=b2v({ x:cx+Math.cos(a)*R, y:cy+Math.sin(a)*R });
           if (s===0) ctx.moveTo(v.x,v.y); else ctx.lineTo(v.x,v.y);
         }
+      }
+      ctx.stroke(); });
+    // small cross at each pocket center (the exact lock point)
+    stroke(()=>{ ctx.beginPath();
+      for (const [cx,cy] of [[0,0],[BOARD,0],[BOARD,BOARD],[0,BOARD]]) {
+        const c=b2v({x:cx,y:cy});
+        const s=Math.max(5, POCKET_R*0.35 * (Math.hypot(b2v({x:BOARD,y:0}).x-b2v({x:0,y:0}).x, b2v({x:BOARD,y:0}).y-b2v({x:0,y:0}).y)/BOARD));
+        ctx.moveTo(c.x-s,c.y); ctx.lineTo(c.x+s,c.y);
+        ctx.moveTo(c.x,c.y-s); ctx.lineTo(c.x,c.y+s);
       }
       ctx.stroke(); });
     // wall border (behind the pockets)
@@ -905,6 +972,8 @@ const Draw = (() => {
   let lastAnalyze=0, latency=0, frames=0, fpsTime=performance.now();
   let result=null, paths=null, dispAim=null;
   let edgeDrag=null;               // wall-edge tuning drag
+  let mode='hit';                  // 'wall' = striker + bounce line only, 'hit' = piece targeting
+  try { const m=localStorage.getItem('carrom_mode'); if (m==='wall'||m==='hit') mode=m; } catch(e){}
 
   Calib.onChanged = () => { Detector.buildWarp(Calib.quad); Detector.resetAim(); };
 
@@ -950,6 +1019,17 @@ const Draw = (() => {
     linesOn=!linesOn;
     btnLines.classList.toggle('active',linesOn);
   });
+
+  const mW=document.getElementById('modeWall'), mH=document.getElementById('modeHit');
+  function setMode(m){
+    mode=m;
+    mW.classList.toggle('active',m==='wall');
+    mH.classList.toggle('active',m==='hit');
+    try{ localStorage.setItem('carrom_mode',m); }catch(e){}
+  }
+  mW.addEventListener('click',()=>setMode('wall'));
+  mH.addEventListener('click',()=>setMode('hit'));
+  setMode(mode);
 
   // zoom buttons
   document.getElementById('zoomIn').addEventListener('click',()=>Source.setZoom(Source.getZoom()+Source.zoomStep()));
@@ -1040,7 +1120,7 @@ const Draw = (() => {
       }
       paths=Physics.compute({x:dispAim.x,y:dispAim.y},
         {x:Math.cos(dispAim.ang),y:Math.sin(dispAim.ang)},
-        result.pieces, result.strikerR);
+        mode==='wall' ? [] : result.pieces, result.strikerR);
     } else { dispAim=null; paths=null; }
 
     Draw.clear();
@@ -1049,17 +1129,24 @@ const Draw = (() => {
 
     if (linesOn && paths && Calib.locked) {
       const b2v=Calib.boardToVideo;
-      // striker path — white dots (direct + one bounce max)
-      Draw.dotPath(paths.main, b2v, '#ffffff', 1.9, 10.4);
-      Draw.dots(paths.mainBounces, b2v, '#ffb347');
-      if (paths.hit) {
-        // highlight the target piece with a circle
-        const pr = Math.max(8, pieceRadiusPx(b2v, paths.hit.piece.r));
-        Draw.ring({x:paths.hit.piece.x, y:paths.hit.piece.y}, b2v, pr,
-          paths.hit.piece.color==='red' ? '#ff4d4d' :
-          paths.hit.piece.color==='black' ? '#b8f7ff' : '#ffe9a8');
-        // ONE gold line: where that piece goes
-        if (paths.pieceSeg) Draw.dotPath([paths.pieceSeg], b2v, '#ffb347', 1.9, 10.4);
+      if (mode==='wall') {
+        // WALL mode: striker line white + its reflection as a SECOND
+        // gold line stopping at the opposite wall
+        Draw.dotPath([paths.main[0]], b2v, '#ffffff', 1.9, 10.4);
+        if (paths.main[1]) Draw.dotPath([paths.main[1]], b2v, '#ffb347', 1.9, 10.4);
+        Draw.dots(paths.mainBounces, b2v, '#ffffff');
+      } else {
+        // HIT mode: striker line to the piece, circle the piece,
+        // one gold line (with its bounce) for where the piece goes
+        Draw.dotPath(paths.main, b2v, '#ffffff', 1.9, 10.4);
+        Draw.dots(paths.mainBounces, b2v, '#ffb347');
+        if (paths.hit) {
+          const pr = Math.max(8, pieceRadiusPx(b2v, paths.hit.piece.r));
+          Draw.ring({x:paths.hit.piece.x, y:paths.hit.piece.y}, b2v, pr,
+            paths.hit.piece.color==='red' ? '#ff4d4d' :
+            paths.hit.piece.color==='black' ? '#b8f7ff' : '#ffe9a8');
+          if (paths.pieceSegs) Draw.dotPath(paths.pieceSegs, b2v, '#ffb347', 1.9, 10.4);
+        }
       }
       if (result && result.striker)
         Draw.ring({x:result.striker.x,y:result.striker.y}, b2v,
