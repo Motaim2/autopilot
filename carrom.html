@@ -130,8 +130,15 @@ var Module = { onRuntimeInitialized: function(){ window.dispatchEvent(new Event(
 'use strict';
 
 const BOARD = 400;               // internal board space
-const STRIKER_R = 13;            // radii in board units (auto-refined from detection)
-const PIECE_R = 10;
+/* Geometry measured from the reference board screenshot (walls = 884px):
+   piece Ø49px → r=11 @400 · striker r≈13.6 · pocket r≈25
+   inner drawn frame inset ≈ 8.8% · baseline inset ≈ 10.3% */
+const STRIKER_R = 13.5;
+const PIECE_R = 11;
+const POCKET_R = 25;
+const T_RECT = 35;               // inner frame rect inset
+const T_BASE = 41;               // baseline distance from wall
+const T_BEND1 = 76, T_BEND2 = 324; // baseline endpoints
 
 /* ============================================================ UI */
 const UI = (() => {
@@ -310,9 +317,10 @@ const Calib = (() => {
 })();
 
 /* ============================================================ AUTO FIT
-   Detects the board from its ORANGE frame; the inner hole of the
-   orange ring = playing-field walls. Corners refined to sub-pixel,
-   then validated against the 4 dark corner pockets. */
+   The board artwork never changes, so we lock onto its most stable
+   feature: the tan WOOD playing field itself. Largest wood region →
+   quad = the walls exactly. Corners refined to sub-pixel, then
+   validated against the 4 dark corner pockets. */
 const AutoFit = (() => {
   const AW = 640;
   const c = document.createElement('canvas');
@@ -324,55 +332,49 @@ const AutoFit = (() => {
     c.width = AW; c.height = Math.round(v.videoHeight*scale);
     cx2.drawImage(v, 0, 0, c.width, c.height);
 
-    let src=null, hsv=null, mask=null, kernel=null, contours=null, hier=null, gray=null;
+    let src=null, mask=null, kernel=null, kernel2=null, contours=null, hier=null, gray=null, hull=null;
     try {
       src = cv.imread(c);
-      hsv = new cv.Mat();
-      cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
-      cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
 
-      // orange frame mask
-      mask = new cv.Mat();
-      const lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [5,110,110,0]);
-      const hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [26,255,255,255]);
-      cv.inRange(hsv, lo, hi, mask);
-      lo.delete(); hi.delete();
-
-      kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(7,7));
+      // wood mask (tan color measured from the reference screenshot)
+      mask = new cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
+      const sd = src.data, md = mask.data, MW = src.cols;
+      for (let y=0; y<src.rows; y++) {
+        const row = y*MW;
+        for (let x=0; x<MW; x++) {
+          const i=(row+x)*4, r=sd[i], g=sd[i+1], b=sd[i+2];
+          if (r>145 && r<255 && g>100 && g<220 && b>55 && b<185 &&
+              r-b>30 && r-b<140 && r>=g && g>=b) md[row+x]=255;
+        }
+      }
+      kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(9,9));
       cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, kernel);
+      kernel2 = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5,5));
+      cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel2);
 
-      // outer contour + its inner hole
       contours = new cv.MatVector(); hier = new cv.Mat();
-      cv.findContours(mask, contours, hier, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+      cv.findContours(mask, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-      let outerIdx=-1, outerArea=0;
+      let bestIdx=-1, bestArea=0;
       for (let i=0;i<contours.size();i++) {
-        if (hier.data32S[i*4+3] !== -1) continue;          // only top-level
         const a = cv.contourArea(contours.get(i));
-        if (a>outerArea) { outerArea=a; outerIdx=i; }
+        if (a>bestArea) { bestArea=a; bestIdx=i; }
       }
-      if (outerIdx<0 || outerArea < c.width*c.height*0.08) return fail('ما لقيت الإطار البرتقالي — قرّب الكاميرا');
+      if (bestIdx<0 || bestArea < c.width*c.height*0.10)
+        return fail('ما لقيت لوحة الخشب — قرّب الكاميرا أو حسّن الإضاءة');
 
-      // biggest hole inside the orange ring = playing field
-      let holeIdx=-1, holeArea=0;
-      for (let i=0;i<contours.size();i++) {
-        if (hier.data32S[i*4+3] !== outerIdx) continue;
-        const a = cv.contourArea(contours.get(i));
-        if (a>holeArea) { holeArea=a; holeIdx=i; }
-      }
-      if (holeIdx<0 || holeArea < outerArea*0.4) return fail('حدود اللوحة غير واضحة — عدّل الإضاءة أو الزاوية');
-
-      // approximate hole to 4 corners
-      const hole = contours.get(holeIdx);
-      const peri = cv.arcLength(hole, true);
+      // convex hull → 4 corners
+      hull = new cv.Mat();
+      cv.convexHull(contours.get(bestIdx), hull);
+      const peri = cv.arcLength(hull, true);
       const approx = new cv.Mat();
-      cv.approxPolyDP(hole, approx, 0.02*peri, true);
+      cv.approxPolyDP(hull, approx, 0.03*peri, true);
       let pts;
       if (approx.rows === 4) {
         pts = [];
         for (let i=0;i<4;i++) pts.push({ x:approx.data32S[i*2], y:approx.data32S[i*2+1] });
       } else {
-        const rr = cv.minAreaRect(hole);
+        const rr = cv.minAreaRect(hull);
         const vs = cv.RotatedRect.points(rr);
         pts = vs.map(p=>({x:p.x,y:p.y}));
       }
@@ -428,7 +430,7 @@ const AutoFit = (() => {
       console.error(err);
       return fail('خطأ أثناء المطابقة — جرب مرة ثانية');
     } finally {
-      [src,hsv,mask,kernel,hier,gray].forEach(m=>{ if(m) m.delete(); });
+      [src,mask,kernel,kernel2,hier,gray,hull].forEach(m=>{ if(m) m.delete(); });
       if (contours) contours.delete();
     }
   }
@@ -754,6 +756,80 @@ const Draw = (() => {
   function path(q){ ctx.beginPath(); ctx.moveTo(q[0].x,q[0].y);
     for (let i=1;i<4;i++) ctx.lineTo(q[i].x,q[i].y); ctx.closePath(); }
 
+  // ghost of the KNOWN board artwork (pockets, inner frame, baselines)
+  // drawn faintly so alignment can be verified at a glance
+  function template(b2v) {
+    ctx.save();
+    ctx.lineWidth=1.5;
+    const stroke=(fn)=>{ ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=3; fn();
+                         ctx.strokeStyle='rgba(120,255,170,0.55)'; ctx.lineWidth=1.2; fn(); };
+    // corner pockets — quarter arcs at the 4 corners
+    stroke(()=>{ ctx.beginPath();
+      const arcs=[ [0,0,0], [BOARD,0,Math.PI/2], [BOARD,BOARD,Math.PI], [0,BOARD,Math.PI*1.5] ];
+      const steps=14;
+      for (const [cx,cy,a0] of arcs) {
+        for (let s=0;s<=steps;s++) {
+          const a=a0+(s/steps)*Math.PI/2;
+          const v=b2v({ x:cx+Math.cos(a)*POCKET_R, y:cy+Math.sin(a)*POCKET_R });
+          if (s===0) ctx.moveTo(v.x,v.y); else ctx.lineTo(v.x,v.y);
+        }
+      }
+      ctx.stroke(); });
+    // inner frame rectangle
+    stroke(()=>{ ctx.beginPath();
+      const cs=[{x:T_RECT,y:T_RECT},{x:BOARD-T_RECT,y:T_RECT},
+                {x:BOARD-T_RECT,y:BOARD-T_RECT},{x:T_RECT,y:BOARD-T_RECT}];
+      cs.forEach((p,i)=>{ const v=b2v(p); i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y); });
+      ctx.closePath(); ctx.stroke(); });
+    // 4 baselines with end circles
+    stroke(()=>{ ctx.beginPath();
+      const lines=[
+        [{x:T_BEND1,y:T_BASE},{x:T_BEND2,y:T_BASE}],
+        [{x:T_BEND1,y:BOARD-T_BASE},{x:T_BEND2,y:BOARD-T_BASE}],
+        [{x:T_BASE,y:T_BEND1},{x:T_BASE,y:T_BEND2}],
+        [{x:BOARD-T_BASE,y:T_BEND1},{x:BOARD-T_BASE,y:T_BEND2}]
+      ];
+      for (const [a,b] of lines){ const va=b2v(a), vb=b2v(b);
+        ctx.moveTo(va.x,va.y); ctx.lineTo(vb.x,vb.y); }
+      for (const [a,b] of lines) for (const p of [a,b]) {
+        const v=b2v(p);
+        ctx.moveTo(v.x+9,v.y); ctx.arc(v.x,v.y,9,0,Math.PI*2);
+      }
+      ctx.stroke(); });
+    ctx.restore();
+  }
+
+  // dotted path — same style as the in-game aim dots
+  function dotPath(segs, b2v, color, glow, dotR, gap) {
+    if (!segs || !segs.length) return;
+    ctx.save();
+    let carry=0;
+    for (const s of segs) {
+      const dx=s.b.x-s.a.x, dy=s.b.y-s.a.y;
+      const len=Math.hypot(dx,dy);
+      if (len<0.5) continue;
+      const ux=dx/len, uy=dy/len;
+      for (let t=carry; t<=len; t+=gap) {
+        const v=b2v({x:s.a.x+ux*t, y:s.a.y+uy*t});
+        if (glow){ ctx.fillStyle=glow;
+          ctx.beginPath(); ctx.arc(v.x,v.y,dotR+2.5,0,Math.PI*2); ctx.fill(); }
+        ctx.fillStyle=color;
+        ctx.beginPath(); ctx.arc(v.x,v.y,dotR,0,Math.PI*2); ctx.fill();
+      }
+      carry = 0;
+    }
+    // arrowhead at the very end
+    const l=segs[segs.length-1], a=b2v(l.a), b=b2v(l.b);
+    const ang=Math.atan2(b.y-a.y,b.x-a.x);
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(b.x+8*Math.cos(ang), b.y+8*Math.sin(ang));
+    ctx.lineTo(b.x-10*Math.cos(ang-0.45), b.y-10*Math.sin(ang-0.45));
+    ctx.lineTo(b.x-10*Math.cos(ang+0.45), b.y-10*Math.sin(ang+0.45));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
   function line(segs, b2v, color, glow, width, dash) {
     if (!segs || !segs.length) return;
     ctx.save(); ctx.lineCap='round';
@@ -793,7 +869,7 @@ const Draw = (() => {
     ctx.restore();
   }
 
-  return { canvas, clear, quad, line, dots, ring };
+  return { canvas, clear, quad, template, dotPath, line, dots, ring };
 })();
 
 /* ============================================================ APP */
@@ -910,22 +986,23 @@ const Draw = (() => {
 
     Draw.clear();
     if (Calib.quad) Draw.quad(Calib.quad, Calib.editing);
+    if (Calib.locked) Draw.template(Calib.boardToVideo);   // ghost of the known artwork
 
     if (linesOn && paths && Calib.locked) {
       const b2v=Calib.boardToVideo;
-      // striker main path — white dashed with blue glow (like the in-game dotted guide)
-      Draw.line(paths.main, b2v, '#ffffff', 'rgba(53,182,255,0.45)', 2.5, [3,11]);
+      // striker main path — white dots, exactly like the in-game guide
+      Draw.dotPath(paths.main, b2v, '#ffffff', 'rgba(53,182,255,0.35)', 3, 13);
       Draw.dots(paths.mainBounces, b2v, '#ffb347');
       if (paths.hit) {
         Draw.ring(paths.hit.point, b2v, 9, '#ffffff');                  // impact
-        // struck piece path — gold
+        // struck piece path — gold dots
         if (paths.piecePath) {
-          Draw.line(paths.piecePath.segs, b2v, '#ffb347', 'rgba(255,179,71,0.35)', 2.5, [8,6]);
+          Draw.dotPath(paths.piecePath.segs, b2v, '#ffb347', 'rgba(255,179,71,0.3)', 3, 13);
           Draw.dots(paths.piecePath.bounces, b2v, '#ffdca0');
         }
-        // striker after impact — cyan
+        // striker after impact — cyan dots
         if (paths.strikerPost) {
-          Draw.line(paths.strikerPost.segs, b2v, '#35e0ff', 'rgba(53,224,255,0.3)', 2, [4,7]);
+          Draw.dotPath(paths.strikerPost.segs, b2v, '#35e0ff', 'rgba(53,224,255,0.25)', 2.5, 13);
           Draw.dots(paths.strikerPost.bounces, b2v, '#aef2ff');
         }
       }
