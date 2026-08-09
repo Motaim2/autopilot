@@ -366,8 +366,10 @@ const AutoFit = (() => {
     // dark map
     const W=img.width, H=img.height, d=img.data;
     const dark=new Uint8Array(W*H);
-    for (let i=0,p=0;i<W*H;i++,p+=4)
-      if (Math.max(d[p],d[p+1],d[p+2])<85) dark[i]=1;
+    for (let i=0,p=0;i<W*H;i++,p+=4) {
+      const mx=Math.max(d[p],d[p+1],d[p+2]), mn=Math.min(d[p],d[p+1],d[p+2]);
+      if (mx<85 || (mx<108 && mx-mn<42)) dark[i]=1;
+    }
 
     const span=(dist(woodQuad[0],woodQuad[1])+dist(woodQuad[1],woodQuad[2])+
                 dist(woodQuad[2],woodQuad[3])+dist(woodQuad[3],woodQuad[0]))/4;
@@ -461,7 +463,7 @@ const AutoFit = (() => {
       const sd=src.data, md=mask.data, MW=src.cols;
       for (let y=0;y<src.rows;y++){ const row=y*MW;
         for (let x=0;x<MW;x++){ const i=(row+x)*4, r=sd[i],g=sd[i+1],b=sd[i+2];
-          if (r>145&&g>100&&b>55&&r-b>30&&r-b<145&&r>=g&&g>=b) md[row+x]=255; } }
+          if (r>135&&g>90&&b>40&&r-b>28&&r-b<170&&r>=g&&g>=b) md[row+x]=255; } }
       kernel=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(9,9));
       cv.morphologyEx(mask,mask,cv.MORPH_CLOSE,kernel);
       kernel2=cv.getStructuringElement(cv.MORPH_ELLIPSE,new cv.Size(5,5));
@@ -980,6 +982,7 @@ const Draw = (() => {
   window.addEventListener('opencv-ready', () => {
     cvReady=true; cvEl.textContent='CV READY'; cvEl.classList.add('ok');
     if (camReady) Detector.initMats(Source.video.videoWidth, Source.video.videoHeight);
+    if (autoQueued){ autoQueued=false; setTimeout(runAuto, 200); }
   });
 
   function begin(promise) {
@@ -993,13 +996,21 @@ const Draw = (() => {
   document.getElementById('pickCamera').addEventListener('click',()=>begin(Source.startCamera()));
   document.getElementById('pickScreen').addEventListener('click',()=>begin(Source.startScreen()));
 
-  // AUTO FIT
-  document.getElementById('btnAuto').addEventListener('click',()=>{
-    if (!cvReady){ UI.showMsg('WAIT — CV LOADING',1500); return; }
+  // AUTO FIT (queues itself if CV is still loading)
+  let autoQueued=false;
+  function runAuto(){
     UI.showMsg('جاري المطابقة...');
     setTimeout(()=>{
       if (AutoFit.run()) { btnCal.textContent='ADJUST'; btnCal.classList.remove('ok'); }
     }, 30);
+  }
+  document.getElementById('btnAuto').addEventListener('click',()=>{
+    if (!cvReady){
+      autoQueued=true;
+      UI.showMsg('المكتبة تحمّل... المطابقة بتشتغل تلقائيًا أول ما تجهز');
+      return;
+    }
+    runAuto();
   });
 
   // manual adjust
