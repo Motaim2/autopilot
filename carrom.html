@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#05080c">
+<title>MOTAIM Carrom Line Web</title>
+<style>
+/* MOTAIM Carrom Line Web — minimal HUD over fullscreen camera */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #05080c;
+  overflow: hidden;
+  font-family: "SF Mono", "Roboto Mono", Consolas, monospace;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* Video fills the screen (letterboxed to keep true coordinates) */
+#cam {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #05080c;
+}
+
+/* Overlay canvas is positioned by JS to exactly match the visible video rect */
+#overlay {
+  position: absolute;
+  touch-action: none;
+}
+
+/* HUD top bar */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 14px;
+  padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #7fd6ff;
+  background: linear-gradient(to bottom, rgba(5,8,12,0.75), transparent);
+  pointer-events: none;
+  z-index: 20;
+}
+.hud-item b { color: #ffffff; font-weight: 600; }
+#cvStatus { margin-inline-start: auto; color: #9aa7b5; }
+#cvStatus.ok { color: #6dff9e; }
+
+/* Center message (calibration steps) */
+#msg {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: rgba(5, 8, 12, 0.72);
+  border: 1px solid rgba(127, 214, 255, 0.35);
+  color: #dff3ff;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  z-index: 20;
+  display: none;
+  pointer-events: none;
+}
+#msg.show { display: block; }
+
+/* Bottom controls */
+#controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(5,8,12,0.75), transparent);
+  z-index: 20;
+}
+
+#controls button {
+  min-width: 106px;
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 214, 255, 0.45);
+  background: rgba(10, 18, 28, 0.85);
+  color: #cfeaff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+#controls button:active { background: rgba(127, 214, 255, 0.25); }
+#controls button.active {
+  border-color: #35b6ff;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(53, 182, 255, 0.35) inset;
+}
+#controls button.warn {
+  border-color: #ffb347;
+  color: #ffd9a0;
+}
+
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="overlay"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <span class="hud-item">FPS <b id="fps">--</b></span>
+    <span class="hud-item">Latency <b id="lat">--</b> ms</span>
+    <span class="hud-item" id="cvStatus">Loading CV...</span>
+  </div>
+
+  <div id="msg"></div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="btnCalibrate">CALIBRATE</button>
+    <button id="btnReset">RESET</button>
+    <button id="btnLines" class="active">LINES ON</button>
+  </div>
+</div>
+
+<!-- OpenCV.js loaded async; app waits for it -->
+<script>
+  var Module = {
+    onRuntimeInitialized: function () {
+      window.dispatchEvent(new Event('opencv-ready'));
+    }
+  };
+</script>
+<script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+
+<script>
+/* camera.js — open rear camera fullscreen, keep overlay aligned with video pixels */
+
+const Camera = (() => {
+  const video = document.getElementById('cam');
+  const overlay = document.getElementById('overlay');
+
+  // Rect of the video as actually displayed (object-fit: contain)
+  let viewRect = { left: 0, top: 0, width: 0, height: 0 };
+
+  async function start() {
+    const constraints = {
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 }
+      }
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await new Promise(res => {
+      if (video.readyState >= 2) return res();
+      video.onloadedmetadata = () => res();
+    });
+    await video.play();
+    fitOverlay();
+    return { w: video.videoWidth, h: video.videoHeight };
+  }
+
+  // Position the overlay canvas exactly on top of the visible (letterboxed) video area,
+  // and give it the same internal resolution as the video. Everything is then drawn
+  // in native video pixel coordinates.
+  function fitOverlay() {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+    const sw = window.innerWidth, sh = window.innerHeight;
+    const scale = Math.min(sw / vw, sh / vh);
+    viewRect.width = vw * scale;
+    viewRect.height = vh * scale;
+    viewRect.left = (sw - viewRect.width) / 2;
+    viewRect.top = (sh - viewRect.height) / 2;
+
+    overlay.width = vw;
+    overlay.height = vh;
+    overlay.style.left = viewRect.left + 'px';
+    overlay.style.top = viewRect.top + 'px';
+    overlay.style.width = viewRect.width + 'px';
+    overlay.style.height = viewRect.height + 'px';
+  }
+
+  // Screen (client) coords -> video pixel coords
+  function toVideoCoords(clientX, clientY) {
+    return {
+      x: (clientX - viewRect.left) * (video.videoWidth / viewRect.width),
+      y: (clientY - viewRect.top) * (video.videoHeight / viewRect.height)
+    };
+  }
+
+  window.addEventListener('resize', fitOverlay);
+  window.addEventListener('orientationchange', () => setTimeout(fitOverlay, 300));
+
+  return { video, overlay, start, fitOverlay, toVideoCoords };
+})();
+
+
+/* calibration.js — user taps 4 board corners, we build both homographies:
+   video -> board space (BOARD x BOARD) for analysis
+   board space -> video for drawing trajectories back on the live feed */
+
+const BOARD = 400; // internal board space (kept small for speed; logic is resolution-independent)
+
+const Calibration = (() => {
+  const LABELS = ['TOP LEFT', 'TOP RIGHT', 'BOTTOM RIGHT', 'BOTTOM LEFT'];
+
+  let corners = [];        // 4 points in video pixel coords
+  let active = false;
+  let ready = false;
+  let H = null;            // 3x3 video -> board  (Float64Array, row major)
+  let Hinv = null;         // 3x3 board -> video
+
+  function startCalibration() {
+    corners = [];
+    ready = false;
+    active = true;
+    UI.showMsg('TAP ' + LABELS[0]);
+  }
+
+  function reset() {
+    corners = [];
+    active = false;
+    ready = false;
+    H = null;
+    Hinv = null;
+    UI.hideMsg();
+  }
+
+  function addPoint(pt) {
+    if (!active) return;
+    corners.push(pt);
+    if (corners.length < 4) {
+      UI.showMsg('TAP ' + LABELS[corners.length]);
+    } else {
+      active = false;
+      computeHomography();
+      UI.showMsg('CALIBRATED', 1200);
+    }
+  }
+
+  function computeHomography() {
+    // src: video corners, dst: board space corners
+    const src = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      corners[0].x, corners[0].y,
+      corners[1].x, corners[1].y,
+      corners[2].x, corners[2].y,
+      corners[3].x, corners[3].y
+    ]);
+    const dst = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      0, 0, BOARD, 0, BOARD, BOARD, 0, BOARD
+    ]);
+    const M = cv.getPerspectiveTransform(src, dst);
+    const Minv = cv.getPerspectiveTransform(dst, src);
+    H = new Float64Array(M.data64F);
+    Hinv = new Float64Array(Minv.data64F);
+    src.delete(); dst.delete(); M.delete(); Minv.delete();
+    ready = true;
+  }
+
+  // Apply a 3x3 homography to a point (plain JS — no Mat allocations per frame)
+  function apply(M, p) {
+    const w = M[6] * p.x + M[7] * p.y + M[8];
+    return {
+      x: (M[0] * p.x + M[1] * p.y + M[2]) / w,
+      y: (M[3] * p.x + M[4] * p.y + M[5]) / w
+    };
+  }
+
+  const videoToBoard = p => apply(H, p);
+  const boardToVideo = p => apply(Hinv, p);
+
+  return {
+    get corners() { return corners; },
+    get isActive() { return active; },
+    get isReady() { return ready; },
+    startCalibration, reset, addPoint,
+    videoToBoard, boardToVideo
+  };
+})();
+
+
+/* aimDetector.js — detect the short in-game aim line inside the calibrated board area.
+   Pipeline (all in warped board space, BOARD x BOARD):
+     warpPerspective -> grayscale -> Gaussian blur -> Canny -> HoughLinesP
+   Then pick the best candidate line, derive origin + direction, smooth over time. */
+
+const AimDetector = (() => {
+  // Low-res processing canvas (video is downscaled before OpenCV touches it)
+  const PROC_W = 480;
+  const procCanvas = document.createElement('canvas');
+  const procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+
+  // Reusable Mats
+  let srcMat = null, warped = null, gray = null, edges = null, lines = null;
+  let warpM = null;
+  let procScale = 1;
+  let matsReady = false;
+
+  // Smoothed aim state (board space)
+  let aim = null;           // { origin:{x,y}, dir:{x,y}, angle }
+  let lastSeen = 0;
+  const HOLD_MS = 600;      // keep last aim briefly if detection drops a few frames
+  const SMOOTH = 0.45;      // blend factor for new detections
+
+  const EDGE_MARGIN = 14;   // ignore Hough lines hugging the board walls
+  const MIN_LEN = 30;
+
+  function initMats(videoW, videoH) {
+    disposeMats();
+    procScale = PROC_W / videoW;
+    procCanvas.width = PROC_W;
+    procCanvas.height = Math.round(videoH * procScale);
+    srcMat = new cv.Mat(procCanvas.height, procCanvas.width, cv.CV_8UC4);
+    warped = new cv.Mat(BOARD, BOARD, cv.CV_8UC4);
+    gray = new cv.Mat();
+    edges = new cv.Mat();
+    lines = new cv.Mat();
+    matsReady = true;
+  }
+
+  function disposeMats() {
+    [srcMat, warped, gray, edges, lines, warpM].forEach(m => { if (m) m.delete(); });
+    srcMat = warped = gray = edges = lines = warpM = null;
+    matsReady = false;
+  }
+
+  // Build warp matrix from (downscaled) video corners -> board space
+  function buildWarp(corners) {
+    if (warpM) { warpM.delete(); warpM = null; }
+    const src = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      corners[0].x * procScale, corners[0].y * procScale,
+      corners[1].x * procScale, corners[1].y * procScale,
+      corners[2].x * procScale, corners[2].y * procScale,
+      corners[3].x * procScale, corners[3].y * procScale
+    ]);
+    const dst = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, BOARD, 0, BOARD, BOARD, 0, BOARD]);
+    warpM = cv.getPerspectiveTransform(src, dst);
+    src.delete(); dst.delete();
+  }
+
+  function detect(video) {
+    if (!matsReady || !warpM) return getAim();
+
+    // 1. Downscale frame
+    procCtx.drawImage(video, 0, 0, procCanvas.width, procCanvas.height);
+    srcMat.data.set(procCtx.getImageData(0, 0, procCanvas.width, procCanvas.height).data);
+
+    // 2. Warp only the board region (ROI = the calibrated quad)
+    cv.warpPerspective(srcMat, warped, warpM, new cv.Size(BOARD, BOARD),
+      cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+    // 3. Gray -> blur -> Canny
+    cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, gray, new cv.Size(3, 3), 0);
+    cv.Canny(gray, edges, 60, 160);
+
+    // 4. Hough
+    cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 35, MIN_LEN, 8);
+
+    // 5. Pick best candidate: longest line not glued to a wall
+    let best = null, bestLen = 0;
+    for (let i = 0; i < lines.rows; i++) {
+      const x1 = lines.data32S[i * 4],     y1 = lines.data32S[i * 4 + 1];
+      const x2 = lines.data32S[i * 4 + 2], y2 = lines.data32S[i * 4 + 3];
+      if (nearWall(x1, y1) && nearWall(x2, y2)) continue; // board frame / pocket edges
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy);
+      if (len > bestLen) { bestLen = len; best = { x1, y1, x2, y2 }; }
+    }
+
+    if (best) updateAim(best);
+    return getAim();
+  }
+
+  function nearWall(x, y) {
+    return x < EDGE_MARGIN || y < EDGE_MARGIN ||
+           x > BOARD - EDGE_MARGIN || y > BOARD - EDGE_MARGIN;
+  }
+
+  function updateAim(seg) {
+    let p1 = { x: seg.x1, y: seg.y1 };
+    let p2 = { x: seg.x2, y: seg.y2 };
+
+    // Choose origin (striker side):
+    // temporal coherence first, otherwise the endpoint closest to the bottom baseline
+    if (aim) {
+      const d1 = dist(p1, aim.origin), d2 = dist(p2, aim.origin);
+      if (d2 < d1) [p1, p2] = [p2, p1];
+    } else if (p2.y > p1.y) {
+      [p1, p2] = [p2, p1];
+    }
+
+    let dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    dx /= len; dy /= len;
+
+    if (aim) {
+      // Exponential smoothing (origin + direction) to kill jitter
+      p1.x = aim.origin.x + (p1.x - aim.origin.x) * SMOOTH;
+      p1.y = aim.origin.y + (p1.y - aim.origin.y) * SMOOTH;
+      dx = aim.dir.x + (dx - aim.dir.x) * SMOOTH;
+      dy = aim.dir.y + (dy - aim.dir.y) * SMOOTH;
+      const n = Math.hypot(dx, dy) || 1;
+      dx /= n; dy /= n;
+    }
+
+    aim = {
+      origin: p1,
+      dir: { x: dx, y: dy },
+      angle: Math.atan2(dy, dx) * 180 / Math.PI
+    };
+    lastSeen = performance.now();
+  }
+
+  function getAim() {
+    if (aim && performance.now() - lastSeen > HOLD_MS) aim = null;
+    return aim;
+  }
+
+  function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  function resetAim() { aim = null; }
+
+  return { initMats, disposeMats, buildWarp, detect, resetAim };
+})();
+
+
+/* trajectory.js — extend the aim ray to the wall and compute 3 wall reflections.
+   All math happens in board space (0..BOARD on both axes).
+   Reflection: r = d - 2(d·n)n  (walls are axis-aligned, so it reduces to sign flips). */
+
+const Trajectory = (() => {
+  const MAX_SEGMENTS = 4; // main path + 3 bounces
+  const EPS = 0.001;
+
+  // Returns { segments: [{a,b}], bounces: [{x,y}] } in board space
+  function compute(origin, dir) {
+    const segments = [];
+    const bounces = [];
+    let o = { x: origin.x, y: origin.y };
+    let d = { x: dir.x, y: dir.y };
+
+    for (let s = 0; s < MAX_SEGMENTS; s++) {
+      const hit = castToWall(o, d);
+      if (!hit) break;
+      segments.push({ a: { ...o }, b: { x: hit.x, y: hit.y } });
+      if (s < MAX_SEGMENTS - 1) bounces.push({ x: hit.x, y: hit.y });
+
+      // r = d - 2(d·n)n  → axis walls: flip the component along the normal
+      if (hit.wall === 'left' || hit.wall === 'right') d = { x: -d.x, y: d.y };
+      else d = { x: d.x, y: -d.y };
+
+      // nudge off the wall so the next cast doesn't re-hit the same wall
+      o = { x: hit.x + d.x * EPS, y: hit.y + d.y * EPS };
+    }
+    return { segments, bounces };
+  }
+
+  // Closest intersection of ray (o, d) with the 4 board walls
+  function castToWall(o, d) {
+    let tMin = Infinity, best = null;
+
+    if (d.x < -EPS) check((0 - o.x) / d.x, 'left');
+    if (d.x > EPS) check((BOARD - o.x) / d.x, 'right');
+    if (d.y < -EPS) check((0 - o.y) / d.y, 'top');
+    if (d.y > EPS) check((BOARD - o.y) / d.y, 'bottom');
+
+    function check(t, wall) {
+      if (t <= EPS || t >= tMin) return;
+      const x = o.x + d.x * t, y = o.y + d.y * t;
+      if (x < -1 || x > BOARD + 1 || y < -1 || y > BOARD + 1) return;
+      tMin = t;
+      best = { x: clamp(x), y: clamp(y), wall };
+    }
+    return best;
+  }
+
+  function clamp(v) { return Math.max(0, Math.min(BOARD, v)); }
+
+  return { compute };
+})();
+
+
+/* overlay.js — draw calibration markers and trajectory lines on the canvas
+   sitting on top of the live video. All input points are converted from
+   board space back to native video pixel coordinates. */
+
+const Overlay = (() => {
+  const canvas = document.getElementById('overlay');
+  const ctx = canvas.getContext('2d');
+
+  const LINE_COLOR = '#35b6ff';   // striker path (blue)
+  const BOUNCE_COLOR = '#ffffff';
+
+  function clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function drawCalibrationPoints(corners, active) {
+    ctx.save();
+    // Board outline once all 4 points exist
+    if (corners.length === 4) {
+      ctx.strokeStyle = 'rgba(53,182,255,0.55)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    corners.forEach((p, i) => {
+      ctx.fillStyle = active ? '#ffb347' : '#35b6ff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#05080c';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(i + 1), p.x, p.y);
+    });
+    ctx.restore();
+  }
+
+  // traj = { segments, bounces } in board space
+  function drawTrajectory(traj, boardToVideo) {
+    if (!traj || !traj.segments.length) return;
+    ctx.save();
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = LINE_COLOR;
+    ctx.shadowColor = 'rgba(53,182,255,0.8)';
+    ctx.shadowBlur = 4;
+
+    ctx.beginPath();
+    traj.segments.forEach((seg, i) => {
+      const a = boardToVideo(seg.a);
+      const b = boardToVideo(seg.b);
+      if (i === 0) ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // small dot at each bounce point
+    ctx.fillStyle = BOUNCE_COLOR;
+    traj.bounces.forEach(p => {
+      const v = boardToVideo(p);
+      ctx.beginPath();
+      ctx.arc(v.x, v.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // origin marker
+    const o = boardToVideo(traj.segments[0].a);
+    ctx.strokeStyle = BOUNCE_COLOR;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, 7, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  return { canvas, clear, drawCalibrationPoints, drawTrajectory };
+})();
+
+
+/* app.js — wiring, main loop, HUD.
+   Rendering runs every frame (requestAnimationFrame).
+   OpenCV analysis runs on a throttled interval (~ANALYZE_MS) so the UI never freezes. */
+
+const UI = (() => {
+  const msg = document.getElementById('msg');
+  let hideTimer = null;
+  function showMsg(text, autoHide) {
+    msg.textContent = text;
+    msg.classList.add('show');
+    clearTimeout(hideTimer);
+    if (autoHide) hideTimer = setTimeout(hideMsg, autoHide);
+  }
+  function hideMsg() { msg.classList.remove('show'); }
+  return { showMsg, hideMsg };
+})();
+
+(() => {
+  const ANALYZE_MS = 50;          // CV every ~50ms (≈20 analyses/sec)
+  const fpsEl = document.getElementById('fps');
+  const latEl = document.getElementById('lat');
+  const cvEl = document.getElementById('cvStatus');
+
+  let cvReady = false;
+  let camReady = false;
+  let linesOn = true;
+  let lastAnalyze = 0;
+  let latency = 0;
+  let frames = 0, fpsTime = performance.now();
+  let traj = null;
+
+  // ---------- OpenCV ready ----------
+  window.addEventListener('opencv-ready', () => {
+    cvReady = true;
+    cvEl.textContent = 'CV READY';
+    cvEl.classList.add('ok');
+    if (camReady) AimDetector.initMats(Camera.video.videoWidth, Camera.video.videoHeight);
+  });
+
+  // ---------- Camera ----------
+  Camera.start()
+    .then(({ w, h }) => {
+      camReady = true;
+      if (cvReady) AimDetector.initMats(w, h);
+      UI.showMsg('POINT AT IPHONE — TAP CALIBRATE', 3000);
+      requestAnimationFrame(loop);
+    })
+    .catch(err => {
+      UI.showMsg('CAMERA ERROR: ' + err.name);
+      console.error(err);
+    });
+
+  // ---------- Buttons ----------
+  document.getElementById('btnCalibrate').addEventListener('click', () => {
+    if (!cvReady) { UI.showMsg('WAIT — CV LOADING', 1500); return; }
+    AimDetector.resetAim();
+    Calibration.startCalibration();
+    document.getElementById('btnCalibrate').classList.add('warn');
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    Calibration.reset();
+    AimDetector.resetAim();
+    traj = null;
+    document.getElementById('btnCalibrate').classList.remove('warn');
+    UI.showMsg('RESET', 900);
+  });
+
+  const btnLines = document.getElementById('btnLines');
+  btnLines.addEventListener('click', () => {
+    linesOn = !linesOn;
+    btnLines.textContent = linesOn ? 'LINES ON' : 'LINES OFF';
+    btnLines.classList.toggle('active', linesOn);
+  });
+
+  // ---------- Calibration taps ----------
+  Overlay.canvas.addEventListener('pointerdown', e => {
+    if (!Calibration.isActive) return;
+    e.preventDefault();
+    Calibration.addPoint(Camera.toVideoCoords(e.clientX, e.clientY));
+    if (Calibration.isReady) {
+      AimDetector.buildWarp(Calibration.corners);
+      document.getElementById('btnCalibrate').classList.remove('warn');
+    }
+  });
+
+  // ---------- Main loop ----------
+  function loop(now) {
+    // Throttled CV analysis
+    if (cvReady && Calibration.isReady && now - lastAnalyze >= ANALYZE_MS) {
+      lastAnalyze = now;
+      const t0 = performance.now();
+      try {
+        const aim = AimDetector.detect(Camera.video);
+        traj = aim ? Trajectory.compute(aim.origin, aim.dir) : null;
+      } catch (err) {
+        console.error(err);
+      }
+      latency = Math.round(performance.now() - t0);
+    }
+
+    // Draw every frame
+    Overlay.clear();
+    if (Calibration.corners.length) {
+      Overlay.drawCalibrationPoints(Calibration.corners, Calibration.isActive);
+    }
+    if (linesOn && traj && Calibration.isReady) {
+      Overlay.drawTrajectory(traj, Calibration.boardToVideo);
+    }
+
+    // HUD
+    frames++;
+    if (now - fpsTime >= 1000) {
+      fpsEl.textContent = frames;
+      latEl.textContent = latency;
+      frames = 0;
+      fpsTime = now;
+    }
+
+    requestAnimationFrame(loop);
+  }
+})();
+
+</script>
+</body>
+</html>
