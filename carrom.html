@@ -136,7 +136,11 @@ const BOARD = 400;               // internal board space
 const STRIKER_R = 13.5;
 const PIECE_R = 11;
 const POCKET_R = 20.5;           // pocket r (45.5px @886 span)
-const WALL_M = 6;                // real walls sit ~2.5% OUTSIDE the pocket-center square (measured 908 vs 886)
+// real walls sit OUTSIDE the pocket-center square; per-side margins in
+// board units, drag any edge to tune, saved forever (board never changes)
+let WALLS = { t:7.5, r:4, b:4.5, l:6.5 };
+try { const s=localStorage.getItem('carrom_walls'); if (s) WALLS=JSON.parse(s); } catch(e){}
+function saveWalls(){ try{ localStorage.setItem('carrom_walls', JSON.stringify(WALLS)); }catch(e){} }
 const T_RECT = 35;               // inner frame rect inset
 const T_BASE = 41;               // baseline distance from wall
 const T_BEND1 = 76, T_BEND2 = 324; // baseline endpoints
@@ -313,7 +317,8 @@ const Calib = (() => {
     get quad(){return quad;}, get editing(){return editing;}, get locked(){return locked;},
     set onChanged(f){ onQuadChanged=f; },
     setQuad, startEdit, confirm, reset, onDown, onMove, onUp,
-    boardToVideo:p=>apply(Hinv,p)
+    boardToVideo:p=>apply(Hinv,p),
+    videoToBoard:p=>apply(H,p)
   };
 })();
 
@@ -367,8 +372,8 @@ const AutoFit = (() => {
     if (mode==='pockets') {
       const queen=queenOK(img, quad);
       UI.showMsg(queen
-        ? 'مطابقة بالحفر '+good+'/4 + الحجر الأحمر ✓'
-        : 'مطابقة بالحفر '+good+'/4 ✓', 2400);
+        ? 'مطابقة بالحفر '+good+'/4 + الحجر الأحمر ✓ — اسحب أي حافة لضبط الجدار'
+        : 'مطابقة بالحفر '+good+'/4 ✓ — اسحب أي حافة لضبط الجدار', 3200);
     } else {
       UI.showMsg('مطابقة عبر الخشب ✓ (الحفر غير واضحة — عدّل الإضاءة)', 2600);
     }
@@ -495,7 +500,7 @@ const Detector = (() => {
   let striker=null, strikerSeen=0, strikerR=STRIKER_R;
   let pieces=[];
   const HOLD_MS=700, STRIKER_HOLD=1500;
-  const SMOOTH=0.25, DEAD_ANG=0.018, DEAD_POS=3;
+  const SMOOTH=0.15, DEAD_ANG=0.022, DEAD_POS=4;
 
   function initMats(vw,vh) {
     dispose();
@@ -683,18 +688,19 @@ const Detector = (() => {
    Simple pro view: striker line + at most ONE bounce; if a piece is
    hit: stop there, highlight the piece, ONE line for where it goes. */
 const Physics = (() => {
-  const EPS=0.001, LO=-WALL_M, HI=BOARD+WALL_M;
+  const EPS=0.001;
 
   function cast(o,d) {
+    const xLo=-WALLS.l, xHi=BOARD+WALLS.r, yLo=-WALLS.t, yHi=BOARD+WALLS.b;
     let tMin=Infinity, best=null;
     const chk=(t,wall)=>{ if(t<=EPS||t>=tMin)return;
       const x=o.x+d.x*t, y=o.y+d.y*t;
-      if (x<LO-1||x>HI+1||y<LO-1||y>HI+1) return;
-      tMin=t; best={x:Math.max(LO,Math.min(HI,x)),y:Math.max(LO,Math.min(HI,y)),wall,t}; };
-    if (d.x<-EPS) chk((LO-o.x)/d.x,'left');
-    if (d.x> EPS) chk((HI-o.x)/d.x,'right');
-    if (d.y<-EPS) chk((LO-o.y)/d.y,'top');
-    if (d.y> EPS) chk((HI-o.y)/d.y,'bottom');
+      if (x<xLo-1||x>xHi+1||y<yLo-1||y>yHi+1) return;
+      tMin=t; best={x:Math.max(xLo,Math.min(xHi,x)),y:Math.max(yLo,Math.min(yHi,y)),wall,t}; };
+    if (d.x<-EPS) chk((xLo-o.x)/d.x,'left');
+    if (d.x> EPS) chk((xHi-o.x)/d.x,'right');
+    if (d.y<-EPS) chk((yLo-o.y)/d.y,'top');
+    if (d.y> EPS) chk((yHi-o.y)/d.y,'bottom');
     return best;
   }
 
@@ -797,8 +803,8 @@ const Draw = (() => {
       ctx.stroke(); });
     // wall border (behind the pockets)
     stroke(()=>{ ctx.beginPath();
-      const cs=[{x:-WALL_M,y:-WALL_M},{x:BOARD+WALL_M,y:-WALL_M},
-                {x:BOARD+WALL_M,y:BOARD+WALL_M},{x:-WALL_M,y:BOARD+WALL_M}];
+      const cs=[{x:-WALLS.l,y:-WALLS.t},{x:BOARD+WALLS.r,y:-WALLS.t},
+                {x:BOARD+WALLS.r,y:BOARD+WALLS.b},{x:-WALLS.l,y:BOARD+WALLS.b}];
       cs.forEach((p,i)=>{ const v=b2v(p); i?ctx.lineTo(v.x,v.y):ctx.moveTo(v.x,v.y); });
       ctx.closePath(); ctx.stroke(); });
     ctx.restore();
@@ -897,7 +903,8 @@ const Draw = (() => {
 
   let cvReady=false, camReady=false, linesOn=true;
   let lastAnalyze=0, latency=0, frames=0, fpsTime=performance.now();
-  let result=null, paths=null;
+  let result=null, paths=null, dispAim=null;
+  let edgeDrag=null;               // wall-edge tuning drag
 
   Calib.onChanged = () => { Detector.buildWarp(Calib.quad); Detector.resetAim(); };
 
@@ -958,13 +965,23 @@ const Draw = (() => {
     if (ptrs.size===2) {
       const [a,b]=[...ptrs.values()];
       pinchStart={ dist:Math.hypot(a.x-b.x,a.y-b.y), zoom:Source.getZoom() };
-      Calib.onUp();
+      edgeDrag=null; Calib.onUp();
       return;
     }
-    if (Calib.quad) {
-      e.preventDefault();
-      if (Calib.onDown(Source.toVideoCoords(e.clientX,e.clientY))) ov.setPointerCapture(e.pointerId);
+    if (!Calib.quad) return;
+    e.preventDefault();
+    const vp = Source.toVideoCoords(e.clientX,e.clientY);
+    // wall-edge tuning: grab a border edge while locked
+    if (Calib.locked && !Calib.editing) {
+      const bp = Calib.videoToBoard(vp);
+      const near = 16;
+      if (Math.abs(bp.x-(-WALLS.l))<near && bp.y>-40 && bp.y<BOARD+40) edgeDrag='l';
+      else if (Math.abs(bp.x-(BOARD+WALLS.r))<near && bp.y>-40 && bp.y<BOARD+40) edgeDrag='r';
+      else if (Math.abs(bp.y-(-WALLS.t))<near && bp.x>-40 && bp.x<BOARD+40) edgeDrag='t';
+      else if (Math.abs(bp.y-(BOARD+WALLS.b))<near && bp.x>-40 && bp.x<BOARD+40) edgeDrag='b';
+      if (edgeDrag){ ov.setPointerCapture(e.pointerId); return; }
     }
+    if (Calib.onDown(vp)) ov.setPointerCapture(e.pointerId);
   });
   ov.addEventListener('pointermove', e=>{
     if (!ptrs.has(e.pointerId)) return;
@@ -975,11 +992,21 @@ const Draw = (() => {
       Source.setZoom(pinchStart.zoom * dist/pinchStart.dist);
       return;
     }
+    if (edgeDrag) {
+      const bp = Calib.videoToBoard(Source.toVideoCoords(e.clientX,e.clientY));
+      const clamp=v=>Math.max(0,Math.min(28,v));
+      if (edgeDrag==='l') WALLS.l=clamp(-bp.x);
+      else if (edgeDrag==='r') WALLS.r=clamp(bp.x-BOARD);
+      else if (edgeDrag==='t') WALLS.t=clamp(-bp.y);
+      else if (edgeDrag==='b') WALLS.b=clamp(bp.y-BOARD);
+      return;
+    }
     if (Calib.quad) Calib.onMove(Source.toVideoCoords(e.clientX,e.clientY));
   });
   const endPtr = e=>{
     ptrs.delete(e.pointerId);
     if (ptrs.size<2) pinchStart=null;
+    if (edgeDrag){ saveWalls(); edgeDrag=null; UI.showMsg('انحفظ ضبط الجدار ✓',1200); }
     Calib.onUp();
   };
   ov.addEventListener('pointerup',endPtr);
@@ -994,14 +1021,27 @@ const Draw = (() => {
     if (cvReady && Calib.locked && now-lastAnalyze>=ANALYZE_MS) {
       lastAnalyze=now;
       const t0=performance.now();
-      try {
-        result = Detector.detect(Source.video);
-        paths = result.aim
-          ? Physics.compute(result.aim.origin, result.aim.dir, result.pieces, result.strikerR)
-          : null;
-      } catch(e){ console.error(e); }
+      try { result = Detector.detect(Source.video); }
+      catch(e){ console.error(e); }
       latency=Math.round(performance.now()-t0);
     }
+
+    // silky line motion: displayed aim glides toward the detected aim
+    const target = result && result.aim;
+    if (target && Calib.locked) {
+      const tAng=Math.atan2(target.dir.y,target.dir.x);
+      if (!dispAim) dispAim={x:target.origin.x,y:target.origin.y,ang:tAng};
+      else {
+        let dA=tAng-dispAim.ang;
+        while(dA>Math.PI)dA-=2*Math.PI; while(dA<-Math.PI)dA+=2*Math.PI;
+        dispAim.ang+=dA*0.10;
+        dispAim.x+=(target.origin.x-dispAim.x)*0.10;
+        dispAim.y+=(target.origin.y-dispAim.y)*0.10;
+      }
+      paths=Physics.compute({x:dispAim.x,y:dispAim.y},
+        {x:Math.cos(dispAim.ang),y:Math.sin(dispAim.ang)},
+        result.pieces, result.strikerR);
+    } else { dispAim=null; paths=null; }
 
     Draw.clear();
     if (Calib.quad && Calib.editing) Draw.quad(Calib.quad, true);
@@ -1014,7 +1054,7 @@ const Draw = (() => {
       Draw.dots(paths.mainBounces, b2v, '#ffb347');
       if (paths.hit) {
         // highlight the target piece with a circle
-        const pr = Math.max(10, pieceRadiusPx(b2v, paths.hit.piece.r*1.35));
+        const pr = Math.max(8, pieceRadiusPx(b2v, paths.hit.piece.r));
         Draw.ring({x:paths.hit.piece.x, y:paths.hit.piece.y}, b2v, pr,
           paths.hit.piece.color==='red' ? '#ff4d4d' :
           paths.hit.piece.color==='black' ? '#b8f7ff' : '#ffe9a8');
