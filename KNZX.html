@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>خبّيها 👁️ — غرف جماعية لحظية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#120E1F; --surface:#1E1735; --surface2:#2A2148;
+  --gold:#F0B84B; --gold-deep:#C98F1E;
+  --glow:#4FD6C4; --danger:#F06A6A;
+  --ink:#F5F0FF; --dim:#9C90C2;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Arabic',sans-serif;overflow-x:hidden}
+h1,h2,h3,.display{font-family:'Baloo Bhaijaan 2',cursive}
+.screen{display:none;min-height:100vh;padding:20px 18px 40px}
+.screen.active{display:block}
+.full{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column}
+.full.active{display:flex}
+
+.hero{text-align:center;padding:26px 0 8px}
+.hero .eye{
+  width:84px;height:84px;margin:0 auto 10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #3A2E63, var(--surface2));
+  display:flex;align-items:center;justify-content:center;font-size:42px;
+  border:2px solid rgba(240,184,75,.45);
+  box-shadow:0 0 34px rgba(79,214,196,.25), inset 0 0 18px rgba(79,214,196,.15);
+  animation:eyeFloat 4s ease-in-out infinite;
+}
+@keyframes eyeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.hero h1{font-size:32px;font-weight:800}
+.hero h1 span{color:var(--gold)}
+.hero p{color:var(--dim);font-size:13.5px;margin-top:4px}
+
+.field{margin-bottom:13px}
+.field label{display:block;font-size:13.5px;color:var(--dim);margin-bottom:6px}
+.field input[type=text]{
+  width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);
+  background:var(--surface);color:var(--ink);font-size:16px;font-family:inherit;
+}
+input.code{letter-spacing:6px;text-align:center;font-family:'Baloo Bhaijaan 2';font-size:22px!important;text-transform:uppercase}
+.field input[type=range]{width:100%;accent-color:var(--gold)}
+
+.btn{
+  display:block;width:100%;padding:15px;border:none;border-radius:14px;
+  font-family:'Baloo Bhaijaan 2';font-size:18px;font-weight:700;cursor:pointer;
+  color:#1A1206;background:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  box-shadow:0 6px 20px rgba(240,184,75,.3);transition:transform .12s;margin-top:8px;
+}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--dim);box-shadow:none;border:1px solid var(--surface2);font-size:15px}
+.btn.glow{background:linear-gradient(135deg,var(--glow),#2BA593);color:#06201C;box-shadow:0 6px 20px rgba(79,214,196,.3)}
+.btn:disabled{opacity:.45;pointer-events:none}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.topbar .back{width:40px;height:40px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:18px;cursor:pointer;flex-shrink:0}
+.topbar h2{font-size:19px;font-weight:700}
+.topbar small{color:var(--dim);display:block;font-size:12px;font-family:'IBM Plex Sans Arabic'}
+
+/* ---------- اللوبي الجديد ---------- */
+.lb-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
+}
+.lb-brand{display:flex;align-items:center;gap:12px}
+.lb-eye{
+  width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:24px;background:radial-gradient(circle at 35% 30%, #3A2E63, var(--surface2));
+  border:1.5px solid rgba(240,184,75,.45);box-shadow:0 0 18px rgba(79,214,196,.2);
+}
+.lb-brand h2{font-size:21px;font-weight:800}
+.lb-brand small{color:var(--dim);font-size:12px;display:block}
+.lb-actions{display:flex;gap:8px}
+.icon-b{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--surface2);
+  background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;
+}
+.main-card{
+  margin-top:20px;background:linear-gradient(145deg,var(--surface),var(--surface2));
+  border:1px solid rgba(240,184,75,.28);border-radius:20px;padding:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.3);
+}
+.mc-head{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.mc-ic{font-size:30px}
+.mc-tx{flex:1}
+.mc-tx b{font-family:'Baloo Bhaijaan 2';font-size:18px;display:block}
+.mc-tx small{color:var(--dim);font-size:12.5px}
+.main-card .btn{margin-top:0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:13px}
+.duo-b{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:16px 8px;border-radius:18px;cursor:pointer;
+  border:1px solid rgba(240,184,75,.22);
+  background:linear-gradient(145deg,var(--surface),var(--surface2));
+  color:var(--ink);font-family:'Baloo Bhaijaan 2';font-size:15.5px;font-weight:700;
+  transition:transform .12s;
+}
+.duo-b:active{transform:scale(.96)}
+.duo-b span{font-size:26px}
+.duo-b b{color:var(--gold);font-size:13px}
+.duo-b.glowb{border-color:rgba(79,214,196,.35)}
+.duo-b:disabled{opacity:.4;pointer-events:none}
+
+/* ---------- الغرفة ---------- */
+.room-code-box{
+  text-align:center;background:linear-gradient(145deg,var(--surface),var(--surface2));
+  border:1px dashed rgba(240,184,75,.5);border-radius:18px;padding:16px;margin-bottom:16px;
+}
+.room-code-box small{color:var(--dim);font-size:12px}
+.room-code-box .code{font-family:'Baloo Bhaijaan 2';font-size:38px;letter-spacing:10px;color:var(--gold);margin:2px 0 6px;direction:ltr}
+.share-row{display:flex;gap:8px;justify-content:center}
+.chip-btn{padding:8px 16px;border-radius:99px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:13px;cursor:pointer;font-family:inherit}
+
+.sec-title{font-family:'Baloo Bhaijaan 2';font-size:16px;margin:14px 0 8px;color:var(--dim)}
+.players{display:flex;flex-wrap:wrap;gap:8px}
+.pl{
+  display:flex;align-items:center;gap:7px;background:var(--surface);
+  border:1.5px solid var(--surface2);border-radius:99px;padding:8px 14px;font-size:14px;
+  cursor:pointer;transition:border-color .2s;
+}
+.pl .st{width:8px;height:8px;border-radius:50%;background:#5a5478}
+.pl.on .st{background:var(--glow);box-shadow:0 0 8px var(--glow)}
+.pl.hider{border-color:var(--gold);background:var(--surface2)}
+.pl.hider::before{content:"🫣 "}
+.pl.me{outline:1px dashed rgba(79,214,196,.4)}
+.pl.found-p{border-color:var(--glow)}
+.pl.found-p::after{content:" ✅";font-size:12px}
+
+.host-panel{margin-top:18px}
+.note{color:var(--dim);font-size:12.5px;line-height:1.9;text-align:center;margin-top:10px}
+.wait-anim{text-align:center;padding:60px 20px}
+.wait-anim .big{font-size:66px;display:inline-block;animation:peek 2.2s ease-in-out infinite}
+@keyframes peek{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.wait-anim h2{font-size:24px;margin-top:10px}
+.wait-anim p{color:var(--dim);font-size:14px;margin-top:6px;line-height:1.9}
+.dots::after{content:"";animation:dots 1.6s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+/* ---------- سجل الأحداث ---------- */
+.feed{margin-top:16px;display:grid;gap:7px}
+.feed .ev{
+  background:var(--surface);border:1px solid var(--surface2);border-radius:12px;
+  padding:9px 13px;font-size:13.5px;color:var(--dim);
+}
+.feed .ev b{color:var(--ink)}
+.feed .ev.win{border-color:rgba(79,214,196,.5);color:var(--glow)}
+
+/* ---------- الكاميرا ---------- */
+.cam-wrap{position:relative;flex:1;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+.cam-wrap video{width:100%;height:100%;object-fit:cover}
+.cam-frame{position:absolute;inset:26px;border:2px dashed rgba(240,184,75,.6);border-radius:20px;pointer-events:none}
+.cam-tip{position:absolute;top:40px;left:0;right:0;text-align:center;pointer-events:none;color:#fff;font-size:13.5px;text-shadow:0 1px 6px #000;padding:0 40px;line-height:1.7}
+.cam-actions{padding:16px 18px calc(20px + env(safe-area-inset-bottom));background:var(--bg)}
+.shutter{width:74px;height:74px;border-radius:50%;margin:0 auto;display:block;cursor:pointer;border:4px solid #fff;background:var(--gold);box-shadow:0 0 24px rgba(240,184,75,.5)}
+.shutter:active{transform:scale(.92)}
+.shots-row{display:flex;gap:8px;justify-content:center;min-height:0;margin-bottom:10px;flex-wrap:wrap}
+.shots-row img{
+  width:52px;height:52px;object-fit:cover;border-radius:10px;
+  border:2px solid var(--glow);box-shadow:0 0 10px rgba(79,214,196,.35);
+}
+.shots-row .shot-x{position:relative}
+.shots-row .shot-x button{
+  position:absolute;top:-6px;inset-inline-end:-6px;width:20px;height:20px;border-radius:50%;
+  border:none;background:var(--danger);color:#fff;font-size:11px;cursor:pointer;line-height:1;
+}
+
+/* ---------- التجهيز ---------- */
+.prep{flex:1;overflow-y:auto;padding:0 18px 30px}
+.spot-preview{
+  position:relative;border-radius:16px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;
+  border:1.5px solid rgba(240,184,75,.45);box-shadow:0 0 22px rgba(240,184,75,.12), 0 8px 24px rgba(0,0,0,.35);
+}
+.spot-preview img.spot{width:100%;display:block}
+#dragObj,#decorDrag{position:absolute;transform:translate(-50%,-50%);cursor:grab;line-height:1;
+  filter:drop-shadow(0 5px 12px rgba(0,0,0,.75)) drop-shadow(0 0 6px rgba(240,184,75,.5));}
+#dragObj img{border-radius:10px;border:2px solid var(--gold);display:block}
+.hintbar{color:var(--dim);font-size:12.5px;text-align:center;margin:8px 0 14px}
+.obj-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+.obj-opt{background:var(--surface);border:1.5px solid var(--surface2);border-radius:12px;padding:10px 4px;text-align:center;cursor:pointer;font-size:26px}
+.obj-opt small{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+.obj-opt.sel{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 12px rgba(240,184,75,.25)}
+.progress-wrap{margin-top:16px;display:none}
+.progress-bar{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.progress-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--glow),var(--gold));transition:width .3s}
+.progress-wrap p{font-size:12.5px;color:var(--dim);text-align:center;margin-top:6px}
+
+/* ---------- ورشة بناء المجسم ---------- */
+.pv-box{
+  border-radius:16px;overflow:hidden;border:1px solid rgba(240,184,75,.3);
+  background:var(--surface);position:relative;
+}
+#pvMount{height:220px;position:relative}
+#pvMount a-scene{width:100%!important;height:220px!important;position:absolute;inset:0}
+#pvMount canvas{border-radius:0!important}
+.pv-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px}
+.part-row{
+  background:var(--surface);border:1px solid var(--surface2);border-radius:14px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.part-row .pr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.part-row .pr-head b{font-size:13px;color:var(--dim);font-weight:500}
+.pr-del{border:none;background:transparent;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 6px}
+.shape-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.shape-b{
+  flex:1;min-width:42px;padding:7px 0;border-radius:10px;border:1.5px solid var(--surface2);
+  background:var(--surface2);cursor:pointer;text-align:center;font-size:17px;color:var(--ink);
+}
+.shape-b.sel{border-color:var(--gold);box-shadow:0 0 8px rgba(240,184,75,.3)}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.color-b{width:28px;height:28px;border-radius:50%;border:2.5px solid transparent;cursor:pointer}
+.color-b.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4)}
+.size-row{display:flex;gap:6px;margin-inline-start:auto}
+.size-b{padding:5px 10px;border-radius:9px;border:1.5px solid var(--surface2);background:var(--surface2);color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit}
+.size-b.sel{border-color:var(--glow);color:var(--glow)}
+
+/* ---------- AR ---------- */
+#arContainer{position:fixed;inset:0;z-index:80;background:#000;display:none}
+#arContainer.active{display:block}
+#arScene{position:absolute;inset:0}
+#arScene a-scene{width:100%!important;height:100%!important}
+.ar-top{position:absolute;top:0;left:0;right:0;z-index:10;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent)}
+.ar-top .title{font-family:'Baloo Bhaijaan 2';font-size:15px;color:#fff;text-shadow:0 1px 4px #000}
+.ar-exit{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;background:rgba(0,0,0,.55);color:#fff;font-size:17px;backdrop-filter:blur(4px)}
+.radar{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:190px;height:190px;pointer-events:none}
+.radar .ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(79,214,196,.7);animation:radarPulse 1.9s ease-out infinite}
+.radar .ring:nth-child(2){animation-delay:.63s}
+.radar .ring:nth-child(3){animation-delay:1.26s}
+@keyframes radarPulse{0%{transform:scale(.35);opacity:1}100%{transform:scale(1.15);opacity:0}}
+.radar .dot{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:var(--glow);transform:translate(-50%,-50%);box-shadow:0 0 14px var(--glow)}
+.ar-status{position:absolute;bottom:calc(110px + env(safe-area-inset-bottom));left:0;right:0;z-index:10;text-align:center;padding:0 30px;pointer-events:none}
+.ar-status .pill{display:inline-block;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);border:1px solid rgba(79,214,196,.4);border-radius:99px;padding:9px 20px;color:#fff;font-size:14px}
+.ar-status .pill.hot{border-color:var(--gold);color:var(--gold);box-shadow:0 0 18px rgba(240,184,75,.4)}
+.ar-bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:14px 18px calc(20px + env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
+#foundBtn{display:none}
+
+/* ---------- الاحتفال ---------- */
+#celebrate{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(10,7,20,.86);backdrop-filter:blur(5px);text-align:center;padding:30px}
+#celebrate.active{display:flex}
+#celebrate .card{max-width:340px;width:100%}
+#celebrate .big{font-size:74px;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+#celebrate h2{font-size:28px;color:var(--gold);margin:8px 0 4px}
+#celebrate p{color:var(--dim);font-size:14px;margin-bottom:20px;line-height:1.8}
+.confetti{position:fixed;top:-12px;font-size:20px;z-index:210;animation:fall linear forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(110vh) rotate(680deg)}}
+
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid rgba(240,184,75,.4);color:var(--ink);border-radius:99px;padding:11px 22px;font-size:14px;z-index:300;opacity:0;transition:.35s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.banner{background:rgba(240,106,106,.12);border:1px solid rgba(240,106,106,.45);border-radius:12px;padding:11px 14px;font-size:13px;color:#FFB4B4;margin-top:16px;line-height:1.8;display:none}
+.banner.show{display:block}
+#loaderOv{position:fixed;inset:0;z-index:400;background:rgba(10,7,20,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loaderOv.active{display:flex}
+.spin{width:46px;height:46px;border-radius:50%;border:4px solid var(--surface2);border-top-color:var(--gold);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#loaderOv p{color:var(--dim);font-size:14px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ================= شاشة الدخول ================= -->
+<div class="screen active" id="scrJoin">
+  <div class="hero">
+    <div class="eye">👁️</div>
+    <h1>خبّيها <span>ولقّها</span></h1>
+    <p>غرفة عائلية واحدة — أول واحد يدخل يفتحها والبقية ينضمّون تلقائيًا</p>
+  </div>
+  <div class="field" style="margin-top:26px">
+    <label>اسمك</label>
+    <input type="text" id="myName" placeholder="مثال: أبو فهد" maxlength="18">
+  </div>
+  <button class="btn glow" onclick="joinAuto()" style="font-size:20px;padding:17px">🚪 ادخل البيت</button>
+  <div class="banner" id="fbBanner">
+    ⚠️ اللعب الجماعي يحتاج Firebase — الصق إعدادات مشروعك في متغيّر <b>FIREBASE_CONFIG</b> أعلى الكود.
+  </div>
+</div>
+
+<!-- ================= اللوبي ================= -->
+<div class="full" id="scrLobby">
+  <div class="lb-top">
+    <div class="lb-brand">
+      <span class="lb-eye">👁️</span>
+      <div><h2>بيت العيلة</h2><small id="lobbySub"></small></div>
+    </div>
+    <div class="lb-actions">
+      <button class="icon-b" onclick="shareRoom()" title="دعوة العائلة">📤</button>
+      <button class="icon-b" onclick="leaveRoom()" title="خروج">✕</button>
+    </div>
+  </div>
+  <div class="prep">
+    <div class="sec-title">الموجودون الآن</div>
+    <div class="players" id="playersBox"></div>
+    <p class="note" id="hiderHint" style="text-align:right;margin-top:8px"></p>
+
+    <div class="main-card">
+      <div class="mc-head">
+        <span class="mc-ic">🫣</span>
+        <div class="mc-tx"><b>لعبة التخبئة</b><small id="gameSub">اختر المخبّي ثم ابدأ</small></div>
+        <button class="chip-btn" id="luckBtn" onclick="randomHider()" style="display:none" title="قرعة">🎲</button>
+      </div>
+      <button class="btn" id="startBtn" onclick="startRound()" disabled>خبّي — ابدأ الجولة</button>
+      <p class="note" id="guestNote" style="display:none;margin-top:8px">بانتظار المدير يبدأ الجولة<span class="dots"></span></p>
+    </div>
+
+    <div class="duo">
+      <button class="duo-b" onclick="startDecorFlow()"><span>➕</span>أضف زينة</button>
+      <button class="duo-b glowb" id="exploreBtn" onclick="startExplore()" disabled><span>🧭</span>استكشف <b id="decorCount"></b></button>
+    </div>
+
+    <div class="sec-title" id="feedTitle" style="display:none">آخر الأحداث</div>
+    <div class="feed" id="feedBox"></div>
+  </div>
+</div>
+
+<!-- ================= انتظار المخبّي (للمدوّرين) ================= -->
+<div class="full" id="scrWait">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>الجولة بدأت!</h2><small id="waitSub"></small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🫣</span>
+    <h2 id="waitHider">... يخبّي الآن</h2>
+    <p>غمّضوا عيونكم 😄 أول ما يخلص التخبئة بتنفتح لكم الكاميرا للبحث<span class="dots"></span></p>
+  </div>
+</div>
+
+<!-- ================= دور المخبّي: ابدأ ================= -->
+<div class="full" id="scrYourTurn">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>دورك أنت! 🫣</h2><small>الكل بانتظارك يخبّي</small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🎯</span>
+    <h2>اختير أنت المخبّي</h2>
+    <p>روح لمكان بالبيت، صوّره، وثبّت المجسم فيه.<br>لا تخلي أحد يشوفك! 🤫</p>
+    <button class="btn" onclick="startHideFlow()" style="max-width:280px;margin:18px auto 0">📷 افتح الكاميرا وخبّي</button>
+  </div>
+</div>
+
+<!-- ================= الكاميرا ================= -->
+<div class="full" id="scrCam">
+  <div class="topbar">
+    <button class="back" onclick="closeCam()">✕</button>
+    <div><h2>امسح مكان التخبئة</h2><small>صوّره من زاويتين إلى ٤ زوايا — كل زاوية تقوّي التعرّف</small></div>
+  </div>
+  <div class="cam-wrap">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <div class="cam-frame"></div>
+    <div class="cam-tip" id="camTip">💡 قرّب من المكان وخلّه يعبّي الإطار. اختر مكانًا فيه تفاصيل (رف، لوحة، نقشة..) — بعد أول لقطة حرّك يمين/يسار وقرّب وبعّد والتقط زوايا إضافية</div>
+  </div>
+  <div class="cam-actions">
+    <div class="shots-row" id="shotsRow"></div>
+    <button class="shutter" onclick="capturePlace()" aria-label="التقاط"></button>
+    <button class="btn glow" id="doneShots" style="display:none" onclick="finishShots()">تم ✅ ركّب المجسم</button>
+  </div>
+</div>
+
+<!-- ================= تجهيز المجسم ================= -->
+<div class="full" id="scrPrep">
+  <div class="topbar">
+    <button class="back" onclick="backToCam()">→</button>
+    <div><h2>ركّب المجسم</h2><small>اسحبه لمكانه بالضبط داخل الصورة</small></div>
+  </div>
+  <div class="prep">
+    <div class="spot-preview" id="spotPreview">
+      <img class="spot" id="spotImg" alt="مكان التخبئة">
+      <div id="dragObj">🎁</div>
+    </div>
+    <div class="hintbar">👆 اسحبه بإصبع لمكانه • قرّب إصبعين لتكبيره وتصغيره مباشرة</div>
+    <div class="field">
+      <label>نوع المجسم</label>
+      <div class="obj-row" id="objRow">
+        <div class="obj-opt sel" data-type="gift">🎁<small>هدية</small></div>
+        <div class="obj-opt" data-type="gem">💎<small>جوهرة</small></div>
+        <div class="obj-opt" data-type="coin">🪙<small>كنز</small></div>
+        <div class="obj-opt" data-type="orb">🔮<small>كرة سحرية</small></div>
+        <div class="obj-opt" data-type="ring">💍<small>خاتم</small></div>
+        <div class="obj-opt" data-type="photo">🖼️<small>صورتك</small></div>
+        <div class="obj-opt" data-type="glb">🧊<small>GLB</small></div>
+        <div class="obj-opt" data-type="custom">🛠️<small>ابنيها!</small></div>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" style="display:none">
+      <input type="text" id="glbUrl" placeholder="رابط ملف .glb" dir="ltr"
+        style="display:none;margin-top:8px;width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:14px">
+
+      <!-- ورشة بناء المجسم -->
+      <div id="builderPanel" style="display:none;margin-top:12px">
+        <div class="pv-box">
+          <div id="pvMount"><div class="pv-loading">تجهيز المعاينة 3D<span class="dots"></span></div></div>
+        </div>
+        <div class="hintbar" style="margin:6px 0 10px">القطع تتراكب فوق بعض من الأسفل للأعلى — ركّب رجل ثلج ☃️، صاروخ 🚀، برج، آيسكريم 🍦..</div>
+        <div id="partsList"></div>
+        <button class="btn ghost" type="button" onclick="addPart()" style="margin-top:4px">➕ أضف قطعة فوق</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>حجم المجسم — <b style="color:var(--glow)">نفس الحجم بالضبط اللي بيشوفه المدوّرين</b>: <span id="scaleVal">متوسط</span></label>
+      <input type="range" id="scaleRange" min="1" max="10" value="4">
+    </div>
+    <div class="field">
+      <label>اسم المجسم</label>
+      <input type="text" id="objName" placeholder="مثال: كنز العيلة 🪙" maxlength="30">
+    </div>
+    <button class="btn" id="saveBtn" onclick="saveHidden()">🫣 خبّها وابدأ الصيد</button>
+    <div class="progress-wrap" id="progWrap">
+      <div class="progress-bar"><i id="progBar"></i></div>
+      <p id="progTxt">جاري تحليل المكان وبناء البصمة... ١٠–٣٠ ثانية</p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= تجهيز الزينة ================= -->
+<div class="full" id="scrDecor">
+  <div class="topbar">
+    <button class="back" onclick="backToDecorCam()">→</button>
+    <div><h2>ثبّت الزينة 🧩</h2><small>اسحبها لمكانها بالضبط داخل الصورة</small></div>
+  </div>
+  <div class="prep">
+    <div class="spot-preview" id="decorPreview">
+      <img class="spot" id="decorSpotImg" alt="المكان">
+      <div id="decorDrag">📝</div>
+    </div>
+    <div class="hintbar">👆 اسحبها بإصبع لمكانها • قرّب إصبعين لتكبيرها وتصغيرها مباشرة</div>
+
+    <div class="field">
+      <label>نوع الزينة</label>
+      <div class="obj-row" id="decorKindRow">
+        <div class="obj-opt sel" data-kind="text">📝<small>كتابة</small></div>
+        <div class="obj-opt" data-kind="image">🖼️<small>صورة</small></div>
+        <div class="obj-opt" data-kind="sticker">😎<small>ملصق</small></div>
+        <div class="obj-opt" data-kind="glb">🧊<small>GLB</small></div>
+        <div class="obj-opt" data-kind="custom">🛠️<small>مبني</small></div>
+      </div>
+    </div>
+
+    <div class="field" id="dTextWrap">
+      <input type="text" id="dText" placeholder="اكتب اللي تبغاه يظهر على الجدار.." maxlength="60"
+        style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:16px;font-family:'Baloo Bhaijaan 2'">
+      <div class="color-row" style="margin-top:10px" id="dColorRow"></div>
+      <div class="shape-row" style="margin-top:10px" id="dBgRow">
+        <button type="button" class="shape-b sel" data-bg="none" style="font-size:12px">بدون خلفية</button>
+        <button type="button" class="shape-b" data-bg="light" style="font-size:12px">لوح فاتح</button>
+        <button type="button" class="shape-b" data-bg="dark" style="font-size:12px">لوح غامق</button>
+      </div>
+    </div>
+    <div class="field" id="dImageWrap" style="display:none">
+      <button class="btn ghost" onclick="document.getElementById('dImageFile').click()">📁 اختر الصورة</button>
+      <input type="file" id="dImageFile" accept="image/*" style="display:none">
+      <p class="note" id="dImgNote"></p>
+    </div>
+    <div class="field" id="dStickerWrap" style="display:none">
+      <input type="text" id="dSticker" placeholder="حط إيموجي واحد.. 🐪🌹🔥👑" maxlength="4"
+        style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:26px;text-align:center">
+    </div>
+    <div class="field" id="dGlbWrap" style="display:none">
+      <input type="text" id="dGlb" placeholder="رابط ملف .glb" dir="ltr"
+        style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:14px">
+      <p class="note" style="text-align:right">إذا الملف فيه حركة (Animation) بتشتغل تلقائيًا ✨</p>
+    </div>
+    <div class="field" id="dBuilderWrap" style="display:none"></div>
+
+    <div class="field">
+      <label>حركة الزينة</label>
+      <div class="shape-row" id="dMotionRow">
+        <button type="button" class="shape-b sel" data-mo="none" style="font-size:12px">ثابتة</button>
+        <button type="button" class="shape-b" data-mo="pulse" style="font-size:12px">نبض 💓</button>
+        <button type="button" class="shape-b" data-mo="sway" style="font-size:12px">تمايل 🍃</button>
+        <button type="button" class="shape-b" data-mo="spin" style="font-size:12px">دوران 🔄</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>الحجم — نفسه بالضبط اللي بيظهر للناس: <span id="dScaleVal">متوسط</span></label>
+      <input type="range" id="dScaleRange" min="1" max="10" value="5">
+    </div>
+
+    <button class="btn" id="dSaveBtn" onclick="saveDecor()">🧩 ثبّتها في المكان</button>
+    <div class="progress-wrap" id="dProgWrap">
+      <div class="progress-bar"><i id="dProgBar"></i></div>
+      <p id="dProgTxt"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= جاهز للصيد (للمدوّرين) ================= -->
+<div class="full" id="scrReady">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>الصيد بدأ! 🏁</h2><small id="readySub"></small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🔍</span>
+    <h2 id="readyName">المجسم انخبّى!</h2>
+    <p>لفّوا بالبيت وقرّبوا الكاميرا من الأماكن المشبوهة..<br>أول واحد تظهر له يضغط "لقيته!"</p>
+    <button class="btn glow" onclick="startAR()" style="max-width:280px;margin:18px auto 0">📷 شغّل كاميرا البحث</button>
+  </div>
+</div>
+
+<!-- ================= لوحة المتابعة الحية ================= -->
+<div class="full" id="scrBoard">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>المتابعة الحية 📡</h2><small id="boardSub"></small></div>
+  </div>
+  <div class="prep">
+    <div class="sec-title">حالة المدوّرين</div>
+    <div class="players" id="boardPlayers"></div>
+    <div class="sec-title">آخر الأحداث</div>
+    <div class="feed" id="boardFeed"></div>
+    <div id="boardHostArea" style="display:none">
+      <button class="btn" onclick="newRound()" style="margin-top:22px">🔄 جولة جديدة</button>
+    </div>
+    <button class="btn ghost" id="rejoinHunt" onclick="startAR()" style="display:none">📷 ارجع للبحث</button>
+  </div>
+</div>
+
+<!-- ================= AR ================= -->
+<div id="arContainer">
+  <div id="arScene"></div>
+  <div class="ar-top">
+    <span class="title" id="arTitle">🔍 تدوّر على...</span>
+    <button class="ar-exit" onclick="exitAR(true)">✕</button>
+  </div>
+  <div class="radar" id="radar">
+    <div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div>
+  </div>
+  <div class="ar-status"><span class="pill" id="arPill">لفّ بالكاميرا وقرّبها من الأماكن المشبوهة 👀</span></div>
+  <div class="ar-bottom"><button class="btn glow" id="foundBtn" onclick="markFound()">🎉 لقيته!</button></div>
+</div>
+
+<!-- ================= الاحتفال ================= -->
+<div id="celebrate">
+  <div class="card">
+    <div class="big">🏆</div>
+    <h2 id="celTitle">لقيتها!</h2>
+    <p id="celTxt"></p>
+    <button class="btn" onclick="closeCelebrate()">تمام 🙌</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loaderOv"><div class="spin"></div><p id="loaderTxt">جاري التحميل...</p></div>
+
+<script>
+/* ============================================================
+   ١) إعدادات Firebase — الصق إعدادات مشروعك هنا (Realtime DB)
+============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD2m4fXnK2dy00ggfQF75qerllD5FXnHOk",
+  authDomain: "mineral-oarlock-297910.firebaseapp.com",
+  databaseURL: "https://mineral-oarlock-297910-default-rtdb.firebaseio.com",
+  projectId: "mineral-oarlock-297910",
+  storageBucket: "mineral-oarlock-297910.firebasestorage.app",
+  messagingSenderId: "980237692993",
+  appId: "1:980237692993:web:57e4f23ce30b542566d6c0"
+};
+const ROOT = "arHideSeek/rooms";
+
+/* ============================================================
+   ٢) الحالة العامة
+============================================================ */
+let db=null, ready=false;
+let roomCode=null, myId=null, myNameV="";
+let roomState={}, players={}, isHost=false, iAmHider=false;
+let stateRef=null, playersRef=null, eventsRef=null;
+let selectedHider=null;
+let camStream=null, capturedCanvas=null, dragPos={x:.5,y:.5}, selType="gift", photoObjData=null;
+let roundObject=null, arSceneEl=null, iFound=false;
+let currentPhaseScreen="";
+
+const OBJ_EMOJI={gift:"🎁",gem:"💎",coin:"🪙",orb:"🔮",ring:"💍",photo:"🖼️",glb:"🧊",custom:"☃️"};
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2800);}
+function loader(on,msg){$("loaderOv").classList.toggle("active",!!on);if(msg)$("loaderTxt").textContent=msg;}
+function esc(s){return String(s||"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));}
+
+const _loaded={};
+function loadScript(u){if(_loaded[u])return _loaded[u];_loaded[u]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=u;s.onload=res;s.onerror=()=>rej(new Error("فشل تحميل: "+u));document.head.appendChild(s);});return _loaded[u];}
+const URL_FB_APP="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
+const URL_FB_DB ="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js";
+const URL_COMPILER="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js";
+const URL_AFRAME="https://aframe.io/releases/1.4.2/aframe.min.js";
+const URL_MINDAR_AF="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js";
+const URL_COMPILER_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js";
+const URL_MINDAR_AF_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js";
+
+/* mind-ar 1.2.x مبنية كـ ES Module — نحمّلها بـ import() وإذا فشل نرجع للنسخة القديمة */
+let _CompilerClass=null, _mindVer="new", _afLoaded=false;
+async function getCompiler(){
+  if(_CompilerClass) return _CompilerClass;
+  try{
+    const m = await import(URL_COMPILER);
+    _CompilerClass = m.Compiler || (m.default&&m.default.Compiler) || (window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler);
+  }catch(e){ console.warn("import compiler failed", e); }
+  if(!_CompilerClass){
+    _mindVer="old";
+    await loadScript(URL_COMPILER_OLD);
+    _CompilerClass = window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler;
+  }
+  if(!_CompilerClass) throw new Error("تعذّر تحميل محرك بناء البصمة — تأكد من الإنترنت وحدّث الصفحة");
+  return _CompilerClass;
+}
+async function loadARRuntime(){
+  await loadScript(URL_AFRAME);
+  if(_afLoaded) return;
+  if(_mindVer==="old"){ await loadScript(URL_MINDAR_AF_OLD); _afLoaded=true; return; }
+  try{ await import(URL_MINDAR_AF); _afLoaded=true; }
+  catch(e){
+    console.warn("import mindar-aframe failed", e);
+    _mindVer="old";
+    await loadScript(URL_MINDAR_AF_OLD);
+    _afLoaded=true;
+  }
+}
+
+/* ============================================================
+   ٣) تهيئة Firebase
+============================================================ */
+async function initDB(){
+  myId = localStorage.getItem("arhs_pid") || ("p_"+Math.random().toString(36).slice(2,10));
+  localStorage.setItem("arhs_pid", myId);
+  const savedName = localStorage.getItem("arhs_name"); if(savedName) $("myName").value=savedName;
+
+  if(FIREBASE_CONFIG.apiKey==="PASTE_HERE"){ $("fbBanner").classList.add("show"); return; }
+  try{
+    await loadScript(URL_FB_APP); await loadScript(URL_FB_DB);
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database(); ready = true;
+  }catch(e){ $("fbBanner").classList.add("show"); toast("تعذّر الاتصال بـ Firebase"); }
+}
+
+/* ============================================================
+   ٤) الدخول: غرفة عائلية واحدة — أول داخل يفتحها والبقية ينضمّون
+============================================================ */
+const FAMILY_ROOM="FAMILY";
+function needName(){
+  myNameV = $("myName").value.trim();
+  if(!myNameV){ toast("اكتب اسمك أول 🙏"); return false; }
+  localStorage.setItem("arhs_name", myNameV); return true;
+}
+async function joinAuto(){
+  if(!ready) return toast("⚠️ تأكد من إعدادات Firebase والإنترنت");
+  if(!needName()) return;
+  loader(true,"فتح البيت...");
+  const sRef=db.ref(`${ROOT}/${FAMILY_ROOM}/state`);
+  const snap=await sRef.once("value");
+  if(!snap.exists()){
+    await sRef.set({phase:"lobby",hostId:myId,hiderId:null,round:1,ts:Date.now()});
+  }
+  loader(false);
+  enterRoom(FAMILY_ROOM);
+}
+function enterRoom(code){
+  roomCode = code;
+
+  // تسجيل حضوري + مؤشر الاتصال اللحظي
+  const meRef = db.ref(`${ROOT}/${code}/players/${myId}`);
+  meRef.update({name:myNameV, online:true, joinedAt:firebase.database.ServerValue.TIMESTAMP});
+  meRef.onDisconnect().update({online:false});
+
+  // المستمعون اللحظيون
+  stateRef   = db.ref(`${ROOT}/${code}/state`);
+  playersRef = db.ref(`${ROOT}/${code}/players`);
+  eventsRef  = db.ref(`${ROOT}/${code}/events`).limitToLast(25);
+  stateRef.on("value", s=>{ roomState=s.val()||{}; onStateChange(); });
+  playersRef.on("value", s=>{ players=s.val()||{}; renderPlayers(); });
+  eventsRef.on("value", s=>{ renderFeed(s.val()||{}); });
+  db.ref(`${ROOT}/${code}/decor/index`).on("value", s=>{
+    decorIndex=s.val()||{};
+    const n=Object.keys(decorIndex).length;
+    $("decorCount").textContent = n?`(${n})`:"";
+    $("exploreBtn").disabled = !n;
+  });
+
+  pushEvent("join", `${myNameV} دخل الغرفة 👋`);
+  showPhaseScreen("scrLobby");
+}
+function leaveRoom(){
+  if(confirm("تبغى تطلع من الغرفة؟")){
+    if(stateRef){stateRef.off();playersRef.off();eventsRef.off();}
+    if(db && roomCode) db.ref(`${ROOT}/${roomCode}/players/${myId}`).update({online:false});
+    exitARQuiet();
+    roomCode=null;
+    document.querySelectorAll(".full").forEach(f=>f.classList.remove("active"));
+    $("arContainer").classList.remove("active");
+    currentPhaseScreen="";
+  }
+}
+function pushEvent(type,text){
+  if(db&&roomCode) db.ref(`${ROOT}/${roomCode}/events`).push({type,text,ts:Date.now()});
+}
+function shareRoom(){
+  const url = location.origin+location.pathname;
+  const txt = `تعالوا نلعب "خبّيها ولقّها" 👁️🎁 — افتح الرابط واكتب اسمك وادخل:\n${url}`;
+  if(navigator.share) navigator.share({title:"خبّيها ولقّها",text:txt,url}).catch(()=>{});
+  else { navigator.clipboard.writeText(txt); toast("انسخ الرابط ✅"); }
+}
+
+/* ============================================================
+   ٥) آلة الحالات: تتغير الشاشة لحظيًا حسب مرحلة الغرفة
+============================================================ */
+function showPhaseScreen(id){
+  if(currentPhaseScreen===id) return;
+  ["scrLobby","scrWait","scrYourTurn","scrReady","scrBoard"].forEach(s=>$(s).classList.remove("active"));
+  // لا نقاطع المخبّي أو مثبّت الزينة وهو داخل الكاميرا/التجهيز
+  if(["scrCam","scrPrep","scrDecor"].some(s=>$(s).classList.contains("active"))) return;
+  if($("arContainer").classList.contains("active")) return;
+  $(id).classList.add("active");
+  currentPhaseScreen=id;
+}
+/* المدير الفعّال: صاحب الغرفة إذا متصل، وإلا أقدم لاعب متصل — عشان اللعب ما يتعطل */
+function effectiveHostId(){
+  const h=roomState.hostId;
+  if(h && players[h] && players[h].online) return h;
+  const online=Object.entries(players).filter(([,p])=>p.online)
+    .sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
+  return online.length?online[0][0]:h;
+}
+function onStateChange(){
+  if(!roomCode) return;
+  isHost   = effectiveHostId()===myId;
+  iAmHider = roomState.hiderId===myId;
+  selectedHider = roomState.hiderId||null;
+
+  const hiderName = players[selectedHider]?.name || "أحدهم";
+  const onlineN = Object.values(players).filter(p=>p.online).length;
+  $("lobbySub").textContent = `${onlineN} ${onlineN===1?"متصل":"متصلين"} • الجولة ${roomState.round||1}`;
+  $("luckBtn").style.display = isHost?"block":"none";
+  $("startBtn").style.display = isHost?"block":"none";
+  $("startBtn").disabled = !selectedHider;
+  $("guestNote").style.display = isHost?"none":"block";
+  $("hiderHint").textContent = isHost
+    ? "👑 أنت المدير — اضغط على اسم لاعب لاختياره مخبّيًا، أو 🎲 للقرعة"
+    : "";
+  $("gameSub").textContent = selectedHider
+    ? `المخبّي: ${hiderName} 🫣`
+    : "لم يُختَر المخبّي بعد";
+
+  if(roomState.phase==="lobby"){
+    iFound=false; roundObject=null;
+    exitARQuiet();
+    showPhaseScreen("scrLobby");
+  }
+  else if(roomState.phase==="hiding"){
+    if(iAmHider){ showPhaseScreen("scrYourTurn"); }
+    else { $("waitHider").textContent = hiderName+" يخبّي الآن"; $("waitSub").textContent="الجولة "+(roomState.round||1); showPhaseScreen("scrWait"); }
+  }
+  else if(roomState.phase==="seeking"){
+    loadRoundObject().then(()=>{
+      const myFound = players[myId]?.found;
+      if(iAmHider || myFound){ renderBoard(); showPhaseScreen("scrBoard"); }
+      else{
+        $("readyName").textContent = `"${roundObject?.name||"المجسم"}" انخبّى!`;
+        $("readySub").textContent  = "خبّاها: "+hiderName;
+        showPhaseScreen("scrReady");
+      }
+    });
+  }
+  renderPlayers(); renderBoard();
+}
+async function loadRoundObject(){
+  if(roundObject && roundObject._round===roomState.round) return;
+  const s = await db.ref(`${ROOT}/${roomCode}/object`).once("value");
+  roundObject = s.val(); if(roundObject) roundObject._round = roomState.round;
+}
+
+/* ============================================================
+   ٦) عرض اللاعبين والسجل
+============================================================ */
+function renderPlayers(){
+  const box=$("playersBox"); if(!box) return; box.innerHTML="";
+  Object.entries(players).forEach(([pid,p])=>{
+    const d=document.createElement("div");
+    d.className="pl"+(p.online?" on":"")+(pid===selectedHider?" hider":"")+(pid===myId?" me":"")+(p.found?" found-p":"");
+    d.innerHTML=`<span class="st"></span>${esc(p.name)}${effectiveHostId()===pid?" 👑":""}`;
+    if(isHost && roomState.phase==="lobby"){
+      d.onclick=()=>{ stateRef.update({hiderId:pid}); toast("🫣 المخبّي: "+p.name); };
+    }
+    box.appendChild(d);
+  });
+}
+function renderFeed(evs){
+  const arr=Object.values(evs).sort((a,b)=>b.ts-a.ts);
+  const html = arr.map(e=>`<div class="ev ${e.type==='found'?'win':''}">${esc(e.text)}</div>`).join("");
+  $("feedBox").innerHTML = html; $("boardFeed").innerHTML = html;
+  $("feedTitle").style.display = arr.length?"block":"none";
+  // إشعار لحظي أثناء البحث
+  const last=arr[0];
+  if(last && last.type==="found" && $("arContainer").classList.contains("active") && Date.now()-last.ts<6000){
+    toast(last.text);
+  }
+}
+function renderBoard(){
+  const box=$("boardPlayers"); if(!box) return; box.innerHTML="";
+  Object.entries(players).forEach(([pid,p])=>{
+    if(pid===selectedHider) return;
+    const d=document.createElement("div");
+    d.className="pl"+(p.online?" on":"")+(p.found?" found-p":"");
+    d.innerHTML=`<span class="st"></span>${esc(p.name)} ${p.found?"":"🔍"}`;
+    box.appendChild(d);
+  });
+  $("boardSub").textContent = iAmHider? "أنت المخبّي — تابع مين يلقاها 😏" : "لقيتها! تابع الباقين";
+  $("boardHostArea").style.display = isHost?"block":"none";
+  $("rejoinHunt").style.display = (!iAmHider && !players[myId]?.found && roomState.phase==="seeking")?"block":"none";
+}
+
+/* ============================================================
+   ٧) تحكم المدير: القرعة وبدء الجولة وجولة جديدة
+============================================================ */
+function randomHider(){
+  const ids=Object.keys(players).filter(pid=>players[pid].online);
+  if(!ids.length) return;
+  const pick=ids[Math.floor(Math.random()*ids.length)];
+  stateRef.update({hiderId:pick});
+  pushEvent("info","🎲 القرعة اختارت: "+players[pick].name);
+}
+function startRound(){
+  if(!selectedHider) return toast("اختر المخبّي أول");
+  stateRef.update({phase:"hiding",ts:Date.now()});
+  pushEvent("info",`🚀 بدأت الجولة ${roomState.round||1} — ${players[selectedHider]?.name} يخبّي`);
+}
+async function newRound(){
+  loader(true,"تجهيز جولة جديدة...");
+  const ups={};
+  Object.keys(players).forEach(pid=>ups[`players/${pid}/found`]=null);
+  ups["object"]=null;
+  ups["state/phase"]="lobby";
+  ups["state/hiderId"]=null;
+  ups["state/round"]=(roomState.round||1)+1;
+  await db.ref(`${ROOT}/${roomCode}`).update(ups);
+  loader(false);
+  pushEvent("info","🔄 جولة جديدة! مدير الغرفة يختار المخبّي");
+}
+
+/* ============================================================
+   ٨) تدفق التخبئة (نفس محرك النسخة الأولى)
+============================================================ */
+async function startHideFlow(){
+  flowMode="game";
+  capturedShots=[]; renderShots();
+  $("camTip").textContent="💡 قرّب من المكان وخلّه يعبّي الإطار. اختر مكانًا فيه تفاصيل (رف، لوحة، نقشة..) — بعد أول لقطة حرّك يمين/يسار وقرّب وبعّد والتقط زوايا إضافية";
+  openCamera();
+}
+async function openCamera(){
+  $("scrCam").classList.add("active");
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1920},height:{ideal:1440}},audio:false});
+    $("camVideo").srcObject = camStream;
+  }catch(e){ toast("⚠️ ما قدرت أفتح الكاميرا — تأكد من الإذن ومن https"); closeCam(); }
+}
+function stopCam(){ if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} $("camVideo").srcObject=null; }
+function closeCam(){ stopCam(); $("scrCam").classList.remove("active"); }
+
+let capturedShots=[]; // مصفوفة لقطات المكان من عدة زوايا
+/* درجة تفاصيل الصورة: الأماكن السادة يصعب التعرّف عليها — ننبّه فورًا */
+function detailScore(c){
+  const w=120,hh=90, t=document.createElement("canvas"); t.width=w; t.height=hh;
+  const x=t.getContext("2d"); x.drawImage(c,0,0,w,hh);
+  const d=x.getImageData(0,0,w,hh).data; let sum=0,n=0;
+  for(let y=1;y<hh-1;y++)for(let xx=1;xx<w-1;xx++){
+    const i=(y*w+xx)*4;
+    const l=d[i]*.3+d[i+1]*.59+d[i+2]*.11;
+    const r=d[i+4]*.3+d[i+5]*.59+d[i+6]*.11;
+    const b=d[i+w*4]*.3+d[i+w*4+1]*.59+d[i+w*4+2]*.11;
+    sum+=Math.abs(l-r)+Math.abs(l-b); n++;
+  }
+  return sum/n;
+}
+function capturePlace(){
+  const v=$("camVideo"); if(!v.videoWidth) return toast("انتظر ثانية.. الكاميرا لسّه");
+  if(capturedShots.length>=4) return toast("الحد الأقصى ٤ زوايا — اضغط تم ✅");
+  const MAX=900, r=Math.min(1,MAX/v.videoWidth);
+  const c=document.createElement("canvas");
+  c.width=Math.round(v.videoWidth*r); c.height=Math.round(v.videoHeight*r);
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  const score=detailScore(c);
+  if(score<5){
+    toast("⚠️ هذي الزاوية سادة وقليلة التفاصيل — قرّب من أغراض أو نقوش وأعد اللقطة");
+    if(navigator.vibrate)navigator.vibrate([120,60,120]);
+    return; // ما نقبل لقطة ضعيفة — هذا أساس دقة التعرّف
+  }
+  if(score<9) toast("💡 مقبولة.. لكن زاوية فيها تفاصيل أكثر بتخلي التعرّف أسرع");
+  capturedShots.push(c);
+  if(navigator.vibrate)navigator.vibrate(40);
+  renderShots();
+  const n=capturedShots.length;
+  $("camTip").textContent = n===1
+    ? "👍 لقطة! الآن تحرّك شوي (يمين/يسار أو قرّب/بعّد) والتقط زاوية ثانية لنفس المكان"
+    : `📸 ${n} زوايا — كل ما زدت زوايا صار التعرّف أسهل من أي اتجاه. اضغط تم إذا خلصت`;
+}
+function renderShots(){
+  const row=$("shotsRow"); row.innerHTML="";
+  capturedShots.forEach((c,i)=>{
+    const d=document.createElement("div"); d.className="shot-x";
+    const im=document.createElement("img"); im.src=c.toDataURL("image/jpeg",.5);
+    const x=document.createElement("button"); x.textContent="✕";
+    x.onclick=()=>{capturedShots.splice(i,1);renderShots();};
+    d.appendChild(im); d.appendChild(x); row.appendChild(d);
+  });
+  $("doneShots").style.display = capturedShots.length?"block":"none";
+  $("doneShots").textContent = `تم ✅ ركّب المجسم (${capturedShots.length} ${capturedShots.length===1?"زاوية":"زوايا"})`;
+}
+function finishShots(){
+  if(!capturedShots.length) return;
+  capturedCanvas = capturedShots[0]; // الزاوية الأولى هي مرجع التركيب
+  stopCam();
+  $("scrCam").classList.remove("active");
+  if(flowMode==="decor") openDecorPrep(); else openPrep();
+}
+function backToCam(){ $("scrPrep").classList.remove("active"); renderShots(); openCamera(); }
+function openPrep(){
+  $("scrPrep").classList.add("active");
+  $("spotImg").src = capturedCanvas.toDataURL("image/jpeg",.85);
+  dragPos={x:.5,y:.5}; positionDragObj(); updateDragVisual();
+}
+function positionDragObj(){ const d=$("dragObj"); d.style.left=(dragPos.x*100)+"%"; d.style.top=(dragPos.y*100)+"%"; }
+function updateDragVisual(){
+  const d=$("dragObj"), s=parseInt($("scaleRange").value,10), px=26+s*7;
+  if(selType==="photo"&&photoObjData){ d.innerHTML=`<img src="${photoObjData}" style="width:${px*1.4}px">`; }
+  else{ d.textContent=OBJ_EMOJI[selType]; d.style.fontSize=px+"px"; }
+  const names=["","صغير جدًا","صغير","صغير+","متوسط","متوسط+","كبير","كبير+","ضخم","ضخم+","عملاق"];
+  $("scaleVal").textContent=names[s]||"متوسط";
+}
+/* سحب بإصبع + تكبير/تصغير بإصبعين مباشرة على الصورة */
+function installDragPinch(wrap, posObj, positionFn, rangeEl, visualFn){
+  const pts=new Map(); let startDist=0, startVal=0;
+  const dist=()=>{const [a,b]=[...pts.values()];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);};
+  wrap.addEventListener("pointerdown",e=>{
+    pts.set(e.pointerId,e);
+    if(pts.size===2){ startDist=dist(); startVal=parseInt(rangeEl.value,10); }
+    else if(pts.size===1) moveSingle(e);
+  });
+  const moveSingle=e=>{
+    const r=wrap.getBoundingClientRect();
+    posObj.x=Math.min(.97,Math.max(.03,(e.clientX-r.left)/r.width));
+    posObj.y=Math.min(.97,Math.max(.03,(e.clientY-r.top)/r.height));
+    positionFn();
+  };
+  wrap.addEventListener("pointermove",e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,e);
+    if(pts.size===2){
+      const v=Math.round(Math.min(10,Math.max(1,startVal*(dist()/startDist))));
+      if(String(v)!==rangeEl.value){ rangeEl.value=v; visualFn(); }
+    }else{ moveSingle(e); }
+    e.preventDefault();
+  },{passive:false});
+  const up=e=>pts.delete(e.pointerId);
+  wrap.addEventListener("pointerup",up); wrap.addEventListener("pointercancel",up);
+  window.addEventListener("pointerup",up);
+}
+installDragPinch($("spotPreview"), dragPos, positionDragObj, $("scaleRange"), updateDragVisual);
+$("objRow").addEventListener("click",e=>{
+  const opt=e.target.closest(".obj-opt"); if(!opt)return;
+  document.querySelectorAll(".obj-opt").forEach(o=>o.classList.remove("sel"));
+  opt.classList.add("sel"); selType=opt.dataset.type;
+  $("glbUrl").style.display = selType==="glb"?"block":"none";
+  $("builderPanel").style.display = selType==="custom"?"block":"none";
+  if(selType==="custom"){ $("glbUrl").insertAdjacentElement("afterend", $("builderPanel")); openBuilder(); }
+  if(selType==="photo"&&!photoObjData)$("photoFile").click();
+  updateDragVisual();
+});
+$("photoFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const img=new Image();
+  img.onload=()=>{
+    const M=512,r=Math.min(1,M/Math.max(img.width,img.height));
+    const c=document.createElement("canvas"); c.width=img.width*r;c.height=img.height*r;
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    photoObjData=c.toDataURL("image/jpeg",.82); updateDragVisual();
+  };
+  img.src=URL.createObjectURL(f);
+});
+$("scaleRange").addEventListener("input",updateDragVisual);
+
+/* ============================================================
+   ٨-ب) ورشة بناء المجسمات 🛠️
+============================================================ */
+const SHAPES=[
+  {id:"box",    em:"⬛", name:"مكعب"},
+  {id:"sphere", em:"⚪", name:"كرة"},
+  {id:"cylinder",em:"🛢️", name:"اسطوانة"},
+  {id:"cone",   em:"🔺", name:"مخروط"},
+  {id:"pyramid",em:"🔶", name:"هرم"},
+  {id:"torus",  em:"⭕", name:"حلقة"},
+];
+const PART_COLORS=["#E24C4C","#F0B84B","#4FD6C4","#8A5CF6","#4C8DE2","#57C15B","#F27BB4","#F5F0FF","#5A4632"];
+let builderParts=[{shape:"sphere",color:"#F5F0FF",size:1.2},{shape:"sphere",color:"#F5F0FF",size:0.85}]; // رجل ثلج كبداية
+let pvReady=false;
+
+function renderBuilder(){
+  const list=$("partsList"); list.innerHTML="";
+  builderParts.forEach((p,i)=>{
+    const row=document.createElement("div"); row.className="part-row";
+    row.innerHTML=`
+      <div class="pr-head">
+        <b>القطعة ${i+1}${i===0?" (الأسفل)":i===builderParts.length-1?" (الأعلى)":""}</b>
+        ${builderParts.length>1?`<button class="pr-del" onclick="delPart(${i})">✕</button>`:""}
+      </div>
+      <div class="shape-row">
+        ${SHAPES.map(s=>`<button type="button" class="shape-b ${p.shape===s.id?"sel":""}" onclick="setPart(${i},'shape','${s.id}')" title="${s.name}">${s.em}</button>`).join("")}
+      </div>
+      <div class="color-row">
+        ${PART_COLORS.map(c=>`<button type="button" class="color-b ${p.color===c?"sel":""}" style="background:${c}" onclick="setPart(${i},'color','${c}')"></button>`).join("")}
+        <span class="size-row">
+          ${[["0.7","صغير"],["1","وسط"],["1.4","كبير"]].map(([v,n])=>`<button type="button" class="size-b ${Math.abs(p.size-parseFloat(v))<.2?"sel":""}" onclick="setPart(${i},'size',${v})">${n}</button>`).join("")}
+        </span>
+      </div>`;
+    list.appendChild(row);
+  });
+  refreshPreview();
+}
+function setPart(i,k,v){ builderParts[i][k]=v; renderBuilder(); }
+function addPart(){
+  if(builderParts.length>=5) return toast("الحد الأقصى ٥ قطع");
+  builderParts.push({shape:"box",color:PART_COLORS[builderParts.length%PART_COLORS.length],size:1});
+  renderBuilder();
+}
+function delPart(i){ builderParts.splice(i,1); renderBuilder(); }
+
+/* ارتفاع كل شكل وتوليد كوده */
+function partH(shape,u){ return shape==="torus"?u*0.35:u; }
+function partHTML(p,u,cy){
+  const mat=`material="metalness:.35;roughness:.4"`;
+  switch(p.shape){
+    case "sphere":  return `<a-sphere position="0 ${cy.toFixed(3)} 0" radius="${(u/2).toFixed(3)}" color="${p.color}" ${mat}></a-sphere>`;
+    case "cylinder":return `<a-cylinder position="0 ${cy.toFixed(3)} 0" radius="${(u*.42).toFixed(3)}" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cylinder>`;
+    case "cone":    return `<a-cone position="0 ${cy.toFixed(3)} 0" radius-bottom="${(u*.5).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cone>`;
+    case "pyramid": return `<a-cone position="0 ${cy.toFixed(3)} 0" segments-radial="4" radius-bottom="${(u*.6).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" rotation="0 45 0" color="${p.color}" ${mat}></a-cone>`;
+    case "torus":   return `<a-torus position="0 ${cy.toFixed(3)} 0" rotation="90 0 0" radius="${(u*.42).toFixed(3)}" radius-tubular="${(u*.13).toFixed(3)}" color="${p.color}" ${mat}></a-torus>`;
+    default:        return `<a-box position="0 ${cy.toFixed(3)} 0" width="${u.toFixed(3)}" height="${u.toFixed(3)}" depth="${u.toFixed(3)}" color="${p.color}" ${mat}></a-box>`;
+  }
+}
+function customInner(parts,unit){
+  let total=0; parts.forEach(p=>total+=partH(p.shape,unit*(p.size||1)));
+  let y=-total/2, html="";
+  parts.forEach(p=>{
+    const u=unit*(p.size||1), h=partH(p.shape,u);
+    html+=partHTML(p,u,y+h/2); y+=h;
+  });
+  return html;
+}
+
+/* معاينة 3D دوّارة داخل الورشة */
+async function openBuilder(){
+  $("builderPanel").style.display="block";
+  renderBuilder();
+  try{
+    await loadScript(URL_AFRAME);
+    if(!pvReady){
+      $("pvMount").innerHTML=`
+        <a-scene embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
+          renderer="colorManagement:true" background="color:#1E1735">
+          <a-entity light="type:ambient;intensity:1"></a-entity>
+          <a-entity light="type:directional;intensity:.8" position="1 2 2"></a-entity>
+          <a-entity id="pvModel" position="0 0.1 -2.1"
+            animation="property: rotation; to: 0 360 0; dur:6000; loop:true; easing:linear"></a-entity>
+          <a-entity camera="fov:45" position="0 0.5 0.6" rotation="-8 0 0" look-controls="enabled:false" wasd-controls="enabled:false"></a-entity>
+        </a-scene>`;
+      pvReady=true;
+    }
+    refreshPreview();
+  }catch(e){ $("pvMount").innerHTML='<div class="pv-loading">تعذّرت المعاينة — بس البناء شغّال، كمّل عادي 👍</div>'; }
+}
+function refreshPreview(){
+  const m=document.getElementById("pvModel");
+  if(m) m.innerHTML=customInner(builderParts,0.5);
+}
+
+/* ============================================================
+   ٨-ج) زينة المكان 🧩 — إضافة واستكشاف
+============================================================ */
+let flowMode="game";           // game = لعبة التخبئة | decor = الزينة
+let decorIndex={};             // فهرس خفيف للعدّاد
+let dKind="text", dColor="#F0B84B", dBg="none", dMotion="none";
+let dImageData=null, dImageAspect=1, dDragPos={x:.5,y:.5};
+const DECOR_EMOJI={text:"📝",image:"🖼️",sticker:"😎",glb:"🧊",custom:"☃️"};
+const DECOR_NAMES={text:"كتابة",image:"صورة",sticker:"ملصق",glb:"مجسم GLB",custom:"مجسم مبني"};
+const URL_EXTRAS="https://cdn.jsdelivr.net/npm/aframe-extras@7.2.0/dist/aframe-extras.min.js";
+
+function startDecorFlow(){
+  if(Object.keys(decorIndex).length>=8) return toast("الحد الأقصى ٨ قطع زينة بالغرفة — احذف قطعة أول");
+  flowMode="decor";
+  capturedShots=[]; renderShots();
+  $("camTip").textContent="💡 صوّر المكان اللي بتثبّت فيه الزينة من زاويتين (تكفي غالبًا) — مكان فيه تفاصيل واضحة";
+  openCamera();
+}
+function backToDecorCam(){ $("scrDecor").classList.remove("active"); flowMode="decor"; renderShots(); openCamera(); }
+
+function openDecorPrep(){
+  $("scrDecor").classList.add("active");
+  $("decorSpotImg").src = capturedCanvas.toDataURL("image/jpeg",.85);
+  dDragPos={x:.5,y:.5};
+  renderDColors();
+  positionDDrag(); updateDDrag();
+}
+function renderDColors(){
+  const row=$("dColorRow"); if(row.children.length) return;
+  PART_COLORS.forEach(c=>{
+    const b=document.createElement("button"); b.type="button";
+    b.className="color-b"+(c===dColor?" sel":""); b.style.background=c;
+    b.onclick=()=>{dColor=c;row.querySelectorAll(".color-b").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");updateDDrag();};
+    row.appendChild(b);
+  });
+}
+function positionDDrag(){ const d=$("decorDrag"); d.style.left=(dDragPos.x*100)+"%"; d.style.top=(dDragPos.y*100)+"%"; }
+function updateDDrag(){
+  const d=$("decorDrag");
+  const s=parseInt($("dScaleRange").value,10), px=26+s*7;
+  if(dKind==="text"){
+    const t=$("dText").value.trim()||"كتابتك هنا";
+    d.innerHTML=`<span style="font-family:'Baloo Bhaijaan 2';font-weight:800;font-size:${Math.max(14,px*.45)}px;color:${dColor};white-space:nowrap;${dBg==='light'?'background:#F5F0EA;padding:4px 10px;border-radius:8px;':dBg==='dark'?'background:#221B3A;padding:4px 10px;border-radius:8px;':''}text-shadow:0 1px 4px rgba(0,0,0,.5)">${esc(t)}</span>`;
+  }else if(dKind==="image"&&dImageData){ d.innerHTML=`<img src="${dImageData}" style="width:${px*1.4}px">`; }
+  else if(dKind==="sticker"){ d.textContent=$("dSticker").value.trim()||"😎"; d.style.fontSize=px+"px"; }
+  else{ d.textContent=DECOR_EMOJI[dKind]; d.style.fontSize=px+"px"; }
+  const names=["","صغير جدًا","صغير","صغير+","متوسط","متوسط+","كبير","كبير+","ضخم","ضخم+","عملاق"];
+  $("dScaleVal").textContent=names[s]||"متوسط";
+}
+/* سحب وتكبير الزينة داخل الصورة */
+installDragPinch($("decorPreview"), dDragPos, positionDDrag, $("dScaleRange"), updateDDrag);
+$("decorKindRow").addEventListener("click",e=>{
+  const opt=e.target.closest(".obj-opt"); if(!opt)return;
+  $("decorKindRow").querySelectorAll(".obj-opt").forEach(o=>o.classList.remove("sel"));
+  opt.classList.add("sel"); dKind=opt.dataset.kind;
+  $("dTextWrap").style.display=dKind==="text"?"block":"none";
+  $("dImageWrap").style.display=dKind==="image"?"block":"none";
+  $("dStickerWrap").style.display=dKind==="sticker"?"block":"none";
+  $("dGlbWrap").style.display=dKind==="glb"?"block":"none";
+  $("dBuilderWrap").style.display=dKind==="custom"?"block":"none";
+  if(dKind==="custom"){ $("dBuilderWrap").appendChild($("builderPanel")); $("builderPanel").style.display="block"; openBuilder(); }
+  if(dKind==="image"&&!dImageData)$("dImageFile").click();
+  updateDDrag();
+});
+$("dBgRow").addEventListener("click",e=>{
+  const b=e.target.closest(".shape-b"); if(!b)return;
+  $("dBgRow").querySelectorAll(".shape-b").forEach(x=>x.classList.remove("sel"));
+  b.classList.add("sel"); dBg=b.dataset.bg; updateDDrag();
+});
+$("dMotionRow").addEventListener("click",e=>{
+  const b=e.target.closest(".shape-b"); if(!b)return;
+  $("dMotionRow").querySelectorAll(".shape-b").forEach(x=>x.classList.remove("sel"));
+  b.classList.add("sel"); dMotion=b.dataset.mo;
+});
+$("dText").addEventListener("input",updateDDrag);
+$("dSticker").addEventListener("input",updateDDrag);
+$("dScaleRange").addEventListener("input",updateDDrag);
+$("dImageFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const img=new Image();
+  img.onload=()=>{
+    const M=800,r=Math.min(1,M/Math.max(img.width,img.height));
+    const c=document.createElement("canvas"); c.width=img.width*r;c.height=img.height*r;
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    dImageData=c.toDataURL("image/jpeg",.8);
+    dImageAspect=c.height/c.width;
+    $("dImgNote").textContent="✅ الصورة جاهزة";
+    updateDDrag();
+  };
+  img.src=URL.createObjectURL(f);
+});
+
+/* تحويل الكتابة أو الملصق إلى صورة (الكانفس يدعم تشكيل العربي بشكل صحيح) */
+async function textToTexture(text,color,bg){
+  try{ await document.fonts.load("800 120px 'Baloo Bhaijaan 2'"); }catch(e){}
+  const pad=50, fs=140;
+  const mc=document.createElement("canvas").getContext("2d");
+  mc.font=`800 ${fs}px 'Baloo Bhaijaan 2', sans-serif`;
+  const w=Math.min(1600, Math.max(300, mc.measureText(text).width+pad*2));
+  const c=document.createElement("canvas"); c.width=w; c.height=fs+pad*2;
+  const x=c.getContext("2d");
+  if(bg==="light"){ x.fillStyle="#F5F0EA"; roundRect(x,0,0,c.width,c.height,30); }
+  else if(bg==="dark"){ x.fillStyle="#221B3A"; roundRect(x,0,0,c.width,c.height,30); }
+  x.font=`800 ${fs}px 'Baloo Bhaijaan 2', sans-serif`;
+  x.textAlign="center"; x.textBaseline="middle";
+  x.shadowColor="rgba(0,0,0,.55)"; x.shadowBlur=14; x.shadowOffsetY=4;
+  x.fillStyle=color; x.direction="rtl";
+  x.fillText(text, c.width/2, c.height/2+8);
+  return {url:c.toDataURL("image/png"), aspect:c.height/c.width};
+}
+function roundRect(x,px,py,w,h,r){ x.beginPath(); x.moveTo(px+r,py); x.arcTo(px+w,py,px+w,py+h,r); x.arcTo(px+w,py+h,px,py+h,r); x.arcTo(px,py+h,px,py,r); x.arcTo(px,py,px+w,py,r); x.closePath(); x.fill(); }
+function stickerToTexture(em){
+  const c=document.createElement("canvas"); c.width=c.height=360;
+  const x=c.getContext("2d");
+  x.font="300px 'Apple Color Emoji','Segoe UI Emoji',sans-serif";
+  x.textAlign="center"; x.textBaseline="middle";
+  x.fillText(em, 180, 200);
+  return {url:c.toDataURL("image/png"), aspect:1};
+}
+
+/* حفظ الزينة: بناء خريطة موحدة لكل زينة الغرفة عشان الاستكشاف يشوف الكل بجولة وحدة */
+async function saveDecor(){
+  if(dKind==="text" && !$("dText").value.trim()) return toast("اكتب النص أول 🙏");
+  if(dKind==="image" && !dImageData) return toast("اختر الصورة أول");
+  if(dKind==="sticker" && !$("dSticker").value.trim()) return toast("حط إيموجي أول");
+  if(dKind==="glb" && !$("dGlb").value.trim()) return toast("حط رابط الـ GLB");
+  $("dSaveBtn").disabled=true; $("dProgWrap").style.display="block"; $("dProgBar").style.width="3%";
+  try{
+    $("dProgTxt").textContent="تحميل محرك التعرّف...";
+    const CompilerC=await getCompiler();
+
+    /* نجمع لقطات كل الزينة الموجودة + الجديدة ونبنيها ببصمة موحدة */
+    $("dProgTxt").textContent="جلب زينة الغرفة الحالية...";
+    const itemsSnap=await db.ref(`${ROOT}/${roomCode}/decor/items`).once("value");
+    const items=itemsSnap.val()||{};
+    const imgs=[], map=[];
+    for(const [id,it] of Object.entries(items)){
+      const shots=Array.isArray(it.shots)?it.shots:Object.values(it.shots||{});
+      const asps=Array.isArray(it.shotsAspects)?it.shotsAspects:Object.values(it.shotsAspects||{});
+      for(let j=0;j<shots.length;j++){
+        const im=new Image(); im.src=shots[j]; await im.decode();
+        imgs.push(im); map.push({id, aspect:asps[j]||(im.height/im.width)});
+      }
+    }
+    const newId="d_"+Date.now();
+    const newShots=[], newAsps=[];
+    for(const c of capturedShots){
+      newShots.push(c.toDataURL("image/jpeg",.72));
+      newAsps.push(c.height/c.width);
+      const im=new Image(); im.src=c.toDataURL("image/jpeg",.9); await im.decode();
+      imgs.push(im); map.push({id:newId, aspect:c.height/c.width});
+    }
+
+    $("dProgTxt").textContent=`بناء خريطة المكان الموحدة (${imgs.length} ${imgs.length>2?"زوايا":"زاوية"})... كل ما زادت الزينة أخذ وقت أطول`;
+    const compiler=new CompilerC();
+    await compiler.compileImageTargets(imgs,p=>{$("dProgBar").style.width=(5+p*.85)+"%";});
+    const mindB64=abToB64(await compiler.exportData());
+
+    /* تجهيز محتوى القطعة */
+    const previewW=$("decorPreview").getBoundingClientRect().width||300;
+    const sVal=parseInt($("dScaleRange").value,10);
+    const basePx=26+sVal*7;
+    let tex=null;
+    if(dKind==="text") tex=await textToTexture($("dText").value.trim(), dColor, dBg);
+    if(dKind==="sticker") tex=stickerToTexture($("dSticker").value.trim());
+    const emojiPx = (dKind==="image") ? basePx*1.4 : basePx;
+    const sizeFrac=Math.min(.95,Math.max(.04, emojiPx/previewW));
+
+    $("dProgTxt").textContent="رفع الزينة للغرفة...";
+    $("dProgBar").style.width="95%";
+    const label = dKind==="text" ? $("dText").value.trim().slice(0,20) : DECOR_NAMES[dKind];
+    const ups={};
+    ups[`decor/items/${newId}`]={
+      kind:dKind,
+      texUrl:tex?tex.url:null, texAspect:tex?tex.aspect:null,
+      image:dKind==="image"?dImageData:null, imgAspect:dImageAspect,
+      glb:dKind==="glb"?$("dGlb").value.trim():null,
+      parts:dKind==="custom"?builderParts:null,
+      motion:dMotion,
+      pos:{x:dDragPos.x,y:dDragPos.y}, sizeFrac,
+      shots:newShots, shotsAspects:newAsps,
+      by:myNameV, ts:Date.now()
+    };
+    ups[`decor/index/${newId}`]={label, kind:dKind, by:myNameV, ts:Date.now()};
+    ups[`decor/build`]={mind:mindB64, mindVer:_mindVer, map, ts:Date.now()};
+    await db.ref(`${ROOT}/${roomCode}`).update(ups);
+    pushEvent("info",`🧩 ${myNameV} ثبّت ${DECOR_NAMES[dKind]} "${label}" في المكان`);
+    $("dProgBar").style.width="100%";
+    toast("🧩 انثبّتت! الكل يقدر يشوفها بوضع الاستكشاف");
+    setTimeout(()=>{
+      $("scrDecor").classList.remove("active");
+      $("dProgWrap").style.display="none"; $("dSaveBtn").disabled=false;
+      flowMode="game"; currentPhaseScreen=""; onStateChange();
+    },700);
+  }catch(e){ console.error(e); toast("❌ خطأ: "+(e.message||e)); $("dSaveBtn").disabled=false; }
+}
+
+/* محتوى قطعة الزينة داخل مشهد الاستكشاف */
+function decorContentHTML(it, aspect, aid){
+  const s = it.sizeFrac ? Math.max(0.03,(it.sizeFrac/2)*1.05) : .2;
+  const px=(it.pos?.x??.5)-.5, py=(.5-(it.pos?.y??.5))*(aspect||.75);
+  const base=`position="${px.toFixed(3)} ${py.toFixed(3)} 0.05"`;
+  let mo="";
+  if(it.motion==="pulse") mo=`animation__m="property: scale; from:1 1 1; to:1.15 1.15 1.15; dur:900; dir:alternate; loop:true; easing:easeInOutSine"`;
+  if(it.motion==="sway")  mo=`animation__m="property: rotation; from:0 0 -8; to:0 0 8; dur:1800; dir:alternate; loop:true; easing:easeInOutSine"`;
+  if(it.motion==="spin")  mo=`animation__m="property: rotation; to:0 360 0; dur:5200; loop:true; easing:linear"`;
+  switch(it.kind){
+    case "text": case "sticker":
+      return `<a-plane ${base} ${mo} width="${(s*2).toFixed(3)}" height="${(s*2*(it.texAspect||1)).toFixed(3)}" material="src:#dtex_${aid}; transparent:true; alphaTest:0.05"></a-plane>`;
+    case "image":
+      return `<a-plane ${base} ${mo} width="${(s*2).toFixed(3)}" height="${(s*2*(it.imgAspect||1)).toFixed(3)}" material="src:#dtex_${aid}; transparent:true"></a-plane>`;
+    case "glb":
+      return `<a-gltf-model ${base} ${mo} src="${it.glb}" scale="${s} ${s} ${s}" animation-mixer></a-gltf-model>`;
+    case "custom": {
+      const pr=Array.isArray(it.parts)?it.parts:Object.values(it.parts||{});
+      return `<a-entity ${base} ${mo}>${customInner(pr, s*0.95)}</a-entity>`;
+    }
+  }
+  return "";
+}
+
+/* وضع الاستكشاف 🧭 — كل الزينة بمشهد واحد */
+async function startExplore(){
+  loader(true,"تحميل زينة المكان...");
+  try{
+    const [buildSnap,itemsSnap]=await Promise.all([
+      db.ref(`${ROOT}/${roomCode}/decor/build`).once("value"),
+      db.ref(`${ROOT}/${roomCode}/decor/items`).once("value")
+    ]);
+    const build=buildSnap.val(), items=itemsSnap.val()||{};
+    if(!build||!build.mind){ loader(false); return toast("ما فيه زينة بالمكان بعد — أضف أول قطعة!"); }
+    if(!_afLoaded && build.mindVer) _mindVer=build.mindVer;
+    await loadARRuntime();
+    try{ await loadScript(URL_EXTRAS); }catch(e){}
+
+    const mindURL=URL.createObjectURL(b64ToBlob(build.mind));
+    const map=Array.isArray(build.map)?build.map:Object.values(build.map||{});
+    let assets="", anchors="";
+    map.forEach((m,i)=>{
+      const it=items[m.id]; if(!it) return; // قطعة محذوفة — نتجاهل هدفها
+      const src=it.texUrl||it.image;
+      if(src) assets+=`<img id="dtex_${i}" src="${src}">`;
+      anchors+=`<a-entity class="decor-anchor" data-label="${esc((decorIndex[m.id]&&decorIndex[m.id].label)||"")}" mindar-image-target="targetIndex:${i}">${decorContentHTML(it,m.aspect,i)}</a-entity>`;
+    });
+    $("arScene").innerHTML=`
+      <a-scene mindar-image="imageTargetSrc: ${mindURL}; maxTrack:2; filterMinCF:0.00005; filterBeta:0.5; warmupTolerance:1; missTolerance:15; uiScanning:no; uiLoading:no; uiError:no"
+        color-space="sRGB" renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" embedded>
+        <a-assets>${assets}</a-assets>
+        <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+        <a-entity light="type:ambient;intensity:1.1"></a-entity>
+        <a-entity light="type:directional;intensity:.7" position="0.5 1 1"></a-entity>
+        ${anchors}
+      </a-scene>`;
+    $("arTitle").textContent="🧭 استكشاف المكان";
+    $("arPill").textContent="امشِ بالبيت ولفّ الكاميرا — الزينة بتظهر بأماكنها ✨";
+    $("arPill").classList.remove("hot");
+    $("foundBtn").style.display="none";
+    $("radar").style.display="block";
+    exploreMode=true;
+    $("scrLobby").classList.remove("active");
+    $("arContainer").classList.add("active");
+    arSceneEl=$("arScene").querySelector("a-scene");
+    arSceneEl.addEventListener("loaded",()=>loader(false));
+    setTimeout(()=>loader(false),6000);
+    let vis=0;
+    $("arScene").querySelectorAll(".decor-anchor").forEach(a=>{
+      a.addEventListener("targetFound",()=>{
+        vis++; $("radar").style.display="none";
+        const lb=a.dataset.label;
+        $("arPill").textContent=lb?`✨ ${lb}`:"✨ زينة!";
+        $("arPill").classList.add("hot");
+        if(navigator.vibrate)navigator.vibrate(50);
+      });
+      a.addEventListener("targetLost",()=>{
+        vis=Math.max(0,vis-1);
+        if(vis===0){ $("radar").style.display="block"; $("arPill").textContent="كمّل مشي وتطلّع حولك 👀"; $("arPill").classList.remove("hot"); }
+      });
+    });
+  }catch(e){ console.error(e); loader(false); toast("❌ تعذّر الاستكشاف: "+(e.message||e)); }
+}
+let exploreMode=false;
+
+function abToB64(buf){const b=new Uint8Array(buf);let s="";const CH=0x8000;for(let i=0;i<b.length;i+=CH)s+=String.fromCharCode.apply(null,b.subarray(i,i+CH));return btoa(s);}
+function b64ToBlob(b64){const bin=atob(b64),by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return new Blob([by]);}
+
+async function saveHidden(){
+  const name=$("objName").value.trim();
+  if(!name) return toast("اكتب اسم المجسم 🙏");
+  if(selType==="photo"&&!photoObjData) return toast("اختر الصورة أول");
+  if(selType==="glb"&&!$("glbUrl").value.trim()) return toast("حط رابط الـ GLB");
+  $("saveBtn").disabled=true; $("progWrap").style.display="block"; $("progBar").style.width="3%";
+  try{
+    $("progTxt").textContent="تحميل محرك التعرّف...";
+    const CompilerC = await getCompiler();
+    $("progTxt").textContent=`تحليل ${capturedShots.length} زوايا وبناء البصمة... (قد يأخذ دقيقة)`;
+    const imgs=[];
+    for(const c of capturedShots){
+      const im=new Image(); im.src=c.toDataURL("image/jpeg",.9); await im.decode(); imgs.push(im);
+    }
+    const compiler=new CompilerC();
+    await compiler.compileImageTargets(imgs,p=>{$("progBar").style.width=(5+p*.85)+"%";});
+    const mindB64=abToB64(await compiler.exportData());
+
+    /* الحجم الحقيقي: نسبة قطر المجسم المرسوم إلى عرض صورة المكان — يظهر للباحث بنفس الحجم بالضبط */
+    const previewW = $("spotPreview").getBoundingClientRect().width || 300;
+    const sVal = parseInt($("scaleRange").value,10);
+    const emojiPx = (selType==="photo" && photoObjData) ? (26+sVal*7)*1.4 : (26+sVal*7);
+    const sizeFrac = Math.min(.9, Math.max(.04, emojiPx / previewW));
+
+    $("progTxt").textContent="رفع المجسم وفتح الصيد للجميع...";
+    $("progBar").style.width="95%";
+    await db.ref(`${ROOT}/${roomCode}/object`).set({
+      name, hider:myNameV, type:selType,
+      scale:sVal,
+      sizeFrac,
+      pos:{x:dragPos.x,y:dragPos.y},
+      aspect:capturedCanvas.height/capturedCanvas.width,
+      aspects:capturedShots.map(c=>c.height/c.width),
+      photo:selType==="photo"?photoObjData:null,
+      glb:selType==="glb"?$("glbUrl").value.trim():null,
+      parts:selType==="custom"?builderParts:null,
+      mindVer:_mindVer,
+      mind:mindB64, ts:Date.now()
+    });
+    await stateRef.update({phase:"seeking",ts:Date.now()});
+    pushEvent("info",`🏁 ${myNameV} خبّى "${name}" — الصيد بدأ!`);
+    $("progBar").style.width="100%";
+    setTimeout(()=>{
+      $("scrPrep").classList.remove("active");
+      $("progWrap").style.display="none"; $("saveBtn").disabled=false; $("objName").value="";
+      currentPhaseScreen=""; onStateChange();
+    },600);
+  }catch(e){ console.error(e); toast("❌ خطأ: "+(e.message||e)); $("saveBtn").disabled=false; }
+}
+
+/* ============================================================
+   ٩) البحث AR
+============================================================ */
+function modelPlacement(o, aspect){
+  /* الحجم من sizeFrac = نفس النسبة اللي شافها المخبّي على صورته بالضبط */
+  const s = o.sizeFrac ? Math.max(0.03, (o.sizeFrac/2)*1.05) : 0.08+(o.scale||4)*0.045;
+  const px=(o.pos?.x??.5)-.5, py=(.5-(o.pos?.y??.5))*(aspect||.75);
+  return {s,px,py};
+}
+function buildModelHTML(o, aspect){
+  const {s,px,py}=modelPlacement(o,aspect);
+  /* ثابت تمامًا بمكانه — بدون دوران أو طفو، كأنه غرض حقيقي ملصوق */
+  const base=`position="${px.toFixed(3)} ${py.toFixed(3)} 0.04"`;
+  const hit=`<a-sphere class="clickable" position="${px.toFixed(3)} ${py.toFixed(3)} 0.04" radius="${(s*2).toFixed(3)}" material="opacity:0.001;transparent:true"></a-sphere>`;
+  let model;
+  switch(o.type){
+    case "gem": model=`<a-octahedron ${base} rotation="0 25 0" radius="${s}" color="#4FD6C4" material="metalness:.8;roughness:.15;emissive:#134E46;emissiveIntensity:.5"></a-octahedron>`; break;
+    case "coin": model=`<a-cylinder ${base} radius="${s}" height="${s*.22}" rotation="90 0 0" color="#F0B84B" material="metalness:.9;roughness:.25"></a-cylinder>`; break;
+    case "orb": model=`<a-sphere ${base} radius="${s}" color="#8A5CF6" material="emissive:#5B2EE0;emissiveIntensity:.8;metalness:.2;roughness:.3"></a-sphere>`; break;
+    case "ring": model=`<a-torus ${base} rotation="0 20 0" radius="${s}" radius-tubular="${s*.16}" color="#F0B84B" material="metalness:.95;roughness:.15"></a-torus>`; break;
+    case "photo": model=`<a-plane ${base} width="${s*2}" height="${s*2}" material="src:#photoTex;transparent:true"></a-plane>`; break;
+    case "glb": model=`<a-gltf-model ${base} src="${o.glb}" scale="${s} ${s} ${s}"></a-gltf-model>`; break;
+    case "custom": { const pr=Array.isArray(o.parts)?o.parts:Object.values(o.parts||{}); model=`<a-entity ${base} rotation="0 15 0">${customInner(pr, s*0.95)}</a-entity>`; break; }
+    default: model=`<a-entity ${base} rotation="0 15 0">
+      <a-box width="${s*1.5}" height="${s*1.1}" depth="${s*1.5}" color="#E24C4C" material="roughness:.5"></a-box>
+      <a-box width="${s*1.56}" height="${s*1.12}" depth="${s*.3}" color="#F0B84B" material="metalness:.6"></a-box>
+      <a-box width="${s*.3}" height="${s*1.12}" depth="${s*1.56}" color="#F0B84B" material="metalness:.6"></a-box>
+      <a-box position="0 ${s*.62} 0" width="${s*1.62}" height="${s*.18}" depth="${s*1.62}" color="#C93A3A"></a-box>
+    </a-entity>`;
+  }
+  return `<a-entity class="clickable">${model}</a-entity>${hit}`;
+}
+async function startAR(){
+  const o=roundObject; if(!o||!o.mind) return toast("بيانات الجولة ناقصة");
+  loader(true,"تجهيز الكاميرا ومحرك البحث...");
+  try{
+    if(!_afLoaded && o.mindVer) _mindVer = o.mindVer; // نفس إصدار البصمة المحفوظة
+    await loadARRuntime();
+    const mindURL=URL.createObjectURL(b64ToBlob(o.mind));
+    const assets=o.type==="photo"&&o.photo?`<a-assets><img id="photoTex" src="${o.photo}"></a-assets>`:"";
+    /* مرساة لكل زاوية مصوّرة — المجسم يظهر من أي اتجاه تعرّفت عليه الكاميرا */
+    const aspects = o.aspects ? (Array.isArray(o.aspects)?o.aspects:Object.values(o.aspects)) : [o.aspect||.75];
+    let anchorsHTML="";
+    aspects.forEach((a,i)=>{ anchorsHTML+=`<a-entity class="hunt-anchor" mindar-image-target="targetIndex:${i}">${buildModelHTML(o,a)}</a-entity>`; });
+
+    $("arScene").innerHTML=`
+      <a-scene mindar-image="imageTargetSrc: ${mindURL}; maxTrack:1; filterMinCF:0.00005; filterBeta:0.5; warmupTolerance:1; missTolerance:15; uiScanning:no; uiLoading:no; uiError:no"
+        color-space="sRGB" renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" embedded>
+        ${assets}
+        <a-camera position="0 0 0" look-controls="enabled:false"
+          cursor="rayOrigin: mouse; fuse: false"
+          raycaster="objects: .clickable; far: 1000"></a-camera>
+        <a-entity light="type:ambient;intensity:1.1"></a-entity>
+        <a-entity light="type:directional;intensity:.7" position="0.5 1 1"></a-entity>
+        ${anchorsHTML}
+      </a-scene>`;
+    $("arTitle").textContent=`🔍 تدوّر على: ${o.name}`;
+    $("arPill").textContent="لفّ بالكاميرا وقرّبها من الأماكن المشبوهة 👀";
+    $("arPill").classList.remove("hot");
+    $("foundBtn").style.display="none";
+    $("radar").style.display="block";
+    ["scrReady","scrBoard"].forEach(s=>$(s).classList.remove("active"));
+    $("arContainer").classList.add("active");
+    arSceneEl=$("arScene").querySelector("a-scene");
+    arSceneEl.addEventListener("loaded",()=>loader(false));
+    setTimeout(()=>loader(false),6000);
+
+    let visibleCount=0;
+    $("arScene").querySelectorAll(".hunt-anchor").forEach(anchor=>{
+      anchor.addEventListener("targetFound",()=>{
+        visibleCount++;
+        $("radar").style.display="none";
+        $("arPill").innerHTML="✨ ظهر المجسم! <b>اضغط عليه بإصبعك</b> عشان تسجّلها";
+        $("arPill").classList.add("hot");
+        if(navigator.vibrate)navigator.vibrate([80,40,80]);
+      });
+      anchor.addEventListener("targetLost",()=>{
+        visibleCount=Math.max(0,visibleCount-1);
+        if(visibleCount===0){
+          $("radar").style.display="block";
+          $("arPill").textContent="اختفى.. ارجع لنفس الزاوية والمسافة 👣";
+          $("arPill").classList.remove("hot");
+        }
+      });
+    });
+    /* الضغط على المجسم نفسه = لقيتها */
+    $("arScene").querySelectorAll(".clickable").forEach(el=>{
+      el.addEventListener("click",()=>{ if(visibleCount>0) markFound(); });
+    });
+  }catch(e){ console.error(e); loader(false); toast("❌ تعذّر التشغيل: "+(e.message||e)); exitAR(false); }
+}
+function exitARQuiet(){
+  try{ const sys=arSceneEl&&arSceneEl.systems&&arSceneEl.systems["mindar-image-system"]; if(sys&&sys.stop)sys.stop(); }catch(e){}
+  document.querySelectorAll("#arScene video").forEach(v=>{try{v.srcObject&&v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}});
+  $("arScene").innerHTML=""; arSceneEl=null;
+  $("arContainer").classList.remove("active");
+}
+function exitAR(showScreen){
+  exitARQuiet();
+  if(exploreMode){ exploreMode=false; $("scrLobby").classList.add("active"); currentPhaseScreen="scrLobby"; return; }
+  if(showScreen){ currentPhaseScreen=""; onStateChange(); }
+}
+
+/* ============================================================
+   ١٠) العثور — لحظي للجميع
+============================================================ */
+async function markFound(){
+  if(iFound) return;
+  iFound=true;
+  const rank = Object.values(players).filter(p=>p.found).length + 1;
+  await db.ref(`${ROOT}/${roomCode}/players/${myId}`).update({found:Date.now()});
+  pushEvent("found", rank===1 ? `🥇 ${myNameV} أول واحد لقاها!` : `🎉 ${myNameV} لقاها! (رقم ${rank})`);
+  $("celTitle").textContent = rank===1 ? "🥇 أنت الأول!" : "لقيتها! 🏆";
+  $("celTxt").textContent = `"${roundObject?.name}" اللي خبّاها ${roundObject?.hider} — انكشفت لك 👏`;
+  $("celebrate").classList.add("active");
+  confettiBurst();
+}
+function closeCelebrate(){
+  $("celebrate").classList.remove("active");
+  exitARQuiet();
+  currentPhaseScreen=""; onStateChange();
+}
+function confettiBurst(){
+  const em=["🎉","✨","⭐","🎊","💛","🏆"];
+  for(let i=0;i<34;i++){
+    const s=document.createElement("span"); s.className="confetti";
+    s.textContent=em[Math.floor(Math.random()*em.length)];
+    s.style.left=Math.random()*100+"vw";
+    s.style.animationDuration=(2+Math.random()*2.4)+"s";
+    s.style.fontSize=(15+Math.random()*16)+"px";
+    document.body.appendChild(s); setTimeout(()=>s.remove(),5000);
+  }
+}
+
+initDB();
+</script>
+</body>
+</html>
