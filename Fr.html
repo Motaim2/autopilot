@@ -2,664 +2,343 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>توقع الفواكه — جاكبوت كونز</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MOTAIM — راصد الـ24</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg1:#3d1145;
-    --bg2:#1b0a2e;
-    --machine:#7b5cc9;
-    --machine-dark:#4a3086;
-    --cell:#3a2470;
-    --cell-border:#8f7ad4;
-    --gold:#ffd54a;
-    --gold2:#ffab2e;
-    --text:#fff;
-    --muted:#c9b8f0;
-    --green:#3ecf8e;
-    --red-frame:#e8365f;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
-  body{
-    background:
-      radial-gradient(900px 500px at 50% -5%, #6a1d78 0%, transparent 60%),
-      linear-gradient(180deg, var(--bg1), var(--bg2) 70%);
-    color:var(--text);
-    font-family:"Segoe UI", Tahoma, Arial, sans-serif;
-    overflow-x:hidden;
-    user-select:none;
-    min-height:100%;
-  }
-  .wrap{max-width:480px;margin:0 auto;padding:10px 12px 60px}
-
-  /* ===== العنوان ===== */
-  .jackpot-title{
-    text-align:center;
-    font-size:1.9rem;font-weight:900;letter-spacing:2px;
-    background:linear-gradient(180deg,#fff6c9 0%, var(--gold) 40%, var(--gold2) 75%, #b0650b 100%);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    filter:drop-shadow(0 3px 4px rgba(0,0,0,.55));
-    margin:2px 0 0;
-  }
-  .sub{text-align:center;color:var(--muted);font-size:.7rem;margin-bottom:8px}
-
-  /* ===== شريط الكاميرا ===== */
-  .cam-bar{
-    display:flex;align-items:center;gap:10px;
-    background:rgba(30,16,58,.75);
-    border:1px solid #5d43a8;
-    border-radius:16px;
-    padding:7px 10px;margin-bottom:10px;
-  }
-  #camPreview{
-    width:76px;height:56px;border-radius:10px;object-fit:cover;
-    transform:scaleX(-1);background:#000;border:1px solid #6a4fc0;display:none;
-  }
-  .cam-info{flex:1;font-size:.68rem;color:var(--muted);line-height:1.5}
-  .cam-status{font-size:.75rem;font-weight:700}
-  .cam-status.on{color:var(--green)}
-  .btn{
-    border:none;cursor:pointer;font-family:inherit;font-weight:800;
-    border-radius:13px;padding:9px 13px;font-size:.78rem;color:#3a2405;
-    background:linear-gradient(180deg,#ffe27a,var(--gold2));
-    box-shadow:0 3px 0 #9a5d0c, 0 5px 10px rgba(0,0,0,.35);
-    transition:transform .1s, filter .12s;
-  }
-  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 #9a5d0c}
-  .btn-ghost{background:linear-gradient(180deg,#6b52b5,#4a3390);color:#fff;box-shadow:0 3px 0 #2c1c60, 0 5px 10px rgba(0,0,0,.35)}
-  .btn-red{background:linear-gradient(180deg,#ff7a95,#d92a52);color:#fff;box-shadow:0 3px 0 #7c1030, 0 5px 10px rgba(0,0,0,.35)}
-
-  /* ===== جسم الآلة ===== */
-  .machine{
-    background:linear-gradient(180deg,#8d6fdb, #6748b8 20%, #4f349a 80%);
-    border:2px solid #a98ff0;
-    border-radius:22px;
-    padding:12px;
-    box-shadow:
-      inset 0 2px 8px rgba(255,255,255,.25),
-      inset 0 -8px 16px rgba(0,0,0,.35),
-      0 12px 30px rgba(0,0,0,.5);
-    position:relative;
-  }
-  .machine::before, .machine::after{
-    content:"";position:absolute;top:20px;bottom:20px;width:6px;border-radius:4px;
-    background:repeating-linear-gradient(180deg, #ff9de2 0 6px, transparent 6px 22px);
-    opacity:.7;
-  }
-  .machine::before{right:3px}
-  .machine::after{left:3px}
-
-  .inner{
-    background:linear-gradient(180deg,#241348,#1a0d38);
-    border:1.5px solid #6a4fc0;
-    border-radius:16px;
-    padding:10px;
-  }
-
-  /* ===== شبكة 3×3 ===== */
-  .board{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
-  }
-  .cell{
-    aspect-ratio:1/1.08;
-    background:linear-gradient(180deg,#43297e,#311c62);
-    border:1.5px solid #5d43a8;
-    border-radius:13px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    position:relative;cursor:pointer;
-    transition:transform .12s, border-color .15s, box-shadow .2s;
-  }
-  .cell .fe{font-size:2.15rem;line-height:1;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
-  .cell .fx{
-    font-size:.72rem;font-weight:800;color:#fff;margin-top:5px;
-    text-shadow:0 1px 3px rgba(0,0,0,.7);
-  }
-  .cell .fn{font-size:.6rem;color:var(--muted)}
-  .cell:active{transform:scale(.94)}
-  .cell.hover-cam{
-    border-color:var(--gold);
-    box-shadow:0 0 0 3px rgba(255,213,74,.35), 0 0 18px rgba(255,213,74,.3);
-    transform:scale(1.04);
-  }
-  .cell.picked{animation:pop .35s}
-  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
-
-  /* علامات التوقع على الفواكه */
-  .mark{
-    position:absolute;top:-8px;right:-8px;
-    width:26px;height:26px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:.7rem;font-weight:900;
-    opacity:0;transform:scale(.4);transition:.25s;
-    z-index:3;
-  }
-  .mark.show{opacity:1;transform:scale(1)}
-  .mark.r1{background:linear-gradient(180deg,#ffe27a,var(--gold2));color:#4a2c00;box-shadow:0 0 12px rgba(255,213,74,.8);width:30px;height:30px;font-size:.8rem}
-  .mark.r2{background:linear-gradient(180deg,#e8e8f5,#a8a8c8);color:#2c2c45;box-shadow:0 0 8px rgba(200,200,230,.6)}
-  .mark.r3{background:linear-gradient(180deg,#e8a06a,#b0642c);color:#3d1e00;box-shadow:0 0 8px rgba(220,140,70,.5)}
-  .pct{
-    position:absolute;bottom:-7px;left:50%;transform:translateX(-50%) scale(.6);
-    background:#12082a;border:1px solid #6a4fc0;
-    color:var(--gold);font-size:.58rem;font-weight:800;
-    padding:1px 7px;border-radius:8px;white-space:nowrap;
-    opacity:0;transition:.25s;z-index:3;
-  }
-  .pct.show{opacity:1;transform:translateX(-50%) scale(1)}
-  .cell.top1{
-    border-color:var(--gold);
-    box-shadow:0 0 4px rgba(255,213,74,.5), 0 0 20px rgba(255,213,74,.45);
-    animation:glow 1.6s ease-in-out infinite;
-  }
-  @keyframes glow{
-    0%,100%{box-shadow:0 0 4px rgba(255,213,74,.5), 0 0 16px rgba(255,213,74,.35)}
-    50%{box-shadow:0 0 8px rgba(255,213,74,.8), 0 0 28px rgba(255,213,74,.6)}
-  }
-  .cell.top2{border-color:#c8c8e8;box-shadow:0 0 12px rgba(200,200,230,.3)}
-  .cell.top3{border-color:#d0854a;box-shadow:0 0 10px rgba(220,140,70,.25)}
-
-  /* الخلية الوسطى (شاشة التوقع) */
-  .center{
-    background:linear-gradient(180deg,#3d0b1e,#2a0614);
-    border:2.5px solid var(--red-frame);
-    border-radius:13px;
-    cursor:default;
-    box-shadow:0 0 14px rgba(232,54,95,.45), inset 0 0 20px rgba(0,0,0,.6);
-    position:relative;overflow:hidden;
-  }
-  .center::before{
-    content:"";position:absolute;inset:3px;border-radius:9px;
-    border:1px dotted rgba(255,155,180,.5);pointer-events:none;
-  }
-  .center .clabel{font-size:.55rem;color:#ff8fa8;letter-spacing:1px;margin-bottom:2px}
-  .center .cfruit{font-size:2rem;filter:drop-shadow(0 0 8px rgba(255,213,74,.6));line-height:1.1}
-  .center .cpct{
-    font-family:"Courier New",monospace;font-weight:900;font-size:.95rem;color:var(--gold);
-    text-shadow:0 0 8px rgba(255,213,74,.8);
-  }
-  .center .cwait{font-size:.62rem;color:#ff8fa8;text-align:center;padding:0 6px;line-height:1.6}
-  .center:active{transform:none}
-
-  /* ===== شريط آخر ٨ ضربات ===== */
-  .strip{
-    display:flex;align-items:center;gap:5px;
-    background:linear-gradient(180deg,#1c0e3a,#140929);
-    border:1.5px solid #5d43a8;
-    border-radius:12px;
-    padding:7px 9px;margin-top:9px;
-  }
-  .strip .slabel{
-    font-size:.68rem;color:var(--muted);font-weight:700;
-    margin-left:3px;white-space:nowrap;
-  }
-  .strip .slots{display:flex;gap:5px;flex:1;justify-content:space-between}
-  .slot{
-    width:34px;height:34px;border-radius:9px;flex:1;max-width:38px;
-    background:#2c1a58;border:1px solid #4a3390;
-    display:flex;align-items:center;justify-content:center;
-    font-size:1.15rem;position:relative;
-    filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));
-  }
-  .slot.empty{opacity:.25;font-size:.8rem}
-  .slot .new{
-    position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
-    background:linear-gradient(180deg,#6fb8ff,#2e6fd9);
-    color:#fff;font-size:.45rem;font-weight:900;letter-spacing:.5px;
-    padding:1px 5px;border-radius:6px;
-  }
-  .slot.newest{border-color:var(--gold);box-shadow:0 0 8px rgba(255,213,74,.5)}
-
-  /* ===== الذاكرة والأدوات ===== */
-  .memory-bar{
-    display:flex;justify-content:space-between;align-items:center;
-    margin:10px 2px 8px;font-size:.7rem;color:var(--muted);
-  }
-  .memory-bar b{color:var(--gold);font-size:.85rem}
-  .actions{display:flex;gap:8px;margin-top:8px}
-  .actions .btn{flex:1}
-
-  .stats{
-    margin-top:10px;
-    background:rgba(30,16,58,.75);border:1px solid #5d43a8;
-    border-radius:14px;padding:10px;
-    display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;font-size:.62rem;
-  }
-  .stat b{display:block;font-size:.92rem;color:var(--gold);margin-bottom:1px}
-  .stat span{color:var(--muted)}
-
-  /* عدادات كل فاكهة */
-  .fcounts{
-    margin-top:8px;
-    display:grid;grid-template-columns:repeat(8,1fr);gap:4px;
-  }
-  .fcount{
-    background:rgba(30,16,58,.6);border:1px solid #4a3390;border-radius:9px;
-    text-align:center;padding:4px 0 3px;font-size:.85rem;
-  }
-  .fcount i{display:block;font-style:normal;font-size:.58rem;color:var(--gold);font-weight:800;margin-top:1px}
-
-  /* ===== مؤشر اليد ===== */
-  #cursor{
-    position:fixed;z-index:9999;pointer-events:none;
-    width:34px;height:34px;margin:-17px 0 0 -17px;display:none;
-  }
-  #cursor .ring{
-    position:absolute;inset:0;border-radius:50%;
-    border:2.5px solid var(--gold);
-    box-shadow:0 0 12px rgba(255,213,74,.6);transition:transform .1s;
-  }
-  #cursor .dot{
-    position:absolute;top:50%;left:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
-    border-radius:50%;background:var(--gold);
-  }
-  #cursor.pinching .ring{transform:scale(.55);border-color:var(--green);box-shadow:0 0 14px rgba(62,207,142,.7)}
-  #cursor.pinching .dot{background:var(--green)}
-
-  .toast{
-    position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);
-    background:#2c1a58;border:1px solid var(--gold);
-    color:#fff;padding:9px 18px;border-radius:13px;
-    font-size:.75rem;z-index:10000;transition:transform .3s;
-    box-shadow:0 8px 24px rgba(0,0,0,.6);
-  }
-  .toast.show{transform:translateX(-50%) translateY(0)}
+:root{--bg:#12060e;--panel:#22101c;--panel2:#2e1626;--gold:#f5c451;--gold3:#7a4d2a;--purple:#c04dd6;--green:#39d97a;--red:#ff5a6a;--blue:#4fc3f7;--ink:#f7e9d8;--dim:#c3a3b8}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(circle at 50% -10%,#3a1230 0%,var(--bg) 55%);color:var(--ink);font-family:'Cairo',sans-serif;min-height:100vh;padding-bottom:24px}
+header{text-align:center;padding:14px 16px 6px}
+header h1{font-weight:900;font-size:22px;background:linear-gradient(180deg,#ffe9a8,var(--gold),#c8922e);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .sub{font-size:11px;color:var(--dim)}
+.wrap{max-width:1050px;margin:0 auto;padding:0 12px}
+@media(min-width:920px){.wrap{display:grid;grid-template-columns:430px 1fr;gap:16px;align-items:start}}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--gold3);border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.card h2{font-size:14px;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h2 .tag{font-size:10px;color:var(--dim);font-weight:400;margin-inline-start:auto}
+#camWrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:9/16;touch-action:none}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+#ovl{position:absolute;inset:0;width:100%;height:100%}
+#camMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--dim);font-size:12.5px;text-align:center;padding:20px}
+.btn{border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:14px;padding:10px 18px;cursor:pointer;color:#3a2000;background:linear-gradient(180deg,#ffe08a,var(--gold),#c8922e);box-shadow:0 3px 0 var(--gold3),0 6px 14px rgba(0,0,0,.4)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--gold3)}
+.btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold3);box-shadow:none}
+.btn.small{font-size:12px;padding:6px 12px;border-radius:9px}
+.btn.danger{background:linear-gradient(180deg,#ff8a8a,#e04b4b,#a82e2e);color:#fff;box-shadow:0 3px 0 #6d1c1c}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+.field label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px}
+input[type=number]{background:#1a0a14;border:1px solid var(--gold3);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:15px;padding:5px 10px;width:70px;text-align:center}
+/* عرض حي */
+#live{margin-top:10px;background:#170912;border:1px solid var(--gold3);border-radius:12px;padding:12px;text-align:center;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#counterBig{font-size:38px;font-weight:900;color:var(--blue);direction:ltr;line-height:1;font-variant-numeric:tabular-nums}
+#liveState{font-size:15px}
+#pairBox{font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+.fim{width:26px;height:26px;border-radius:7px;vertical-align:middle}
+/* تشخيص */
+#diag{font-size:11px;color:var(--dim);line-height:2;margin-top:8px;border-top:1px dashed #4a2c3e;padding-top:8px;display:none}
+.diag-on #diag{display:block}
+/* سجل */
+#e24Summary{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pill{background:#1a0a14;border:1px solid var(--gold3);border-radius:9px;padding:5px 10px;font-size:11px}
+.pill b{color:var(--gold)}
+#offBars{margin-bottom:10px}
+.obar{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:11px}
+.obar .lbl{width:88px;color:var(--dim)}
+.obar .track{flex:1;height:11px;background:#1a0a14;border-radius:6px;overflow:hidden}
+.obar .fill{height:100%;background:linear-gradient(90deg,#8a5a2a,var(--gold));border-radius:6px}
+.obar .n{width:44px;text-align:left;direction:ltr}
+#e24List{max-height:340px;overflow-y:auto}
+.ev{display:flex;align-items:center;gap:7px;padding:7px 4px;border-bottom:1px dashed #3a1e30;font-size:12px}
+.ev .tm{color:var(--dim);font-size:10px;width:38px}
+.ev .ck{font-weight:900;font-size:15px}
+.ev .off{margin-inline-start:auto;font-weight:700}
+.hint{font-size:11px;color:var(--blue);text-align:center;margin-top:6px}
+.note{font-size:10px;color:var(--dim);line-height:1.7;margin-top:10px;border-top:1px dashed #4a2c3e;padding-top:8px}
+.seg{display:flex;background:#1a0a14;border:1px solid var(--gold3);border-radius:10px;overflow:hidden;margin-top:6px}
+.seg button{flex:1;background:none;border:none;color:var(--dim);font-family:inherit;font-weight:700;font-size:11px;padding:7px 4px;cursor:pointer}
+.seg button.on{background:linear-gradient(180deg,var(--gold),#c8922e);color:#3a2000}
 </style>
 </head>
 <body>
+<header>
+  <h1>🕵️ راصد ضربة الـ<span id="hTrig">24</span></h1>
+  <div class="sub">يلتقط شاشة LDPlayer · يقرأ العدّاد والإصبع · يسجّل أين وقفت الـ24 وأين نزلت الضربة</div>
+</header>
+
 <div class="wrap">
-
-  <div class="jackpot-title">JACKPOT 🔮</div>
-  <div class="sub">توقع الفواكه — العلامات تطلع على اللوحة نفسها | القرصة = تسجيل</div>
-
-  <!-- الكاميرا -->
-  <div class="cam-bar">
-    <video id="camPreview" autoplay playsinline muted></video>
-    <div class="cam-info">
-      <div class="cam-status" id="camStatus">الكاميرا مطفية</div>
-      <div id="camHint">سبابتك = المؤشر، القرصة = ضغطة</div>
-    </div>
-    <button class="btn" id="camBtn">📷 تشغيل</button>
-  </div>
-
-  <!-- الآلة -->
-  <div class="machine">
-    <div class="inner">
-      <div class="board" id="board"></div>
-
-      <!-- شريط آخر ٨ ضربات -->
-      <div class="strip">
-        <span class="slabel">نتيجة</span>
-        <div class="slots" id="strip"></div>
+ <div id="colA">
+  <div class="card">
+    <h2>🖥️ شاشة اللعبة <span class="tag" id="fps">متوقف</span></h2>
+    <div id="camWrap">
+      <video id="video" playsinline muted></video>
+      <canvas id="ovl"></canvas>
+      <div id="camMsg">
+        <div>اضغط التقاط واختر نافذة المحاكي — بعدها اسحب المربع البرتقالي على شبكة الفواكه ٣×٣ (العدّاد بالنص)</div>
+        <button class="btn" id="startCap">🖥️ التقاط شاشة LDPlayer</button>
+        <button class="btn ghost small" id="startCam">📷 كاميرا (احتياطي)</button>
       </div>
     </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn small" id="boardBtn">🎛️ ضبط اللوحة</button>
+      <button class="btn small ghost" id="diagBtn">🔬 تشخيص</button>
+      <button class="btn small danger" id="stopCam" style="display:none">إيقاف</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span style="font-size:12px;color:var(--dim)">التقاط عند العدّاد =</span>
+      <input type="number" id="trig" value="24" min="1" max="29">
+    </div>
+    <div id="detectMsg" class="hint"></div>
+    <div id="live">
+      <div id="counterBig">--</div>
+      <div id="liveState" style="color:var(--dim)">بانتظار الضبط والتشغيل</div>
+      <div id="pairBox"></div>
+    </div>
+    <div id="diag"></div>
+  </div>
+ </div>
+
+ <div id="colB">
+  <div class="card">
+    <h2>📊 تحليل الاتجاهات <span class="tag"><span id="cnt">0</span> حدث · دقة <span id="acc">0</span>٪</span></h2>
+    <div id="e24Summary"></div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:6px">إلى أين تتجه الضربة نسبةً لموقع الـ<span class="hTrig2">24</span> (على مدار اللوحة):</div>
+    <div id="offBars"></div>
+    <div style="font-size:11px;color:var(--dim);margin:8px 0 4px">💡 خلاصة مصطفى:</div>
+    <div id="insight" style="background:#170912;border:1px solid var(--gold3);border-radius:10px;padding:9px;font-size:12.5px;line-height:1.8;color:var(--gold)">اجمع ٦ أحداث على الأقل وأعطيك القراءة</div>
   </div>
 
-  <!-- الذاكرة -->
-  <div class="memory-bar">
-    <span>🧠 الذاكرة الكاملة: <b id="memTotal">0</b> ضربة محفوظة</span>
-    <span>ما ينسى شي أبداً</span>
+  <div class="card">
+    <h2>📜 سجل الأحداث <span class="tag">آخر النتائج أولاً</span></h2>
+    <div class="seg" id="filtSeg">
+      <button data-f="all" class="on">الكل</button>
+      <button data-f="hit">✔ صح</button>
+      <button data-f="miss">✘ خطأ</button>
+    </div>
+    <div id="e24List" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn small ghost" id="manualBtn">✋ إدخال يدوي</button>
+      <button class="btn small ghost" id="exportBtn">⬇ تصدير CSV</button>
+      <button class="btn small danger" id="clearBtn">مسح السجل</button>
+    </div>
+    <div id="manualPad" style="display:none;margin-top:10px"></div>
+    <div class="note">النتيجة عشوائية من السيرفر — التحليل يكشف إن كان فيه ميل إحصائي في نمط الـ24، لكنه لا يضمن ربحاً. استخدمه كأداة قرار وحدّد سقف خسارة.</div>
   </div>
-
-  <div class="actions">
-    <button class="btn btn-ghost" id="undoBtn">↩️ تراجع</button>
-    <button class="btn btn-red" id="clearBtn">🗑️ مسح الذاكرة</button>
-  </div>
-
-  <!-- إحصائيات -->
-  <div class="stats">
-    <div class="stat"><b id="stTotal">0</b><span>ضربة</span></div>
-    <div class="stat"><b id="stHit">—</b><span>دقة الأول</span></div>
-    <div class="stat"><b id="stTop3">—</b><span>دقة أفضل ٣</span></div>
-    <div class="stat"><b id="stStreak">0</b><span>إصابات متتالية</span></div>
-  </div>
-
-  <div class="fcounts" id="fcounts"></div>
-
+ </div>
 </div>
 
-<div id="cursor"><div class="ring"></div><div class="dot"></div></div>
-<div class="toast" id="toast"></div>
-
 <script>
-/* ================== الفواكه (نفس ترتيب اللوحة بالصورة) ================== */
-/* الصف الأول: ليمون - توت - كيوي | الثاني: كرز - [شاشة] - برقوق | الثالث: بطيخ - موز - فراولة */
-const FRUITS = [
-  {id:0, e:"🍋", n:"ليمون",   x:5},
-  {id:1, e:"🫐", n:"توت",     x:5},
-  {id:2, e:"🥝", n:"كيوي",    x:5},
-  {id:3, e:"🍒", n:"كرز",     x:40},
-  {id:4, e:"🍇", n:"برقوق",   x:5},
-  {id:5, e:"🍉", n:"بطيخ",    x:20},
-  {id:6, e:"🍌", n:"موز",     x:10},
-  {id:7, e:"🍓", n:"فراولة",  x:10},
+/* ===== الفواكه (صور من اللعبة) ===== */
+const FRUITS=[
+ {id:'apple',em:'🍎',name:'تفاح',m:5},{id:'melon',em:'🍉',name:'بطيخ',m:45},
+ {id:'cherry',em:'🍒',name:'كرز',m:25},{id:'banana',em:'🍌',name:'موز',m:5},
+ {id:'grape',em:'🍇',name:'عنب',m:15},{id:'orange',em:'🍊',name:'برتقال',m:5},
+ {id:'mango',em:'🥭',name:'مانجو',m:5},{id:'pine',em:'🍍',name:'أناناس',m:10},
 ];
-/* ترتيب الخلايا في الشبكة 3×3 (null = الشاشة الوسطى) */
-const LAYOUT = [0, 1, 2, 3, null, 4, 5, 6, 7];
+const F=Object.fromEntries(FRUITS.map(f=>[f.id,f]));
+const fim=id=>`<span style="font-size:20px">${F[id].em}</span>`;
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('en');
 
-/* ================== الذاكرة الدائمة ================== */
-const MEM_KEY = "knuzFruitMemory_v2";
-let mem = JSON.parse(localStorage.getItem(MEM_KEY) || "null") || {
-  history: [],          // كل الضربات من أول يوم — ما تنمسح إلا يدوي
-  h1:0, h3:0, judged:0, // دقة التوقعات
-  streak:0
+/* ترتيب لوحة اللعبة ومدار الحلقة */
+const GRID=[['apple','melon','cherry'],['banana',null,'grape'],['orange','mango','pine']];
+const RING=['apple','melon','cherry','grape','pine','mango','orange','banana'];
+const OFFN=o=>o===0?'مباشر 🎯':o===4?'مقابل ↔':o<4?('يمين ×'+o+' ⟳'):('يسار ×'+(8-o)+' ⟲');
+
+/* حالة */
+let S=Object.assign({board:null,trig:24},JSON.parse(localStorage.getItem('t24S')||'{}'));
+let events=JSON.parse(localStorage.getItem('t24Events')||'[]');
+let stream=null,running=false,editBoard=false,diagOn=false,filt='all';
+let curTimer=null,ptrFruit=null,t24Fruit=null,t24Opp=null,armed=true,streak=0;
+let diagReads='';
+
+const video=$('video'),ovl=$('ovl'),octx=ovl.getContext('2d');
+const work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
+
+/* ===== الالتقاط ===== */
+async function attach(st,label){
+  stream=st;video.srcObject=st;await video.play();
+  const fix=()=>{if(video.videoWidth){$('camWrap').style.aspectRatio=video.videoWidth+'/'+video.videoHeight;setTimeout(fitOvl,80)}};
+  video.onloadedmetadata=fix;fix();
+  st.getVideoTracks()[0].onended=()=>$('stopCam').click();
+  $('camMsg').style.display='none';$('stopCam').style.display='';running=true;$('fps').textContent=label+' ✅';loop();
+}
+$('startCap').onclick=async()=>{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){$('camMsg').firstElementChild.innerHTML='⚠️ التقاط الشاشة يشتغل من كروم/إيدج على الكمبيوتر';return}
+  try{await attach(await navigator.mediaDevices.getDisplayMedia({video:{frameRate:12},audio:false}),'التقاط')}catch(e){$('camMsg').firstElementChild.textContent='تعذّر: '+e.message}
 };
-let lastPrediction = null;
+$('startCam').onclick=async()=>{try{await attach(await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}),'كاميرا')}catch(e){$('camMsg').firstElementChild.textContent='تعذّر: '+e.message}};
+$('stopCam').onclick=()=>{running=false;stream&&stream.getTracks().forEach(t=>t.stop());$('camMsg').style.display='flex';$('stopCam').style.display='none';$('fps').textContent='متوقف'};
 
-function saveMem(){ localStorage.setItem(MEM_KEY, JSON.stringify(mem)); }
+function fitOvl(){const r=$('camWrap').getBoundingClientRect();ovl.width=r.width;ovl.height=r.height}
+addEventListener('resize',fitOvl);setTimeout(fitOvl,300);
 
-/* ================== بناء اللوحة ================== */
-const board = document.getElementById("board");
-LAYOUT.forEach(fid=>{
-  if(fid === null){
-    const c = document.createElement("div");
-    c.className = "cell center";
-    c.id = "centerCell";
-    c.innerHTML = `<div class="cwait">سجّل ٣ ضربات<br>ويبدأ التخمين 🔮</div>`;
-    board.appendChild(c);
-    return;
-  }
-  const f = FRUITS[fid];
-  const c = document.createElement("div");
-  c.className = "cell";
-  c.dataset.id = f.id;
-  c.innerHTML = `
-    <span class="mark" id="mark${f.id}"></span>
-    <span class="fe">${f.e}</span>
-    <span class="fx">${f.x} times</span>
-    <span class="fn">${f.n}</span>
-    <span class="pct" id="pct${f.id}"></span>`;
-  c.addEventListener("click", ()=>pickFruit(f.id, c));
-  board.appendChild(c);
+/* ===== سحب مربع اللوحة ===== */
+let drag=null;
+function hit(B,x,y,p=.04){return x>B.x-p&&x<B.x+B.w+p&&y>B.y-p&&y<B.y+B.h+p}
+ovl.addEventListener('pointerdown',e=>{
+  if(!editBoard)return;
+  const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+  const B=S.board||(S.board={x:.2,y:.25,w:.6,h:.42});
+  if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.05)drag={t:'size'};
+  else if(hit(B,x,y))drag={t:'move',dx:x-B.x,dy:y-B.y};
+  if(drag)ovl.setPointerCapture(e.pointerId);
 });
-
-/* عدادات الفواكه تحت */
-const fcountsEl = document.getElementById("fcounts");
-FRUITS.forEach(f=>{
-  const d = document.createElement("div");
-  d.className = "fcount";
-  d.innerHTML = `${f.e}<i id="cnt${f.id}">0</i>`;
-  fcountsEl.appendChild(d);
+ovl.addEventListener('pointermove',e=>{
+  if(!drag)return;const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height,B=S.board;
+  if(drag.t==='move'){B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h)}
+  else{B.w=Math.min(Math.max(x-B.x,.15),1-B.x);B.h=Math.min(Math.max(y-B.y,.1),1-B.y)}
 });
+ovl.addEventListener('pointerup',()=>{drag=null;save()});
+$('boardBtn').onclick=()=>{editBoard=!editBoard;if(editBoard&&!S.board)S.board={x:.2,y:.25,w:.6,h:.42};
+  $('boardBtn').textContent=editBoard?'✅ تم':'🎛️ ضبط اللوحة';
+  $('detectMsg').textContent=editBoard?'اسحب المربع على شبكة الفواكه ٣×٣ كاملة، العدّاد الأزرق بالنص':''};
+$('diagBtn').onclick=()=>{diagOn=!diagOn;document.body.classList.toggle('diag-on',diagOn);$('diagBtn').textContent=diagOn?'✅ تشخيص':'🔬 تشخيص'};
+$('trig').value=S.trig;$('trig').oninput=e=>{S.trig=Math.max(1,Math.min(29,+e.target.value||24));$('hTrig').textContent=S.trig;document.querySelectorAll('.hTrig2').forEach(el=>el.textContent=S.trig);save()};
+$('hTrig').textContent=S.trig;document.querySelectorAll('.hTrig2').forEach(el=>el.textContent=S.trig);
 
-/* ================== تسجيل ضربة ================== */
-function pickFruit(id, el){
-  // قياس دقة التوقع اللي كان معروض
-  if(lastPrediction){
-    mem.judged++;
-    if(lastPrediction[0].id === id){ mem.h1++; mem.streak++; }
-    else mem.streak = 0;
-    if(lastPrediction.slice(0,3).some(p=>p.id===id)) mem.h3++;
-  }
-  mem.history.push(id);           // الذاكرة الكاملة — ما نحذف شي
-  saveMem();
-  el.classList.add("picked");
-  setTimeout(()=>el.classList.remove("picked"), 400);
-  showToast(`${FRUITS[id].e} انسجلت — ${FRUITS[id].n}`);
-  render();
+/* ===== قراءة العدّاد (7-seg) ===== */
+function bcell(r,c){const B=S.board;return{x:B.x+B.w*c/3,y:B.y+B.h*r/3,w:B.w/3,h:B.h/3}}
+const SEG=[[.5,.12],[.22,.3],[.78,.3],[.5,.5],[.22,.7],[.78,.72],[.5,.88]];
+const SMAP={'1110111':0,'0010010':1,'1011101':2,'1011011':3,'0111010':4,'1101011':5,'1101111':6,'1010010':7,'1111111':8,'1111011':9};
+function digit(x0,y0,w,hh){let b='';for(const[sx,sy]of SEG){let br=0,n=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const p=wctx.getImageData(Math.round(x0+w*sx+dx),Math.round(y0+hh*sy+dy),1,1).data;br+=Math.max(p[0],p[1],p[2]);n++}b+=(br/n>165)?'1':'0'}
+  if(b==='0000000')return null;if(b in SMAP)return SMAP[b];let bd=9,bv=null;for(const k in SMAP){let d=0;for(let i=0;i<7;i++)if(k[i]!==b[i])d++;if(d<bd){bd=d;bv=SMAP[k]}}return bd<=1?bv:null}
+function readTimer(){if(!S.board)return null;const c=bcell(1,1),W=work.width,H=work.height;
+  const x=c.x*W+c.w*W*.28,y=c.y*H+c.h*H*.3,w=c.w*W*.44,hh=c.h*H*.4;
+  const d1=digit(x,y,w*.46,hh),d2=digit(x+w*.54,y,w*.46,hh);
+  if(d1===null&&d2===null)return null;if(d1===null)return d2;return d1*10+(d2===null?0:d2)}
+function readPtr(){const W=work.width,H=work.height;let best=null,bf=0;
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++){const id=GRID[r][c];if(!id)continue;const cl=bcell(r,c);
+    const iw=Math.round(cl.w*W),ih=Math.round(cl.h*H);const img=wctx.getImageData(Math.round(cl.x*W),Math.round(cl.y*H),iw,ih),d=img.data;
+    let wh=0,n=0;for(let y=0;y<ih;y+=4)for(let x=0;x<iw;x+=4){const i=(y*iw+x)*4;n++;if(d[i]>195&&d[i+1]>185&&d[i+2]>170&&Math.abs(d[i]-d[i+2])<60)wh++}
+    const f=wh/n;if(f>bf){bf=f;best=id}}
+  return bf>.045?best:null}
+
+/* ===== اللوب ===== */
+let lastT=0;
+function loop(){if(!running)return;requestAnimationFrame(loop);const now=performance.now();if(now-lastT<300)return;lastT=now;
+  if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  const t=readTimer();ptrFruit=readPtr();
+  drawOvl();tick(t);if(diagOn)diag(t);
+}
+function drawOvl(){octx.clearRect(0,0,ovl.width,ovl.height);
+  if(!S.board){octx.fillStyle='#ff9f43';octx.font='700 13px Cairo';octx.fillText('اضغط «ضبط اللوحة»',12,24);return}
+  const B=S.board,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,hh=B.h*ovl.height;
+  octx.strokeStyle='#ff9f43';octx.lineWidth=editBoard?2.5:1.3;octx.setLineDash(editBoard?[6,4]:[]);octx.strokeRect(x,y,w,hh);octx.setLineDash([]);
+  for(let i=1;i<3;i++){octx.beginPath();octx.moveTo(x+w*i/3,y);octx.lineTo(x+w*i/3,y+hh);octx.stroke();octx.beginPath();octx.moveTo(x,y+hh*i/3);octx.lineTo(x+w,y+hh*i/3);octx.stroke()}
+  if(editBoard){octx.fillStyle='#ff9f43';octx.beginPath();octx.arc(x+w,y+hh,9,0,7);octx.fill()}
+  if(ptrFruit)for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c]===ptrFruit){const cl=bcell(r,c);octx.fillStyle='rgba(57,217,122,.3)';octx.fillRect(cl.x*ovl.width,cl.y*ovl.height,cl.w*ovl.width,cl.h*ovl.height)}
 }
 
-/* ================== محرك التخمين (5 نماذج على كامل الذاكرة) ================== */
-function predict(){
-  const h = mem.history;
-  const n = h.length;
-  if(n < 3) return null;
-  const K = FRUITS.length;
-  const scores = new Array(K).fill(0);
-
-  // 1) التكرار على كامل الذاكرة
-  const freq = new Array(K).fill(0);
-  h.forEach(v=>freq[v]++);
-  const maxF = Math.max(...freq,1);
-  for(let i=0;i<K;i++) scores[i] += (freq[i]/maxF) * 1.0;
-
-  // 2) الوزن الزمني — الأحدث أثقل
-  const rec = new Array(K).fill(0);
-  h.forEach((v,idx)=>{ rec[v] += Math.pow(1.05, idx - n); });
-  const maxR = Math.max(...rec, 1e-9);
-  for(let i=0;i<K;i++) scores[i] += (rec[i]/maxR) * 1.3;
-
-  // 3) تحليل الغياب — الفاكهة اللي اختفت من زمان ترجع أقرب
-  const lastSeen = new Array(K).fill(-1);
-  h.forEach((v,idx)=>lastSeen[v]=idx);
-  for(let i=0;i<K;i++){
-    const gap = lastSeen[i]===-1 ? n : (n-1-lastSeen[i]);
-    const expected = n / K;
-    if(gap > expected) scores[i] += Math.min((gap-expected)/expected, 1.5) * 0.9;
+/* ===== منطق الـ24 + رصد النتيجة ===== */
+let zeroPtr=null,zeroSince=0,lastResult=null;
+function tick(t){
+  $('counterBig').textContent=t===null?'--':(t<10?'0'+t:t);
+  const T=S.trig;
+  if(t!==null){
+    if(curTimer!==null&&t>curTimer+5){armed=true;t24Fruit=null;t24Opp=null;$('pairBox').innerHTML=''} // جولة جديدة
+    curTimer=t;
+    if(armed&&t<=T&&t>=T-2&&ptrFruit){ // نافذة الالتقاط
+      t24Fruit=ptrFruit;armed=false;
+      for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c]===ptrFruit)t24Opp=GRID[2-r][2-c];
+      $('pairBox').innerHTML='🎯 '+fim(t24Fruit)+' X'+F[t24Fruit].m+(t24Opp?' + '+fim(t24Opp)+' X'+F[t24Opp].m:'');
+    }
+    // العرض الحي
+    if(t24Fruit){$('liveState').innerHTML='📸 التُقطت الـ'+T+' على <b>'+F[t24Fruit].name+'</b> — ننتظر الضربة';$('liveState').style.color='var(--gold)'}
+    else if(t<=T+3&&t>=T-2){$('liveState').innerHTML=t>T?'⏳ يقترب... ('+t+')':'🎯 عند '+t+' — الإصبع: '+(ptrFruit?'<b>'+F[ptrFruit].name+'</b>':'—');$('liveState').style.color='var(--blue)'}
+    else{$('liveState').textContent='الجولة #'+t;$('liveState').style.color='var(--dim)'}
   }
-
-  // 4) ماركوف — وش يجي عادة بعد آخر ضربة
-  if(n >= 6){
-    const last = h[n-1];
-    const trans = new Array(K).fill(0); let tot=0;
-    for(let i=0;i<n-1;i++) if(h[i]===last){ trans[h[i+1]]++; tot++; }
-    if(tot>0) for(let i=0;i<K;i++) scores[i] += (trans[i]/tot) * 1.6;
+  // رصد النتيجة: العدّاد 0 والإصبع ثابت على فاكهة ثانيتين
+  if(t===0&&ptrFruit){
+    if(zeroPtr===ptrFruit){if(Date.now()-zeroSince>2000&&ptrFruit!==lastResult){logResult(ptrFruit);zeroSince=Date.now()+9e5}}
+    else{zeroPtr=ptrFruit;zeroSince=Date.now()}
+  }else zeroPtr=null;
+}
+function logResult(resId){
+  lastResult=resId;
+  if(t24Fruit){
+    const off=(RING.indexOf(resId)-RING.indexOf(t24Fruit)+8)%8;
+    const isHit=(resId===t24Fruit||resId===t24Opp);
+    streak=isHit?0:Math.min(streak+1,6);
+    const d=new Date();
+    events.unshift({trig:S.trig,f24:t24Fruit,opp:t24Opp,res:resId,off,hit:isHit,when:d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')});
+    if(events.length>300)events.pop();
+    beep(isHit);t24Fruit=null;t24Opp=null;$('pairBox').innerHTML='';render();save();
   }
-
-  // 5) مطابقة نمط آخر ٣ ضربات مع كل التاريخ
-  if(n >= 8){
-    const pat = h.slice(n-3).join(",");
-    const nxt = new Array(K).fill(0); let tot=0;
-    for(let i=0;i<n-4;i++)
-      if(h.slice(i,i+3).join(",")===pat){ nxt[h[i+3]]++; tot++; }
-    if(tot>0) for(let i=0;i<K;i++) scores[i] += (nxt[i]/tot) * 2.0;
-  }
-
-  const sum = scores.reduce((a,b)=>a+b,0) || 1;
-  return FRUITS.map((f,i)=>({...f, p:scores[i]/sum})).sort((a,b)=>b.p-a.p);
 }
 
-/* ================== الرسم ================== */
+/* ===== تشخيص ===== */
+function diag(t){
+  const rows=['⏱ العدّاد: '+(t===null?'<span style="color:var(--red)">لا يُقرأ — اضبط اللوحة</span>':'<b style="color:var(--blue)">'+t+'</b>'),
+    '☝️ الإصبع: '+(ptrFruit?F[ptrFruit].em+' '+F[ptrFruit].name:'<span style="color:var(--dim)">لا يوجد</span>'),
+    '🎯 حالة الالتقاط: '+(armed?'<span style="color:var(--green)">مسلّح، ينتظر '+S.trig+'</span>':(t24Fruit?'التُقط على '+F[t24Fruit].name:'خامل'))];
+  $('diag').innerHTML=rows.map(r=>'<div>'+r+'</div>').join('');
+}
+
+/* ===== التحليل والعرض ===== */
+function offCounts(list){const o={};list.forEach(e=>o[e.off]=(o[e.off]||0)+1);return o}
 function render(){
-  const h = mem.history;
-
-  /* شريط آخر ٨ ضربات — الأحدث أول شي بجنب "نتيجة" */
-  const stripEl = document.getElementById("strip");
-  const last8 = h.slice(-8).reverse();   // الأحدث أولاً
-  let stripHTML = "";
-  for(let i=0;i<8;i++){
-    if(i < last8.length){
-      const f = FRUITS[last8[i]];
-      stripHTML += `<div class="slot ${i===0?'newest':''}">${f.e}${i===0?'<span class="new">NEW</span>':''}</div>`;
-    } else {
-      stripHTML += `<div class="slot empty">·</div>`;
-    }
+  const hits=events.filter(e=>e.hit).length;
+  $('cnt').textContent=events.length;
+  $('acc').textContent=events.length?Math.round(hits/events.length*100):0;
+  // ملخص
+  const oc=offCounts(events),tot=events.length||1;
+  $('e24Summary').innerHTML=[
+    ['أحداث',events.length],['صح ✔',hits],['خطأ ✘',events.length-hits],
+    ['خسارة متتالية',streak]
+  ].map(([l,v])=>`<span class="pill">${l} <b>${v}</b></span>`).join('');
+  // أعمدة الاتجاه
+  const offs=[0,1,2,3,4,5,6,7];const mx=Math.max(1,...offs.map(o=>oc[o]||0));
+  $('offBars').innerHTML=offs.filter(o=>oc[o]).sort((a,b)=>(oc[b]||0)-(oc[a]||0)).map(o=>`
+    <div class="obar"><div class="lbl">${OFFN(o)}</div>
+    <div class="track"><div class="fill" style="width:${(oc[o]||0)/mx*100}%"></div></div>
+    <div class="n">${oc[o]||0}× ${Math.round((oc[o]||0)/tot*100)}٪</div></div>`).join('')||'<span style="color:var(--dim);font-size:11px">لا بيانات</span>';
+  // خلاصة مصطفى
+  if(events.length>=6){
+    const top=offs.sort((a,b)=>(oc[b]||0)-(oc[a]||0))[0];const p=Math.round((oc[top]||0)/tot*100);
+    let msg='🎩 ';
+    if(p>=40)msg+='ميل واضح: الضربة تروح «'+OFFN(top)+'» بنسبة '+p+'٪ — راهن على هذا الاتجاه.';
+    else if(p>=28)msg+='ميل خفيف نحو «'+OFFN(top)+'» ('+p+'٪) — احذر، مو مؤكد.';
+    else msg+='التوزيع شبه عشوائي — ما فيه نمط قوي في الـ'+S.trig+'، الأفضل تغطية الثنائي بس.';
+    if(streak>=3)msg+=' ⚠️ '+streak+' خسائر متتالية — قلّل الرهان أو وقف.';
+    $('insight').innerHTML=msg;
   }
-  stripEl.innerHTML = stripHTML;
-
-  /* الذاكرة والعدادات */
-  document.getElementById("memTotal").textContent = h.length;
-  document.getElementById("stTotal").textContent  = h.length;
-  const freq = new Array(FRUITS.length).fill(0);
-  h.forEach(v=>freq[v]++);
-  FRUITS.forEach(f=>document.getElementById("cnt"+f.id).textContent = freq[f.id]);
-
-  document.getElementById("stHit").textContent   = mem.judged? Math.round(mem.h1/mem.judged*100)+"%" : "—";
-  document.getElementById("stTop3").textContent  = mem.judged? Math.round(mem.h3/mem.judged*100)+"%" : "—";
-  document.getElementById("stStreak").textContent= mem.streak;
-
-  /* التخمين + العلامات على الفواكه */
-  const preds = predict();
-  lastPrediction = preds;
-
-  // نظّف كل العلامات
-  FRUITS.forEach(f=>{
-    const cell = document.querySelector(`.cell[data-id="${f.id}"]`);
-    cell.classList.remove("top1","top2","top3");
-    const m = document.getElementById("mark"+f.id);
-    const p = document.getElementById("pct"+f.id);
-    m.className = "mark"; m.textContent = "";
-    p.className = "pct";  p.textContent = "";
-  });
-
-  const center = document.getElementById("centerCell");
-  if(!preds){
-    center.innerHTML = `<div class="cwait">سجّل ٣ ضربات<br>ويبدأ التخمين 🔮</div>`;
-    return;
-  }
-
-  // علامات على أفضل ٣ فواكه
-  preds.slice(0,3).forEach((p,rank)=>{
-    const cell = document.querySelector(`.cell[data-id="${p.id}"]`);
-    cell.classList.add("top"+(rank+1));
-    const m = document.getElementById("mark"+p.id);
-    m.classList.add("r"+(rank+1), "show");
-    m.textContent = rank+1;
-    const pc = document.getElementById("pct"+p.id);
-    pc.classList.add("show");
-    pc.textContent = (p.p*100).toFixed(0)+"%";
-  });
-
-  // الشاشة الوسطى: التوقع الأقوى
-  const top = preds[0];
-  center.innerHTML = `
-    <div class="clabel">التوقع القادم</div>
-    <div class="cfruit">${top.e}</div>
-    <div class="cpct">${(top.p*100).toFixed(1)}%</div>`;
+  // السجل
+  let list=events;if(filt==='hit')list=events.filter(e=>e.hit);if(filt==='miss')list=events.filter(e=>!e.hit);
+  $('e24List').innerHTML=list.slice(0,60).map(e=>`
+    <div class="ev"><span class="tm">${e.when}</span>
+      <span class="ck" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</span>
+      ${fim(e.f24)}<span style="color:var(--dim);font-size:10px">الـ${e.trig}</span>
+      <span style="color:var(--dim)">←</span>${fim(e.res)}
+      <span class="off" style="color:${e.off===0?'var(--green)':'var(--ink)'}">${OFFN(e.off)}</span>
+    </div>`).join('')||'<div style="color:var(--dim);padding:12px;text-align:center">لا أحداث</div>';
 }
+$('filtSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;filt=b.dataset.f;[...$('filtSeg').children].forEach(x=>x.classList.toggle('on',x===b));render()};
 
-/* ================== أدوات ================== */
-document.getElementById("undoBtn").addEventListener("click", ()=>{
-  if(!mem.history.length) return;
-  mem.history.pop();
-  saveMem();
-  showToast("↩️ انحذفت آخر ضربة");
-  render();
-});
-document.getElementById("clearBtn").addEventListener("click", ()=>{
-  if(!confirm("متأكد؟ بتنمسح كل الذاكرة (" + mem.history.length + " ضربة)")) return;
-  mem = {history:[], h1:0, h3:0, judged:0, streak:0};
-  lastPrediction = null;
-  saveMem();
-  showToast("🗑️ انمسحت الذاكرة كاملة");
-  render();
-});
+/* ===== إدخال يدوي ===== */
+$('manualBtn').onclick=()=>{const p=$('manualPad');p.style.display=p.style.display==='none'?'block':'none';
+  if(!p.innerHTML)p.innerHTML='<div style="font-size:11px;color:var(--dim);margin-bottom:6px">١) اختر فاكهة الـ'+S.trig+'   ٢) ثم فاكهة الضربة</div><div id="mpFruits" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div><div id="mpState" style="font-size:12px;color:var(--gold);margin-top:6px;text-align:center"></div>';
+  buildPad()};
+let mp24=null;
+function buildPad(){$('mpFruits').innerHTML=FRUITS.map(f=>`<button class="btn ghost small" data-id="${f.id}" style="font-size:22px;padding:8px 0">${f.em}</button>`).join('');
+  $('mpFruits').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;
+    if(mp24===null){mp24=id;$('mpState').innerHTML='الـ'+S.trig+': '+fim(id)+' — الآن اختر فاكهة الضربة'}
+    else{const off=(RING.indexOf(id)-RING.indexOf(mp24)+8)%8;const isHit=(id===mp24);
+      let opp=null;for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c]===mp24)opp=GRID[2-r][2-c];
+      const hit2=(id===mp24||id===opp);const d=new Date();
+      events.unshift({trig:S.trig,f24:mp24,opp,res:id,off,hit:hit2,when:d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')});
+      streak=hit2?0:Math.min(streak+1,6);mp24=null;$('mpState').textContent='✅ سُجّل';render();save();setTimeout(()=>$('mpState').textContent='',900)}}}
 
-let toastTimer;
-function showToast(msg){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove("show"), 1500);
-}
-
-/* ================== تتبع اليد (زي الكيرم) ================== */
-const cursor=document.getElementById("cursor"),
-      camBtn=document.getElementById("camBtn"),
-      camPrev=document.getElementById("camPreview"),
-      camStatus=document.getElementById("camStatus"),
-      camHint=document.getElementById("camHint");
-
-let camera=null, hands=null, camOn=false;
-let smoothX=0, smoothY=0, first=true;
-let pinching=false, lastClickTime=0, hoverEl=null;
-
-camBtn.addEventListener("click", async ()=>{
-  if(camOn){ stopCam(); return; }
-  try{
-    camBtn.textContent="⏳ ...";
-    hands = new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-    hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
-    hands.onResults(onHand);
-    camera = new Camera(camPrev, {onFrame:async()=>{await hands.send({image:camPrev});}, width:480, height:360});
-    await camera.start();
-    camOn=true;
-    camPrev.style.display="block";
-    camStatus.textContent="الكاميرا شغالة ✋";
-    camStatus.classList.add("on");
-    camHint.textContent="وجّه للفاكهة واقرص عشان تسجلها";
-    camBtn.textContent="⏹️ إيقاف";
-    camBtn.className="btn btn-ghost";
-    cursor.style.display="block";
-    first=true;
-    showToast("✋ حرّك يدك قدام الكاميرا");
-  }catch(err){
-    camBtn.textContent="📷 تشغيل";
-    showToast("⚠️ ما قدرت أفتح الكاميرا — اسمح بالإذن");
-    console.error(err);
-  }
-});
-
-function stopCam(){
-  if(camera){camera.stop();camera=null;}
-  camOn=false;
-  camPrev.style.display="none";
-  cursor.style.display="none";
-  camStatus.textContent="الكاميرا مطفية";
-  camStatus.classList.remove("on");
-  camHint.textContent="سبابتك = المؤشر، القرصة = ضغطة";
-  camBtn.textContent="📷 تشغيل";
-  camBtn.className="btn";
-  clearHover();
-}
-
-function onHand(results){
-  if(!results.multiHandLandmarks || !results.multiHandLandmarks.length) return;
-  const lm=results.multiHandLandmarks[0];
-  const tip=lm[8], thumb=lm[4];
-
-  const nx = 1 - tip.x;
-  const zoom = 1.45;
-  let px = ((nx - .5)*zoom + .5)*window.innerWidth;
-  let py = ((tip.y - .5)*zoom + .5)*window.innerHeight;
-  px=Math.max(0,Math.min(window.innerWidth,px));
-  py=Math.max(0,Math.min(window.innerHeight,py));
-
-  const a = first?1:.35;
-  smoothX += (px-smoothX)*a;
-  smoothY += (py-smoothY)*a;
-  first=false;
-
-  cursor.style.left=smoothX+"px";
-  cursor.style.top=smoothY+"px";
-  updateHover(smoothX,smoothY);
-
-  const palm = dist(lm[0],lm[9]) || .1;
-  const pd = dist(tip,thumb)/palm;
-  if(pd < .32 && !pinching){
-    pinching=true;
-    cursor.classList.add("pinching");
-    const now=Date.now();
-    if(now-lastClickTime>450){
-      lastClickTime=now;
-      camClick(smoothX,smoothY);
-    }
-  } else if(pd > .45 && pinching){
-    pinching=false;
-    cursor.classList.remove("pinching");
-  }
-}
-function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-
-function updateHover(x,y){
-  const el=document.elementFromPoint(x,y);
-  const t=el?el.closest(".cell:not(.center), .btn"):null;
-  if(t!==hoverEl){
-    clearHover();
-    hoverEl=t;
-    if(hoverEl&&hoverEl.classList.contains("cell")) hoverEl.classList.add("hover-cam");
-    if(hoverEl&&hoverEl.classList.contains("btn")) hoverEl.style.filter="brightness(1.3)";
-  }
-}
-function clearHover(){
-  if(hoverEl){
-    hoverEl.classList.remove("hover-cam");
-    hoverEl.style.filter="";
-    hoverEl=null;
-  }
-}
-function camClick(x,y){
-  const el=document.elementFromPoint(x,y);
-  if(!el)return;
-  const t=el.closest(".cell:not(.center), .btn");
-  if(t){
-    t.click();
-    if(navigator.vibrate)navigator.vibrate(30);
-  }
-}
-
+/* ===== أدوات ===== */
+$('clearBtn').onclick=()=>{if(confirm('مسح كل السجل؟')){events=[];streak=0;render();save()}};
+$('exportBtn').onclick=()=>{
+  const rows=[['الوقت','الـ24','المقابل','الضربة','الاتجاه','النتيجة']].concat(events.map(e=>[e.when,F[e.f24].name,e.opp?F[e.opp].name:'',F[e.res].name,OFFN(e.off).replace(/[^\u0600-\u06FF0-9× ]/g,'').trim(),e.hit?'صح':'خطأ']));
+  const csv='\ufeff'+rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='t24_log.csv';a.click();
+};
+function beep(win){try{const ac=new (AudioContext||webkitAudioContext)(),o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.frequency.value=win?1000:400;g.gain.setValueAtTime(.15,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.3);o.start();o.stop(ac.currentTime+.3)}catch(e){}}
+function save(){localStorage.setItem('t24S',JSON.stringify(S));localStorage.setItem('t24Events',JSON.stringify(events))}
 render();
 </script>
 </body>
