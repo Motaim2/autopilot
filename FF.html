@@ -89,6 +89,23 @@ input[type=number]{background:#1a0a14;border:1px solid var(--gold3);border-radiu
       <span style="font-size:12px;color:var(--dim)">التقاط عند العدّاد =</span>
       <input type="number" id="trig" value="24" min="1" max="29">
     </div>
+    <div id="nudgeRow" style="display:none;margin-top:8px">
+      <div style="font-size:11px;color:var(--gold);text-align:center;margin-bottom:5px">تحريك دقيق للوحة (بعد السحب التقريبي):</div>
+      <div class="row">
+        <button class="btn small ghost nud" data-d="l">←</button>
+        <button class="btn small ghost nud" data-d="u">↑</button>
+        <button class="btn small ghost nud" data-d="d">↓</button>
+        <button class="btn small ghost nud" data-d="r">→</button>
+        <button class="btn small ghost nud" data-d="wl">أضيق ↔</button>
+        <button class="btn small ghost nud" data-d="ww">أوسع ↔</button>
+        <button class="btn small ghost nud" data-d="hl">أقصر ↕</button>
+        <button class="btn small ghost nud" data-d="hh">أطول ↕</button>
+      </div>
+    </div>
+    <div id="counterPreview" style="display:none;margin-top:10px;text-align:center">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:4px">معاينة العدّاد (لازم الرقم يبان واضح داخل الإطار):</div>
+      <canvas id="cpv" width="120" height="80" style="border:2px solid var(--blue);border-radius:8px;background:#000;image-rendering:pixelated;width:180px;height:120px"></canvas>
+    </div>
     <div id="detectMsg" class="hint"></div>
     <div id="live">
       <div id="counterBig">--</div>
@@ -224,8 +241,19 @@ ovl.addEventListener('pointermove',e=>{
 ovl.addEventListener('pointerup',()=>{drag=null;save()});
 $('boardBtn').onclick=()=>{editBoard=!editBoard;if(editBoard&&!S.board)S.board={x:.2,y:.25,w:.6,h:.42};
   $('boardBtn').textContent=editBoard?'✅ تم':'🎛️ ضبط اللوحة';
-  $('detectMsg').textContent=editBoard?'اسحب المربع على شبكة الفواكه ٣×٣ كاملة، العدّاد الأزرق بالنص':''};
+  $('nudgeRow').style.display=editBoard?'block':'none';
+  $('counterPreview').style.display=editBoard?'block':'none';
+  $('detectMsg').innerHTML=editBoard?'اسحب المربع ليغطي الشبكة ٣×٣ كاملة، والعدّاد الأزرق <b>بالضبط في المربع الأوسط</b>. استخدم أزرار التحريك للدقة. راقب معاينة العدّاد تحت.':''};
 $('diagBtn').onclick=()=>{diagOn=!diagOn;document.body.classList.toggle('diag-on',diagOn);$('diagBtn').textContent=diagOn?'✅ تشخيص':'🔬 تشخيص'};
+
+/* تحريك دقيق للوحة */
+document.querySelectorAll('.nud').forEach(b=>b.onclick=()=>{
+  if(!S.board)return;const B=S.board,dx=0.004,dy=0.004,d=b.dataset.d;
+  if(d==='l')B.x-=dx;if(d==='r')B.x+=dx;if(d==='u')B.y-=dy;if(d==='d')B.y+=dy;
+  if(d==='wl')B.w-=dx;if(d==='ww')B.w+=dx;if(d==='hl')B.h-=dy;if(d==='hh')B.h+=dy;
+  B.w=Math.max(.15,B.w);B.h=Math.max(.15,B.h);save();
+});
+
 $('trig').value=S.trig;$('trig').oninput=e=>{S.trig=Math.max(1,Math.min(29,+e.target.value||24));$('hTrig').textContent=S.trig;document.querySelectorAll('.hTrig2').forEach(el=>el.textContent=S.trig);save()};
 $('hTrig').textContent=S.trig;document.querySelectorAll('.hTrig2').forEach(el=>el.textContent=S.trig);
 
@@ -253,6 +281,12 @@ function loop(){if(!running)return;requestAnimationFrame(loop);const now=perform
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   const t=readTimer();ptrFruit=readPtr();
   drawOvl();tick(t);if(diagOn)diag(t);
+  if(editBoard&&S.board){ // معاينة العداد المكبرة
+    const c=bcell(1,1),W=work.width,H=work.height;
+    const cx=c.x*W+c.w*W*.2,cy=c.y*H+c.h*H*.22,cw=c.w*W*.6,ch=c.h*H*.56;
+    const g=$('cpv').getContext('2d');g.imageSmoothingEnabled=false;
+    g.clearRect(0,0,120,80);g.drawImage(work,cx,cy,cw,ch,0,0,120,80);
+  }
 }
 function drawOvl(){octx.clearRect(0,0,ovl.width,ovl.height);
   if(!S.board){octx.fillStyle='#ff9f43';octx.font='700 13px Cairo';octx.fillText('اضغط «ضبط اللوحة»',12,24);return}
@@ -388,16 +422,25 @@ function renderSavedRef(){
     g.putImageData(im,0,0)}
 }
 $('learnBtn').onclick=()=>{
-  if(!S.board){$('detectMsg').textContent='اضبط لوحة اللعبة أولاً';return}
-  if(video.videoWidth===0){$('detectMsg').textContent='شغّل الالتقاط أولاً';return}
+  if(!S.board){$('detectMsg').textContent='⚠️ اضبط لوحة اللعبة أولاً (زر ضبط اللوحة)';return}
+  if(video.videoWidth===0){$('detectMsg').textContent='⚠️ شغّل الالتقاط أولاً';return}
   work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  // تحذير: لو فيه إصبع ظاهر، القالب بيتخرب
+  if(readPtrRaw()!==null){$('detectMsg').innerHTML='⚠️ <b>ارفع إصبعك عن الشاشة</b> قبل الحفظ — اليد تغطي الفاكهة وتخرب القالب. ثم اضغط حفظ.';return}
   const W=work.width,H=work.height;TPL={};
   const map=[[0,0,'apple'],[0,1,'melon'],[0,2,'cherry'],[1,0,'banana'],[1,2,'grape'],[2,0,'orange'],[2,1,'mango'],[2,2,'pine']];
   for(const[r,c,id]of map){const cl=bcell(r,c);TPL[id]=templateOf(cl.x*W,cl.y*H,cl.w*W,cl.h*H)}
   localStorage.setItem('t24Tpl',JSON.stringify(TPL));
-  $('detectMsg').textContent='✅ حُفظت الفواكه — الآن الإصبع والنتيجة تُقرأ بصرياً بدقة';
+  $('detectMsg').innerHTML='✅ حُفظت الفواكه الثمان — تأكّد أن القوالب في الشريط <b>مطابقة لأسمائها</b>. لو مو مطابقة، المربع مزحزح: عدّله بأزرار التحريك وأعد الحفظ.';
   renderSavedRef();
 };
+// قراءة خام للإصبع (بدون تصنيف) — للتحذير
+function readPtrRaw(){const W=work.width,H=work.height;let bf=0;
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++){if(r===1&&c===1)continue;const cl=bcell(r,c);
+    const iw=Math.round(cl.w*W),ih=Math.round(cl.h*H);const img=wctx.getImageData(Math.round(cl.x*W),Math.round(cl.y*H),iw,ih),d=img.data;
+    let wh=0,n=0;for(let y=0;y<ih;y+=4)for(let x=0;x<iw;x+=4){const i=(y*iw+x)*4;n++;if(d[i]>195&&d[i+1]>185&&d[i+2]>170&&Math.abs(d[i]-d[i+2])<60)wh++}
+    const f=wh/n;if(f>bf)bf=f}
+  return bf>.045?bf:null}
 renderSavedRef();
 
 render();
