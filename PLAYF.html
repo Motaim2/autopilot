@@ -64,12 +64,18 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .strip .lbl .cnt{margin-inline-start:auto;font-size:10px;color:var(--dim);font-weight:400}
 .sScroll{display:flex;gap:5px;overflow-x:auto;padding:8px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;direction:rtl;min-height:60px}
 .sScroll::-webkit-scrollbar{height:5px}.sScroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-.dcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--panel);border:1.5px solid var(--line);border-radius:9px;padding:4px 5px;min-width:40px}
+.dcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--panel);border:1.5px solid var(--line);border-radius:9px;padding:4px 5px;min-width:42px}
 .dcol.hit{border-color:var(--green)}.dcol.miss{border-color:var(--red)}
+.dcol .rep{font-size:10px;font-weight:900;color:var(--gold);line-height:1}
 .dcol .mk{font-size:12px;font-weight:900;line-height:1}
-.dcol .s24{font-size:13px;line-height:1;opacity:.85}
-.dcol .sep{width:70%;height:1px;background:var(--line);margin:1px 0}
+.dcol .s24{font-size:12px;line-height:1;opacity:.9}
 .dcol .sr{font-size:21px;line-height:1}
+.dcol .rnd{font-size:8px;color:var(--dim);line-height:1}
+.absGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.absGrid .ab{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 2px;text-align:center}
+.absGrid .ab .e{font-size:15px;line-height:1.1}
+.absGrid .ab .g{font-size:15px;font-weight:900;color:var(--gold);line-height:1.2}
+.absGrid .ab .mx{font-size:8px;color:var(--dim)}
 .chip{flex:none;width:31px;height:31px;border-radius:7px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;position:relative}
 .chip.newest{border-color:var(--green)}
 .field{display:flex;gap:8px}.field .f{flex:1}.field label{font-size:10px;color:var(--dim);display:block;margin-bottom:3px}
@@ -143,13 +149,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
           </div>
         </div>
         <div class="card"><div class="strip">
-          <div class="lbl">📊 سجل الـ24 <span class="cnt">✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
-          <div class="sScroll" id="dualStrip"></div>
+          <div class="lbl">📊 السجل <span class="cnt"><span id="resN">0</span> جولة · ✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
+          <div class="sScroll" id="logStrip"></div>
         </div></div>
-        <div class="card"><div class="strip">
-          <div class="lbl">🎞️ كل الضربات <span class="cnt"><span id="resN">0</span></span></div>
-          <div class="sScroll" id="resStrip"></div>
-        </div></div>
+        <div class="card">
+          <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px">⏳ غياب الفواكه <span style="font-size:9px;color:var(--dim);font-weight:400">كم جولة ما جت · أقصى غياب</span></div>
+          <div class="absGrid" id="absGrid"></div>
+        </div>
         <div class="card"><div class="row">
           <button class="btn small ghost" id="expAll">⬇ تصدير الكل</button>
           <button class="btn small ghost" id="clrLog">مسح السجل</button>
@@ -413,7 +419,9 @@ function buildBet(){const unit=+$('#unit').value||1000;
   $('#betCards').innerHTML=bets.map(b=>`<div class="bc1"><div class="t">${b.t}</div><div class="em">${F[b.id].em}</div><div class="nm">${F[b.id].name} ×${F[b.id].m}</div><div class="am">${fmt(b.amt)}</div></div>`).join('');
   $('#betRes').style.display='none'}
 function logResult(id){lastRes=id;
-  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop();
+  const entry={id,at:Date.now()};
+  if(t24F)entry.t24={f24:t24F,opp:t24O,hit:(id===t24F||id===t24O)};
+  DB.results.unshift(entry);if(DB.results.length>1000000)DB.results.pop();
   if(t24F){const hit=(id===t24F||id===t24O);
     DB.t24.unshift({f24:t24F,opp:t24O,res:id,hit,at:Date.now()});
     if(curBet){const bet=curBet.bets.find(b=>b.id===id);const ret=bet?bet.amt*F[id].m:0,net=ret-curBet.total;
@@ -454,11 +462,29 @@ $('#backBtn').onclick=()=>{
   $('#playPhase').classList.add('hide');refreshStage();
 };
 function renderLog(){
-  $('#resN').textContent=DB.results.length;
-  $('#resStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>`<div class="chip ${i===0?'newest':''}">${F[r.id].em}</div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
+  const N=DB.results.length;
+  $('#resN').textContent=N;
   $('#hitN').textContent=DB.t24.filter(e=>e.hit).length;
   $('#accN').textContent=DB.t24.length?Math.round(DB.t24.filter(e=>e.hit).length/DB.t24.length*100):0;
-  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>`<div class="dcol ${e.hit?'hit':'miss'}"><div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div><div class="s24">${F[e.f24].em}</div><div class="sep"></div><div class="sr">${F[e.res].em}</div></div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
+  // السجل الموحّد: تكرار فوق، (✔/✘ + زوج الـ24 لو فيه)، النتيجة كبيرة، رقم الجولة تحت
+  $('#logStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>{
+    const roundNo=N-i;
+    const pr=[r.id,opp(r.id)];let rep='—';
+    for(let j=i+1;j<DB.results.length;j++){if(pr.includes(DB.results[j].id)){rep=j-i;break}}
+    const t=r.t24;
+    const cls=t?(t.hit?'hit':'miss'):'';
+    const mid=t?`<div class="mk" style="color:${t.hit?'var(--green)':'var(--red)'}">${t.hit?'✔':'✘'}</div><div class="s24">${F[t.f24].em}${t.opp?F[t.opp].em:''}</div>`:'';
+    return `<div class="dcol ${cls}"><div class="rep">${rep}</div>${mid}<div class="sr">${F[r.id].em}</div><div class="rnd">${roundNo}</div></div>`;
+  }).join('')||'<span class="mini" style="padding:6px">—</span>';
+  // غياب الفواكه: الحالي + الأقصى
+  $('#absGrid').innerHTML=FRUITS.map(f=>{
+    let cur=null;for(let i=0;i<N;i++){if(DB.results[i].id===f.id){cur=i;break}}
+    const curG=cur===null?N:cur;
+    let mx=curG,prev=null;
+    for(let i=N-1;i>=0;i--){if(DB.results[i].id===f.id){const pos=N-1-i;
+      if(prev!==null){const g=pos-prev-1;if(g>mx)mx=g}prev=pos}}
+    return `<div class="ab"><div class="e">${f.em}</div><div class="g">${N?curG:'—'}</div><div class="mx">أقصى ${N?mx:'—'}</div></div>`;
+  }).join('');
 }
 $('#bankroll')?.addEventListener('input',e=>{DB.bankroll=+e.target.value||0;saveDB()});
 $('#unit')?.addEventListener('input',e=>{DB.unit=+e.target.value||0;saveDB()});
