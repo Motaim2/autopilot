@@ -3,207 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>مصطفى — رصد الفواكه</title>
+<title>مصطفى — المعالج</title>
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0d13;--ink:#e8edf4;--dim:#8b96a8;--line:#1c2430;--panel:#111722;--panel2:#0d121b;
   --accent:#e94f37;--gold:#e0a92e;--green:#3ec96a;--red:#e8455f;--blue:#4a9eda}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-height:100vh}
-.top{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
-.top h1{font-size:16px;font-weight:900;color:var(--gold)}
-.top .step{margin-inline-start:auto;font-size:11px;color:var(--dim)}
-.wrap{max-width:1080px;margin:0 auto;padding:14px}
-@media(min-width:940px){.playGrid{display:grid;grid-template-columns:1fr 400px;gap:14px;align-items:start}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
-.card h2{font-size:13px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-height:100vh;padding-bottom:20px}
+.top{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
+.top h1{font-size:15px;font-weight:900;color:var(--gold)}
+.steps{display:flex;gap:4px;margin-inline-start:auto}
+.steps .st{width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--dim);font-weight:700}
+.steps .st.on{background:var(--gold);color:#2a1e00;border-color:var(--gold)}
+.steps .st.done{background:var(--green);color:#04240f;border-color:var(--green)}
+.wrap{max-width:1080px;margin:0 auto;padding:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.card h2{font-size:14px;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .card h2 .tag{margin-inline-start:auto;font-size:11px;color:var(--dim);font-weight:400}
-#camWrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:9/16;touch-action:none;max-height:460px;margin:0 auto}
+#camWrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:9/16;touch-action:none;max-height:430px;margin:0 auto}
 #video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #ovl{position:absolute;inset:0;width:100%;height:100%}
 #camMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--dim);font-size:13px;text-align:center;padding:24px}
 .btn{border:none;border-radius:10px;font-family:inherit;font-weight:700;font-size:14px;padding:11px 18px;cursor:pointer;color:#fff;background:linear-gradient(180deg,#f0603f,var(--accent));box-shadow:0 3px 0 #a82f1c}
-.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #a82f1c}
+.btn:active{transform:translateY(2px)}
 .btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--line);box-shadow:none}
 .btn.small{font-size:12px;padding:7px 13px}
 .btn.gold{background:linear-gradient(180deg,#f0c860,var(--gold));color:#2a1e00;box-shadow:0 3px 0 #8a6a1a}
 .btn.green{background:linear-gradient(180deg,#5ce88a,var(--green));color:#04240f;box-shadow:0 3px 0 #1e7a3e}
 .btn.blue{background:linear-gradient(180deg,#6ab8ea,var(--blue));color:#04182a;box-shadow:0 3px 0 #2a6a9a}
-.btn.big{font-size:16px;padding:14px;width:100%}
-.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.big{font-size:15px;padding:13px;width:100%}
+.btn:disabled{opacity:.35;cursor:not-allowed}
 .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
-
-/* قائمة التأكيد */
-.checklist{display:flex;flex-direction:column;gap:8px}
-.checkItem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
-.checkItem .ic{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
-.checkItem.done{border-color:var(--green)}
-.checkItem.done .ic{background:var(--green);color:#04240f}
-.checkItem.pending .ic{background:var(--line);color:var(--dim)}
-.checkItem .txt{flex:1}
-.checkItem .sub{font-size:10px;color:var(--dim)}
-.checkItem .act{flex:none}
-
-/* معاينة الفواكه */
-.refGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-top:8px}
-.refGrid .rf{text-align:center}
-.refGrid .rf canvas{width:100%;aspect-ratio:1;border-radius:7px;background:#000;border:1px solid var(--line);display:block}
-.refGrid .rf.ok canvas{border-color:var(--green)}
-.refGrid .rf .nm{font-size:8px;color:var(--dim);margin-top:1px}
-.refGrid .rf.ok .nm{color:var(--green)}
-
-/* التدريب المنبثق */
-#trainPop{display:none;background:var(--panel2);border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-top:10px;text-align:center}
-#trainImg{width:88px;height:88px;border-radius:12px;border:2px solid var(--gold);background:#000;margin:0 auto 10px;display:block}
-.fruitBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.fruitBtns button{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-.fruitBtns button:active{background:var(--line)}
-.fruitBtns button .em{font-size:22px}.fruitBtns button .nm{font-size:9px;color:var(--dim)}
-
-/* الحالة الحية */
-.live{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.live .box{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px;text-align:center}
-.live .box .lb{font-size:10px;color:var(--dim);margin-bottom:2px}
-.live .box .vl{font-size:22px;font-weight:900}
-.live .box.c .vl{color:var(--blue);direction:ltr}
-.live .box.f .vl{font-size:15px;color:var(--gold)}
-#stateLine{text-align:center;font-size:13px;padding:11px;border-radius:10px;margin-top:10px;background:var(--panel2);border:1px solid var(--line)}
-#stateLine.hot{border-color:var(--gold);background:rgba(224,169,46,.1);color:var(--gold);font-weight:700}
-
-/* الرهان */
-#betPanel{display:none;background:linear-gradient(180deg,#1a1420,#100e0a);border:1.5px solid var(--gold);border-radius:12px;padding:12px;margin-top:10px}
-.betCards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.betCard{background:var(--panel2);border:1.5px solid var(--gold);border-radius:10px;padding:9px 4px;text-align:center;position:relative}
-.betCard .em{font-size:26px}.betCard .nm{font-size:10px;color:var(--dim)}
-.betCard .amt{font-size:14px;font-weight:900;color:var(--gold);direction:ltr}
-.betCard .t{position:absolute;top:2px;right:5px;font-size:8px;color:var(--blue)}
-#betResult{text-align:center;font-size:13px;font-weight:700;margin-top:8px;padding:8px;border-radius:9px;display:none}
-
-/* السجل المزدوج */
-.strip{margin-bottom:0}
-.strip .lbl{font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.live2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.live2 .bx{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.live2 .bx .l{font-size:9px;color:var(--dim)}.live2 .bx .v{font-size:19px;font-weight:900;color:var(--blue);direction:ltr}
+.live2 .bx.f .v{font-size:14px;color:var(--gold)}
+.stageMsg{text-align:center;font-size:13px;padding:10px;border-radius:10px;margin-top:8px;background:var(--panel2);border:1px solid var(--line);line-height:1.7}
+.stageMsg.ok{border-color:var(--green);color:var(--green)}
+.stageMsg.hot{border-color:var(--gold);color:var(--gold);font-weight:700}
+/* شبكة معاينة الفواكه */
+.fr8{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:8px}
+.fr8 .f8{text-align:center}
+.fr8 .f8 canvas{width:100%;aspect-ratio:1;border-radius:6px;background:#000;border:1.5px solid var(--line);display:block}
+.fr8 .f8.ok canvas{border-color:var(--green)}
+.fr8 .f8 span{font-size:8px;color:var(--dim)}
+.fr8 .f8.ok span{color:var(--green)}
+/* منبثق التعليم */
+#pop{display:none;background:var(--panel2);border:1.5px solid var(--gold);border-radius:12px;padding:12px;margin-top:10px;text-align:center}
+#popImg{max-width:100%;border-radius:10px;border:2px solid var(--gold);background:#000;margin:0 auto 8px;display:block}
+#popImg.small{width:88px;height:88px}
+.fbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.fbtns button{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.fbtns button:active{background:var(--line)}
+.fbtns button.did{opacity:.35}
+.fbtns .em{font-size:21px}.fbtns .nm{font-size:9px;color:var(--dim)}
+/* اللعب */
+.playGrid{display:block}
+@media(min-width:940px){.playGrid{display:grid;grid-template-columns:1fr 400px;gap:12px;align-items:start}}
+.strip .lbl{font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;display:flex;gap:6px}
 .strip .lbl .cnt{margin-inline-start:auto;font-size:10px;color:var(--dim);font-weight:400}
-.stripScroll{display:flex;gap:5px;overflow-x:auto;padding:8px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;direction:rtl;min-height:64px}
-.stripScroll::-webkit-scrollbar{height:5px}.stripScroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
-/* عمود مزدوج: صح/خطأ + 24 صغير + النتيجة كبير */
-.dcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px 5px;min-width:40px}
+.sScroll{display:flex;gap:5px;overflow-x:auto;padding:8px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;direction:rtl;min-height:60px}
+.sScroll::-webkit-scrollbar{height:5px}.sScroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.dcol{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--panel);border:1.5px solid var(--line);border-radius:9px;padding:4px 5px;min-width:40px}
 .dcol.hit{border-color:var(--green)}.dcol.miss{border-color:var(--red)}
 .dcol .mk{font-size:12px;font-weight:900;line-height:1}
-.dcol .s24{font-size:14px;line-height:1;opacity:.85}
+.dcol .s24{font-size:13px;line-height:1;opacity:.85}
 .dcol .sep{width:70%;height:1px;background:var(--line);margin:1px 0}
-.dcol .sres{font-size:22px;line-height:1}
-/* شريط النتائج البسيط */
-.chip{flex:none;width:32px;height:32px;border-radius:7px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative}
+.dcol .sr{font-size:21px;line-height:1}
+.chip{flex:none;width:31px;height:31px;border-radius:7px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;position:relative}
 .chip.newest{border-color:var(--green)}
-.chip .idx{position:absolute;bottom:-1px;right:1px;font-size:7px;color:var(--dim)}
-
-.field{display:flex;gap:8px}.field .f{flex:1}.field label{display:block;font-size:10px;color:var(--dim);margin-bottom:3px}
-.field input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:14px;padding:8px;outline:none;text-align:center}
-.hint{font-size:11px;color:var(--blue);text-align:center;line-height:1.6;margin-top:6px}
-.mini{font-size:10px;color:var(--dim)}
+.field{display:flex;gap:8px}.field .f{flex:1}.field label{font-size:10px;color:var(--dim);display:block;margin-bottom:3px}
+.field input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:14px;padding:8px;text-align:center;outline:none}
+#betPanel{display:none;background:linear-gradient(180deg,#1a1420,#100e0a);border:1.5px solid var(--gold);border-radius:12px;padding:11px;margin-top:8px}
+.bC{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.bc1{background:var(--panel2);border:1.5px solid var(--gold);border-radius:10px;padding:8px 4px;text-align:center;position:relative}
+.bc1 .em{font-size:24px}.bc1 .nm{font-size:9px;color:var(--dim)}.bc1 .am{font-size:13px;font-weight:900;color:var(--gold);direction:ltr}
+.bc1 .t{position:absolute;top:2px;right:4px;font-size:8px;color:var(--blue)}
+#betRes{text-align:center;font-size:13px;font-weight:700;margin-top:8px;padding:8px;border-radius:9px;display:none}
 .hide{display:none!important}
+.mini{font-size:10px;color:var(--dim)}
 </style>
 </head>
 <body>
 <div class="top">
   <h1>🎩 مصطفى</h1>
-  <div class="step" id="stepTag">الإعداد</div>
+  <div class="steps" id="steps"></div>
 </div>
 
 <div class="wrap">
-  <!-- ============ مرحلة الإعداد ============ -->
-  <div id="setupPhase">
-    <!-- الشاشة -->
-    <div class="card">
-      <h2>① الشاشة والضبط</h2>
-      <div id="camWrap">
-        <video id="video" playsinline muted></video>
-        <canvas id="ovl"></canvas>
-        <div id="camMsg">
-          <div>التقط شاشة LDPlayer، ثم اضبط المربعين على الشبكة والنتيجة</div>
-          <button class="btn" id="startCap">🖥️ التقاط الشاشة</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn small blue" id="gridBox">🎯 الشبكة 3×3</button>
-        <button class="btn small gold" id="newBoxBtn">🆕 مربع النتيجة</button>
-        <button class="btn small ghost" id="stopCap" style="display:none">إيقاف</button>
-      </div>
-      <div class="live" style="margin-top:10px">
-        <div class="box c"><div class="lb">العدّاد (لايف)</div><div class="vl" id="counterVal">--</div></div>
-        <div class="box f"><div class="lb">الإصبع على</div><div class="vl" id="fingerVal">--</div></div>
-      </div>
-      <div class="hint" id="setupHint">اضبط الشبكة حتى يقرأ العدّاد رقم صحيح</div>
-    </div>
-
-    <!-- التدريب -->
-    <div class="card">
-      <h2>② تدريب الفواكه <span class="tag"><span id="tCount">0</span>/8</span></h2>
-      <div class="mini" style="margin-bottom:8px">اضغط أي خانة على الشبكة لتصويرها وتعليمها. أو درّب صور اليد عند الـ24 (يلتقط تلقائياً).</div>
-      <div class="row">
-        <button class="btn small gold" id="autoTrain">🔄 تدريب تلقائي (كل الخانات)</button>
-        <button class="btn small blue" id="handTrainToggle">✋ تدريب اليد عند 24: مطفأ</button>
-      </div>
-      <div class="refGrid" id="refGrid"></div>
-
-      <div id="trainPop">
-        <div style="font-size:12px;color:var(--dim);margin-bottom:8px" id="trainQ">وش هذي الفاكهة؟</div>
-        <canvas id="trainImg" width="88" height="88"></canvas>
-        <div class="fruitBtns" id="fruitBtns"></div>
-        <button class="btn small ghost" id="discardBtn" style="margin-top:8px">🗑️ غلط، امسح</button>
+  <!-- الفيديو (يتنقل بين المراحل) -->
+  <div class="card" id="camCard">
+    <h2 id="stageTitle">المرحلة ١ — تحديد الشبكة</h2>
+    <div id="camWrap">
+      <video id="video" playsinline muted></video>
+      <canvas id="ovl"></canvas>
+      <div id="camMsg">
+        <div>التقط شاشة LDPlayer أولاً</div>
+        <button class="btn" id="startCap">🖥️ التقاط الشاشة</button>
       </div>
     </div>
-
-    <!-- التأكيد -->
-    <div class="card">
-      <h2>③ التأكيد قبل البدء</h2>
-      <div class="checklist" id="checklist"></div>
-      <button class="btn green big" id="startPlay" style="margin-top:12px" disabled>▶️ ابدأ الرصد</button>
+    <div class="row" style="margin-top:8px" id="stageBtns"></div>
+    <div class="live2">
+      <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal">--</div></div>
+      <div class="bx f"><div class="l">اليد على</div><div class="v" id="fVal">--</div></div>
     </div>
+    <div class="stageMsg" id="stageMsg">شغّل الالتقاط</div>
+    <div id="pop">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px" id="popQ"></div>
+      <canvas id="popImg" width="88" height="88" class="small"></canvas>
+      <div class="fbtns" id="popBtns"></div>
+      <button class="btn small ghost" id="popSkip" style="margin-top:8px">تخطّي / غلط</button>
+    </div>
+    <div class="fr8" id="fr8"></div>
+    <button class="btn green big" id="confirmStage" style="margin-top:10px" disabled>✅ تأكيد المرحلة</button>
   </div>
 
-  <!-- ============ مرحلة اللعب ============ -->
+  <!-- شاشة اللعب -->
   <div id="playPhase" class="hide">
     <div class="playGrid">
       <div>
         <div class="card">
-          <h2>▶️ الرصد التلقائي <span class="tag"><button class="btn small ghost" id="backSetup" style="padding:4px 10px">⚙️ إعداد</button></span></h2>
-          <div id="camWrap2Holder"></div>
-          <div class="live" style="margin-top:10px">
-            <div class="box c"><div class="lb">العدّاد</div><div class="vl" id="counterVal2">--</div></div>
-            <div class="box f"><div class="lb">الإصبع على</div><div class="vl" id="fingerVal2">--</div></div>
+          <h2>▶️ الرصد <span class="tag"><button class="btn small ghost" id="backBtn" style="padding:3px 9px">⚙️</button> <button class="btn small ghost" id="expBtn" style="padding:3px 9px">⬇ تصدير الإعداد</button></span></h2>
+          <div id="playCamHolder"></div>
+          <div class="live2">
+            <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal2">--</div></div>
+            <div class="bx f"><div class="l">اليد على</div><div class="v" id="fVal2">--</div></div>
           </div>
-          <div id="stateLine">بانتظار الـ24...</div>
+          <div class="stageMsg" id="playMsg">بانتظار الـ24...</div>
           <div id="betPanel">
-            <div style="font-size:13px;color:var(--gold);font-weight:700">🎯 الـ24</div>
-            <div class="betCards" id="betCards"></div>
-            <div id="betResult"></div>
+            <div style="font-size:12px;color:var(--gold);font-weight:700">🎯 الـ24</div>
+            <div class="bC" id="betCards"></div>
+            <div id="betRes"></div>
           </div>
         </div>
       </div>
       <div>
         <div class="card">
-          <h2>💰 الرصيد</h2>
           <div class="field">
-            <div class="f"><label>رصيدي</label><input id="bankroll" inputmode="numeric" value="100000"></div>
-            <div class="f"><label>وحدة الرهان</label><input id="unit" inputmode="numeric" value="1000"></div>
+            <div class="f"><label>رصيدي</label><input id="bankroll" inputmode="numeric"></div>
+            <div class="f"><label>وحدة الرهان</label><input id="unit" inputmode="numeric"></div>
           </div>
         </div>
-        <div class="card">
-          <div class="strip"><div class="lbl">📊 السجل المزدوج <span class="cnt">✔ <span id="t24Count">0</span> · دقة <span id="t24Acc">0</span>٪</span></div>
-          <div class="stripScroll" id="dualStrip"></div></div>
-        </div>
-        <div class="card">
-          <div class="strip"><div class="lbl">🎞️ كل الضربات <span class="cnt"><span id="resCount">0</span></span></div>
-          <div class="stripScroll" id="resStrip"></div></div>
-        </div>
-        <div class="card">
-          <div class="row">
-            <button class="btn small ghost" id="exportData">⬇ تصدير</button>
-            <button class="btn small ghost" id="clearData">مسح السجل</button>
-          </div>
-        </div>
+        <div class="card"><div class="strip">
+          <div class="lbl">📊 سجل الـ24 <span class="cnt">✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
+          <div class="sScroll" id="dualStrip"></div>
+        </div></div>
+        <div class="card"><div class="strip">
+          <div class="lbl">🎞️ كل الضربات <span class="cnt"><span id="resN">0</span></span></div>
+          <div class="sScroll" id="resStrip"></div>
+        </div></div>
+        <div class="card"><div class="row">
+          <button class="btn small ghost" id="expAll">⬇ تصدير الكل</button>
+          <button class="btn small ghost" id="clrLog">مسح السجل</button>
+        </div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- استيراد -->
+  <div class="card" id="importCard">
+    <div class="row">
+      <button class="btn small ghost" id="impBtn">⬆ استيراد إعداد محفوظ</button>
+      <input type="file" id="impFile" accept=".json" style="display:none">
+      <span class="mini">لو عندك ملف مصدّر من قبل — يوفّر عليك كل المراحل</span>
     </div>
   </div>
 </div>
@@ -221,246 +183,297 @@ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const fmt=n=>Math.round(n).toLocaleString('en');
 const VN=24;
 
-let TPL=JSON.parse(localStorage.getItem('trainTpl')||'null');
-let GRIDBOX=JSON.parse(localStorage.getItem('trainGridBox')||'null');
-let NEWBOX=JSON.parse(localStorage.getItem('trainNewBox')||'null');
-let DB=JSON.parse(localStorage.getItem('playDB_v2')||'null')||{results:[],t24:[],bankroll:100000,unit:1000};
+/* الحالة المحفوظة */
+let CFG=JSON.parse(localStorage.getItem('mustafaPro_cfg')||'null')||{
+  stage:1, gridBox:null, newBox:null,
+  fruits:{},        // id -> vec (المرحلة ٢)
+  handDone:{},      // id -> true (المرحلة ٣: أكّدنا اليد على هالفاكهة)
+  resultsDone:{},   // id -> vec النتيجة (المرحلة ٤)
+};
+let DB=JSON.parse(localStorage.getItem('mustafaPro_db')||'null')||{results:[],t24:[],bankroll:100000,unit:1000};
+function saveCFG(){localStorage.setItem('mustafaPro_cfg',JSON.stringify(CFG))}
+function saveDB(){localStorage.setItem('mustafaPro_db',JSON.stringify(DB))}
 
 const video=$('#video'),ovl=$('#ovl'),octx=ovl.getContext('2d');
 const work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
-let stream=null,running=false,editWhich=null,phase='setup';
-let handTrain=false, grabbed=null, autoQueue=[], autoIdx=0, autoMode=false;
-function saveDB(){localStorage.setItem('playDB_v2',JSON.stringify(DB))}
-function saveTpl(){localStorage.setItem('trainTpl',JSON.stringify(TPL))}
+let stream=null,running=false,editGrid=false,editNew=false,grabbed=null,playing=false;
 
-/* ============ الالتقاط ============ */
+/* ===== الالتقاط ===== */
 async function attach(st){stream=st;video.srcObject=st;await video.play();
   const fix=()=>{if(video.videoWidth){$('#camWrap').style.aspectRatio=video.videoWidth+'/'+video.videoHeight;setTimeout(fitOvl,80)}};
-  video.onloadedmetadata=fix;fix();st.getVideoTracks()[0].onended=()=>$('#stopCap').click();
-  $('#camMsg').style.display='none';$('#stopCap').style.display='';running=true;loop()}
+  video.onloadedmetadata=fix;fix();st.getVideoTracks()[0].onended=()=>{running=false};
+  $('#camMsg').style.display='none';running=true;loop();refreshStage()}
 $('#startCap').onclick=async()=>{if(!navigator.mediaDevices?.getDisplayMedia){$('#camMsg').firstElementChild.textContent='افتح من كروم/إيدج على الكمبيوتر';return}
   try{await attach(await navigator.mediaDevices.getDisplayMedia({video:{frameRate:15}}))}catch(e){$('#camMsg').firstElementChild.textContent=e.message}};
-$('#stopCap').onclick=()=>{running=false;stream&&stream.getTracks().forEach(t=>t.stop());$('#camMsg').style.display='flex';$('#stopCap').style.display='none'};
 function fitOvl(){const r=$('#camWrap').getBoundingClientRect();ovl.width=r.width;ovl.height=r.height}
 addEventListener('resize',fitOvl);setTimeout(fitOvl,300);
 
-/* ============ سحب/ضغط المربعات ============ */
+/* ===== سحب الشبكة/النتيجة ===== */
 let drag=null;
-function hitB(B,x,y,p=.04){return x>B.x-p&&x<B.x+B.w+p&&y>B.y-p&&y<B.y+B.h+p}
 ovl.addEventListener('pointerdown',e=>{
   const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
-  // ضغط خانة للتصوير (لما مو في وضع تحديد وفي مرحلة الإعداد)
-  if(!editWhich&&GRIDBOX&&running&&phase==='setup'){const B=GRIDBOX;
-    if(x>B.x&&x<B.x+B.w&&y>B.y&&y<B.y+B.h){const c=Math.floor((x-B.x)/(B.w/3)),rr=Math.floor((y-B.y)/(B.h/3));
-      if(!(rr===1&&c===1)){grabCell(rr,c,'خانة الشبكة');return}}}
-  if(!editWhich)return;
-  const isNew=editWhich==='new';const B=isNew?(NEWBOX||(NEWBOX={x:.72,y:.9,w:.12,h:.06})):(GRIDBOX||(GRIDBOX={x:.12,y:.25,w:.76,h:.5}));
-  const minW=isNew?.04:.2,minH=isNew?.03:.2;
-  if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.06)drag={box:editWhich,t:'s',minW,minH};else if(hitB(B,x,y))drag={box:editWhich,t:'m',dx:x-B.x,dy:y-B.y};
+  const which=editGrid?'grid':editNew?'new':null;
+  if(!which)return;
+  const B=which==='grid'?(CFG.gridBox||(CFG.gridBox={x:.12,y:.25,w:.76,h:.5})):(CFG.newBox||(CFG.newBox={x:.72,y:.9,w:.12,h:.06}));
+  const minW=which==='new'?.04:.2,minH=which==='new'?.03:.2;
+  if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.06)drag={which,t:'s',minW,minH};
+  else if(x>B.x-.04&&x<B.x+B.w+.04&&y>B.y-.04&&y<B.y+B.h+.04)drag={which,t:'m',dx:x-B.x,dy:y-B.y};
   if(drag)ovl.setPointerCapture(e.pointerId)});
 ovl.addEventListener('pointermove',e=>{if(!drag)return;const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
-  const B=drag.box==='new'?NEWBOX:GRIDBOX;
-  if(drag.t==='m'){B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h)}else{B.w=Math.min(Math.max(x-B.x,drag.minW),1-B.x);B.h=Math.min(Math.max(y-B.y,drag.minH),1-B.y)}});
-ovl.addEventListener('pointerup',()=>{if(!drag)return;localStorage.setItem('trainGridBox',JSON.stringify(GRIDBOX));if(NEWBOX)localStorage.setItem('trainNewBox',JSON.stringify(NEWBOX));drag=null});
-$('#gridBox').onclick=()=>{editWhich=editWhich==='grid'?null:'grid';if(editWhich==='grid'&&!GRIDBOX)GRIDBOX={x:.12,y:.25,w:.76,h:.5};$('#gridBox').textContent=editWhich==='grid'?'✅ تم':'🎯 الشبكة 3×3'};
-$('#newBoxBtn').onclick=()=>{editWhich=editWhich==='new'?null:'new';if(editWhich==='new'&&!NEWBOX)NEWBOX={x:.72,y:.9,w:.12,h:.06};$('#newBoxBtn').textContent=editWhich==='new'?'✅ تم':'🆕 مربع النتيجة'};
+  const B=drag.which==='grid'?CFG.gridBox:CFG.newBox;
+  if(drag.t==='m'){B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h)}
+  else{B.w=Math.min(Math.max(x-B.x,drag.minW),1-B.x);B.h=Math.min(Math.max(y-B.y,drag.minH),1-B.y)}});
+ovl.addEventListener('pointerup',()=>{if(drag){saveCFG();refreshStage()}drag=null});
 
-/* ============ القوالب والتعرّف ============ */
-function cellRect(r,c){const B=GRIDBOX;return {x:B.x+B.w*c/3,y:B.y+B.h*r/3,w:B.w/3,h:B.h/3}}
+/* ===== أدوات الصورة ===== */
+function cellRect(r,c){const B=CFG.gridBox;return {x:B.x+B.w*c/3,y:B.y+B.h*r/3,w:B.w/3,h:B.h/3}}
 function tplOf(x,y,w,h){const W=work.width,H=work.height;const t=document.createElement('canvas');t.width=VN;t.height=VN;const g=t.getContext('2d',{willReadFrequently:true});
   const mx=w*W*.12,my=h*H*.12;g.drawImage(work,x*W+mx,y*H+my,w*W-2*mx,h*H-2*my,0,0,VN,VN);
   const d=g.getImageData(0,0,VN,VN).data,v=[];let mr=0,mg=0,mb=0;for(let i=0;i<d.length;i+=4){mr+=d[i];mg+=d[i+1];mb+=d[i+2]}const n=d.length/4;mr/=n;mg/=n;mb/=n;
-  for(let i=0;i<d.length;i+=4)v.push(d[i]-mr,d[i+1]-mg,d[i+2]-mb);return v}
-function tplCell(r,c){const cl=cellRect(r,c);return tplOf(cl.x,cl.y,cl.w,cl.h)}
+  for(let i=0;i<d.length;i+=4)v.push(Math.round(d[i]-mr),Math.round(d[i+1]-mg),Math.round(d[i+2]-mb));return v}
 function distV(a,b){let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d}return s/a.length}
-function classify(vec){if(!TPL)return{id:null,conf:0};let best=null,bd=1e18,sec=1e18;
-  for(const id in TPL){const d=distV(vec,TPL[id]);const real=id.replace('_hand','');if(d<bd){sec=bd;bd=d;best=real}else if(d<sec)sec=d}
-  return{id:best,conf:Math.max(0,Math.min(1,(sec-bd)/(sec+1)))}}
-function savedCount(){return TPL?new Set(Object.keys(TPL).map(k=>k.replace('_hand',''))).size:0}
-function cleanCount(){return TPL?Object.keys(TPL).filter(k=>!k.includes('_hand')).length:0}
+function classifyResult(vec){const keys=Object.keys(CFG.resultsDone);if(!keys.length)return null;
+  let best=null,bd=1e18,sec=1e18;
+  for(const id of keys){const d=distV(vec,CFG.resultsDone[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
+  const conf=Math.max(0,Math.min(1,(sec-bd)/(sec+1)));
+  return conf>0.05?best:null}
 
-/* ============ قراءة العدّاد ============ */
+/* ===== قراءة العدّاد ===== */
 const SEG=[[.5,.10],[.20,.28],[.80,.28],[.5,.5],[.20,.72],[.80,.72],[.5,.90]];
 const SMAP={'1110111':0,'0010010':1,'1011101':2,'1011011':3,'0111010':4,'1101011':5,'1101111':6,'1010010':7,'1111111':8,'1111011':9};
-function digitCore(){if(!GRIDBOX)return null;const B=GRIDBOX,cx=B.x+B.w/3,cy=B.y+B.h/3,cw=B.w/3,ch=B.h/3,W=work.width,H=work.height;
+function digitCore(){if(!CFG.gridBox)return null;const B=CFG.gridBox,cx=B.x+B.w/3,cy=B.y+B.h/3,cw=B.w/3,ch=B.h/3,W=work.width,H=work.height;
   const bx=Math.round((cx+cw*.18)*W),by=Math.round((cy+ch*.18)*H),bw=Math.round(cw*.64*W),bh=Math.round(ch*.64*H);if(bw<8||bh<8)return null;
   const img=wctx.getImageData(bx,by,bw,bh),d=img.data;const mask=new Uint8Array(bw*bh);let cnt=0,blue=0,x1=bw,x2=0,y1=bh,y2=0;
   for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){const i=(y*bw+x)*4,r=d[i],g=d[i+1],b=d[i+2];
     if(r>120&&g>110&&(r-b)>25&&(g-b)>15){mask[y*bw+x]=1;cnt++;if(x<x1)x1=x;if(x>x2)x2=x;if(y<y1)y1=y;if(y>y2)y2=y}else if(b>90&&b>r+15&&b>g)blue++}
-  const total=bw*bh;if(cnt<10||cnt/total>0.62||blue/total<0.07)return null;return{mask,bw,bh,x1,y1,x2,y2}}
-function readSeg(m,bw,bh,x0,y0,w,hh){let b='';for(const[sx,sy]of SEG){const px=Math.round(x0+w*sx),py=Math.round(y0+hh*sy),rx=Math.max(1,Math.round(w*0.1)),ry=Math.max(1,Math.round(hh*0.06));
+  const tot=bw*bh;if(cnt<10||cnt/tot>0.62||blue/tot<0.07)return null;return{mask,bw,bh,x1,y1,x2,y2}}
+function readSegD(m,bw,bh,x0,y0,w,hh){let b='';for(const[sx,sy]of SEG){const px=Math.round(x0+w*sx),py=Math.round(y0+hh*sy),rx=Math.max(1,Math.round(w*.1)),ry=Math.max(1,Math.round(hh*.06));
   let on=0,n=0;for(let dy=-ry;dy<=ry;dy++)for(let dx=-rx;dx<=rx;dx++){const yy=py+dy,xx=px+dx;if(yy>=0&&yy<bh&&xx>=0&&xx<bw){n++;if(m[yy*bw+xx])on++}}b+=(n&&on/n>0.3)?'1':'0'}
   if(b==='0000000')return null;if(b in SMAP)return SMAP[b];let bd=9,bv=null;for(const k in SMAP){let dd=0;for(let i=0;i<7;i++)if(k[i]!==b[i])dd++;if(dd<bd){bd=dd;bv=SMAP[k]}}return bd<=1?bv:null}
 function readTimer(){const core=digitCore();if(!core)return null;const{mask,bw,bh,x1,y1,x2,y2}=core;const w=x2-x1,hh=y2-y1;if(w<5||hh<9)return null;
-  if(w>hh*0.62){const half=w/2;const d1=readSeg(mask,bw,bh,x1,y1,half*0.92,hh),d2=readSeg(mask,bw,bh,x1+half*1.08,y1,half*0.92,hh);if(d1===null&&d2===null)return null;if(d1===null)return d2;return d1*10+(d2===null?0:d2)}else return readSeg(mask,bw,bh,x1,y1,w,hh)}
+  if(w>hh*0.62){const half=w/2;const d1=readSegD(mask,bw,bh,x1,y1,half*.92,hh),d2=readSegD(mask,bw,bh,x1+half*1.08,y1,half*.92,hh);
+    if(d1===null&&d2===null)return null;if(d1===null)return d2;return d1*10+(d2===null?0:d2)}
+  return readSegD(mask,bw,bh,x1,y1,w,hh)}
 
-function findFinger(){const W=work.width,H=work.height;let best=null,bf=0;
+function findFinger(){if(!CFG.gridBox)return null;const W=work.width,H=work.height;let best=null,bf=0;
   for(const cell of CELLS){const cl=cellRect(cell.r,cell.c),iw=Math.round(cl.w*W),ih=Math.round(cl.h*H);
     const img=wctx.getImageData(Math.round(cl.x*W),Math.round(cl.y*H),iw,ih),d=img.data;let wh=0,n=0;
     for(let y=0;y<ih;y+=3)for(let x=0;x<iw;x+=3){const i=(y*iw+x)*4;n++;if(d[i]>195&&d[i+1]>185&&d[i+2]>170&&Math.abs(d[i]-d[i+2])<60)wh++}
     const f=wh/n;if(f>bf){bf=f;best=cell}}
   return bf>.03?best:null}
-function readNewFruit(){if(!NEWBOX||!TPL)return null;const res=classify(tplOf(NEWBOX.x,NEWBOX.y,NEWBOX.w,NEWBOX.h));return res.conf>0.05?res.id:null}
 
-/* ============ التدريب ============ */
-function grabCell(r,c,label){
+/* ===== المراحل ===== */
+const STAGES=[
+  {n:1,title:'المرحلة ١ — تحديد الشبكة',check:()=>CFG.gridBox&&lastTimerOk},
+  {n:2,title:'المرحلة ٢ — الفواكه الأصل (بدون يد)',check:()=>Object.keys(CFG.fruits).length>=8},
+  {n:3,title:'المرحلة ٣ — حركة الـ24 (الثمان فواكه)',check:()=>Object.keys(CFG.handDone).length>=8},
+  {n:4,title:'المرحلة ٤ — النتائج',check:()=>CFG.newBox&&Object.keys(CFG.resultsDone).length>=8},
+];
+let lastTimerOk=false;
+
+function renderSteps(){
+  $('#steps').innerHTML=[1,2,3,4,5].map(n=>{
+    const cls=n<CFG.stage?'done':n===CFG.stage?'on':'';
+    return `<div class="st ${cls}">${n<CFG.stage?'✓':n===5?'▶':n}</div>`}).join('');
+}
+
+function refreshStage(){
+  renderSteps();
+  if(CFG.stage>=5){enterPlay();return}
+  const st=STAGES[CFG.stage-1];
+  $('#stageTitle').textContent=st.title;
+  const btns=$('#stageBtns');
+  // أزرار حسب المرحلة
+  if(CFG.stage===1){
+    btns.innerHTML='<button class="btn small blue" id="bGrid">'+(editGrid?'✅ تم':'🎯 اسحب مربع الشبكة')+'</button>';
+    $('#bGrid').onclick=()=>{editGrid=!editGrid;editNew=false;if(editGrid&&!CFG.gridBox)CFG.gridBox={x:.12,y:.25,w:.76,h:.5};refreshStage()};
+    $('#stageMsg').innerHTML=!running?'شغّل الالتقاط':!CFG.gridBox?'اضغط الزر واسحب المربع على الشبكة 3×3 كاملة':
+      lastTimerOk?'✅ العدّاد يُقرأ صح — أكّد المرحلة':'⏳ اضبط المربع حتى يقرأ العدّاد رقم (شوف الخانة فوق)';
+    $('#stageMsg').className='stageMsg'+(lastTimerOk?' ok':'');
+  }
+  else if(CFG.stage===2){
+    const n=Object.keys(CFG.fruits).length;
+    btns.innerHTML='<button class="btn small gold" id="bAuto">📸 التقط الخانات ('+n+'/8)</button>';
+    $('#bAuto').onclick=startFruitTrain;
+    $('#stageMsg').textContent=n>=8?'✅ الثمان فواكه محفوظة — أكّد':'اضغط الزر: يقص كل خانة ويسألك عنها. (تأكد ما فيه يد على الشبكة)';
+    $('#stageMsg').className='stageMsg'+(n>=8?' ok':'');
+  }
+  else if(CFG.stage===3){
+    const n=Object.keys(CFG.handDone).length;
+    btns.innerHTML='';
+    const remaining=FRUITS.filter(f=>!CFG.handDone[f.id]).map(f=>f.em).join(' ');
+    $('#stageMsg').innerHTML=n>=8?'✅ أكّدنا اليد على الثمانية — أكّد المرحلة':
+      '🎯 العب وخلّ العدّاد يوصل <b>24</b> — ألتقط الشبكة كاملة وأوريك وين اليد وتأكد لي.<br>باقي: '+remaining+' ('+n+'/8)';
+    $('#stageMsg').className='stageMsg'+(n>=8?' ok':' hot');
+  }
+  else if(CFG.stage===4){
+    const n=Object.keys(CFG.resultsDone).length;
+    btns.innerHTML='<button class="btn small gold" id="bNew">'+(editNew?'✅ تم':'🆕 اسحب مربع النتيجة')+'</button>';
+    $('#bNew').onclick=()=>{editNew=!editNew;editGrid=false;if(editNew&&!CFG.newBox)CFG.newBox={x:.72,y:.9,w:.12,h:.06};refreshStage()};
+    const remaining=FRUITS.filter(f=>!CFG.resultsDone[f.id]).map(f=>f.em).join(' ');
+    $('#stageMsg').innerHTML=!CFG.newBox?'حدّد مربع النتيجة (فاكهة NEW) أولاً':
+      n>=8?'✅ حفظنا الثمان نتائج — أكّد المرحلة':
+      'كل ما تطلع نتيجة جديدة ألتقطها وأسألك.<br>باقي: '+remaining+' ('+n+'/8)';
+    $('#stageMsg').className='stageMsg'+(n>=8?' ok':'');
+  }
+  // معاينة الفواكه (المرحلة 2+)
+  renderFr8();
+  // زر التأكيد
+  $('#confirmStage').disabled=!st.check();
+  $('#confirmStage').textContent=st.check()?'✅ تأكيد المرحلة '+CFG.stage+' والانتقال':'أكمل متطلبات المرحلة أولاً';
+}
+$('#confirmStage').onclick=()=>{if(!STAGES[CFG.stage-1].check())return;CFG.stage++;saveCFG();editGrid=false;editNew=false;$('#pop').style.display='none';refreshStage()};
+
+function renderFr8(){
+  const src=CFG.stage===4?CFG.resultsDone:CFG.stage===3?null:CFG.fruits;
+  if(CFG.stage===3){ // نعرض حالة التأكيد
+    $('#fr8').innerHTML=FRUITS.map(f=>`<div class="f8 ${CFG.handDone[f.id]?'ok':''}"><div style="font-size:20px;padding:4px 0;border:1.5px solid ${CFG.handDone[f.id]?'var(--green)':'var(--line)'};border-radius:6px;background:#000">${f.em}</div><span>${f.name}${CFG.handDone[f.id]?' ✓':''}</span></div>`).join('');
+    return}
+  $('#fr8').innerHTML=FRUITS.map(f=>`<div class="f8 ${src&&src[f.id]?'ok':''}"><canvas width="${VN}" height="${VN}" id="f8_${f.id}"></canvas><span>${f.name}${src&&src[f.id]?' ✓':''}</span></div>`).join('');
+  if(src)for(const f of FRUITS){if(!src[f.id])continue;const cv=$('#f8_'+f.id);if(!cv)continue;const g=cv.getContext('2d');const im=g.createImageData(VN,VN);const t=src[f.id];
+    for(let i=0,j=0;i<t.length;i+=3,j+=4){im.data[j]=Math.max(0,Math.min(255,t[i]+128));im.data[j+1]=Math.max(0,Math.min(255,t[i+1]+128));im.data[j+2]=Math.max(0,Math.min(255,t[i+2]+128));im.data[j+3]=255}g.putImageData(im,0,0)}
+}
+
+/* ===== المرحلة ٢: تدريب الفواكه ===== */
+let fq=[],fqi=0;
+function startFruitTrain(){if(!running||!CFG.gridBox)return;
+  fq=CELLS.filter(c=>!CFG.fruits[c.id]);fqi=0;nextFruit()}
+function nextFruit(){if(fqi>=fq.length){$('#pop').style.display='none';refreshStage();return}
   work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
-  grabbed={vec:tplCell(r,c),hand:false};showTrainPop(cellRect(r,c),label);
+  const cell=fq[fqi];grabbed={type:'fruit',vec:tplOf(...Object.values(cellRect(cell.r,cell.c)))};
+  showPop(cellRect(cell.r,cell.c),'خانة '+(fqi+1)+'/'+fq.length+' — وش الفاكهة؟',false)}
+function showPop(cl,q,full){
+  const W=work.width,H=work.height;
+  const pi=$('#popImg');
+  if(full){pi.classList.remove('small');pi.width=280;pi.height=Math.round(280*cl.h*H/(cl.w*W));
+    const g=pi.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,pi.width,pi.height);
+    g.drawImage(work,cl.x*W,cl.y*H,cl.w*W,cl.h*H,0,0,pi.width,pi.height)}
+  else{pi.classList.add('small');pi.width=88;pi.height=88;
+    const mx=cl.w*W*.12,my=cl.h*H*.12;const g=pi.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,88,88);
+    g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,88,88)}
+  $('#popQ').textContent=q;
+  $('#pop').style.display='block';buildPopBtns();
 }
-function showTrainPop(cl,label){
-  const W=work.width,H=work.height,mx=cl.w*W*.12,my=cl.h*H*.12;
-  const g=$('#trainImg').getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,88,88);
-  g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,88,88);
-  $('#trainQ').textContent=(label||'الفاكهة')+' — وش هي؟';
-  $('#trainPop').style.display='block';buildFruitBtns();
+function buildPopBtns(){
+  const doneSet=grabbed?.type==='hand'?CFG.handDone:grabbed?.type==='result'?CFG.resultsDone:CFG.fruits;
+  $('#popBtns').innerHTML=FRUITS.map(f=>`<button data-id="${f.id}" class="${doneSet[f.id]?'did':''}"><span class="em">${f.em}</span><span class="nm">${f.name}${doneSet[f.id]?' ✓':''}</span></button>`).join('');
+  $$('#popBtns button').forEach(b=>b.onclick=()=>answerPop(b.dataset.id))}
+function answerPop(id){
+  if(!grabbed)return;
+  if(grabbed.type==='fruit'){CFG.fruits[id]=grabbed.vec;fqi++;saveCFG();renderFr8();nextFruit();return}
+  if(grabbed.type==='hand'){CFG.handDone[id]=true;saveCFG();$('#pop').style.display='none';grabbed=null;refreshStage();return}
+  if(grabbed.type==='result'){CFG.resultsDone[id]=grabbed.vec;saveCFG();$('#pop').style.display='none';grabbed=null;refreshStage();return}
 }
-function buildFruitBtns(){$('#fruitBtns').innerHTML=FRUITS.map(f=>`<button data-id="${f.id}"><span class="em">${f.em}</span><span class="nm">${f.name}${TPL&&TPL[f.id]?' ✓':''}</span></button>`).join('');
-  $$('#fruitBtns button').forEach(b=>b.onclick=()=>teach(b.dataset.id))}
-function teach(id){if(!grabbed)return;TPL=TPL||{};
-  if(grabbed.hand)TPL[id+'_hand']=grabbed.vec;else TPL[id]=grabbed.vec;
-  saveTpl();grabbed=null;$('#trainPop').style.display='none';refreshSetup();
-  if(autoMode){autoIdx++;nextAuto()}
-}
-$('#discardBtn').onclick=()=>{grabbed=null;$('#trainPop').style.display='none';if(autoMode){autoIdx++;nextAuto()}};
+$('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
-// تدريب تلقائي لكل الخانات
-$('#autoTrain').onclick=()=>{if(!running||!GRIDBOX){$('#setupHint').textContent='شغّل الالتقاط واضبط الشبكة أولاً';return}
-  autoQueue=CELLS.slice();autoIdx=0;autoMode=true;nextAuto()};
-function nextAuto(){if(autoIdx>=autoQueue.length){autoMode=false;$('#trainPop').style.display='none';refreshSetup();return}
-  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
-  const cell=autoQueue[autoIdx];grabbed={vec:tplCell(cell.r,cell.c),hand:false};
-  showTrainPop(cellRect(cell.r,cell.c),'خانة '+(autoIdx+1)+'/8');}
-
-// تدريب اليد عند 24
-$('#handTrainToggle').onclick=()=>{handTrain=!handTrain;$('#handTrainToggle').textContent='✋ تدريب اليد عند 24: '+(handTrain?'شغّال':'مطفأ');$('#handTrainToggle').className='btn small '+(handTrain?'green':'blue')};
-
-/* ============ اللوب الرئيسي ============ */
-let curTimer=null,armed=true,t24Fruit=null,t24Opp=null,lastResult=null,newBuf=[],curBet=null,lastSeen24=0;
+/* ===== اللوب ===== */
+let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,resultWait=false,lastResVec=null;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
-  if(!GRIDBOX)return;
-  const t=readTimer();
-  const finger=findFinger();
-  const ff=finger?GRID[finger.r][finger.c]:null;
-  // عرض حي (المرحلتين)
-  const cTxt=t===null?'--':(t<10?'0'+t:t);
-  $('#counterVal').textContent=cTxt;$('#counterVal2').textContent=cTxt;
-  const fTxt=ff?F[ff].em+' '+F[ff].name:'--';
-  $('#fingerVal').innerHTML=fTxt;$('#fingerVal2').innerHTML=fTxt;
+  if(!CFG.gridBox)return;
+  const t=readTimer();lastTimerOk=(t!==null);
+  const fg=findFinger();const ff=fg?GRID[fg.r][fg.c]:null;
+  const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
+  const fT=ff?F[ff].em+' '+F[ff].name:'--';$('#fVal').innerHTML=fT;$('#fVal2').innerHTML=fT;
 
   if(t!==null){
-    if(curTimer!==null&&t>curTimer+5){armed=true;t24Fruit=null;t24Opp=null;if(phase==='play')$('#betPanel').style.display='none'}
-    curTimer=t;
-    // رصد 24 بالضبط (سريع)
-    if(armed&&t===24){
-      armed=false;lastSeen24=Date.now();
-      if(handTrain&&phase==='setup'&&finger){ // تدريب اليد: التقط واسأل
-        grabbed={vec:tplCell(finger.r,finger.c),hand:true};showTrainPop(cellRect(finger.r,finger.c),'اليد عند 24');
-      }else if(ff){ // رصد
-        t24Fruit=ff;t24Opp=opp(ff);
-        if(phase==='play'){buildBet();$('#stateLine').className='hot';$('#stateLine').innerHTML='🎯 الـ24 على '+F[ff].em+' '+F[ff].name+' + مقابل '+(t24Opp?F[t24Opp].em:'')}
-      }
+    if(curT!==null&&t>curT+5){armed=true;t24F=null;t24O=null;if(playing)$('#betPanel').style.display='none'}
+    curT=t;
+    if(armed&&t===24){armed=false;
+      if(CFG.stage===3&&fg){ // مرحلة تأكيد اليد: لقطة كاملة
+        work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+        grabbed={type:'hand'};
+        showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
+      }else if(playing&&ff){t24F=ff;t24O=opp(ff);buildBet();
+        $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[ff].em+' '+F[ff].name+' + '+(t24O?F[t24O].em:'')}
     }
-    if(phase==='play'&&t>0&&t<24&&t24Fruit)$('#stateLine').innerHTML='⏳ '+t+' — رصدنا '+F[t24Fruit].em+'، ننتظر النتيجة';
-    else if(phase==='play'&&armed&&t>24)$('#stateLine').className='',$('#stateLine').textContent='العدّاد '+t+' — بانتظار الـ24';
+    if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
   }
-  // النتيجة
-  const nw=readNewFruit();
-  if(nw){newBuf.push(nw);if(newBuf.length>3)newBuf.shift();
-    if(newBuf.length===3&&newBuf.every(x=>x===nw)&&nw!==lastResult)logResult(nw)}
-  else newBuf.length=0;
+  // المرحلة ٤ + اللعب: النتيجة
+  if(CFG.newBox&&(CFG.stage===4||playing)){
+    const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
+    if(CFG.stage===4&&!grabbed){ // تعليم النتائج: لو تغيّرت النتيجة، اسأل
+      if(lastResVec===null||distV(vec,lastResVec)>800){lastResVec=vec;
+        grabbed={type:'result',vec};
+        showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
+    }
+    if(playing){ // اللعب: تعرّف تلقائي
+      const id=classifyResult(vec);
+      if(id){resBuf.push(id);if(resBuf.length>3)resBuf.shift();
+        if(resBuf.length===3&&resBuf.every(x=>x===id)&&id!==lastRes)logResult(id)}
+      else resBuf.length=0;
+    }
+  }
 }
-
-function buildBet(){if(!t24Fruit)return;const unit=+$('#unit').value||1000;
-  const bets=[{id:t24Fruit,amt:unit,t:'الإصبع'}];if(t24Opp)bets.push({id:t24Opp,amt:unit,t:'المقابل'});
+function buildBet(){const unit=+$('#unit').value||1000;
+  const bets=[{id:t24F,amt:unit,t:'اليد'}];if(t24O)bets.push({id:t24O,amt:unit,t:'المقابل'});
   curBet={bets,total:bets.reduce((s,b)=>s+b.amt,0)};
   $('#betPanel').style.display='block';
-  $('#betCards').innerHTML=bets.map(b=>`<div class="betCard"><div class="t">${b.t}</div><div class="em">${F[b.id].em}</div><div class="nm">${F[b.id].name} ×${F[b.id].m}</div><div class="amt">${fmt(b.amt)}</div></div>`).join('');
-  $('#betResult').style.display='none';
-}
-function logResult(id){
-  lastResult=id;
+  $('#betCards').innerHTML=bets.map(b=>`<div class="bc1"><div class="t">${b.t}</div><div class="em">${F[b.id].em}</div><div class="nm">${F[b.id].name} ×${F[b.id].m}</div><div class="am">${fmt(b.amt)}</div></div>`).join('');
+  $('#betRes').style.display='none'}
+function logResult(id){lastRes=id;
   DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop();
-  if(t24Fruit){
-    const hit=(id===t24Fruit||id===t24Opp);
-    DB.t24.unshift({f24:t24Fruit,opp:t24Opp,res:id,hit,at:Date.now()});
+  if(t24F){const hit=(id===t24F||id===t24O);
+    DB.t24.unshift({f24:t24F,opp:t24O,res:id,hit,at:Date.now()});
     if(curBet){const bet=curBet.bets.find(b=>b.id===id);const ret=bet?bet.amt*F[id].m:0,net=ret-curBet.total;
       DB.bankroll=(+$('#bankroll').value||0)+net;$('#bankroll').value=Math.round(DB.bankroll);
-      const pr=$('#betResult');pr.style.display='block';
+      const pr=$('#betRes');pr.style.display='block';
       if(hit){pr.style.background='rgba(62,201,106,.14)';pr.style.color='var(--green)';pr.innerHTML='✅ صح! '+F[id].em+' — صافي '+(net>=0?'+':'')+fmt(net)}
-      else{pr.style.background='rgba(232,69,95,.12)';pr.style.color='var(--red)';pr.innerHTML='❌ خطأ. طلع '+F[id].em+' — خسارة '+fmt(curBet.total)}
-    }
-    t24Fruit=null;t24Opp=null;curBet=null;
-    if(phase==='play'){$('#stateLine').className='';$('#stateLine').textContent='بانتظار الـ24...'}
-  }
-  render();saveDB();
-}
+      else{pr.style.background='rgba(232,69,95,.12)';pr.style.color='var(--red)';pr.innerHTML='❌ خطأ. '+F[id].em+' — خسارة '+fmt(curBet.total)}}
+    t24F=null;t24O=null;curBet=null;
+    $('#playMsg').className='stageMsg';$('#playMsg').textContent='بانتظار الـ24...'}
+  renderLog();saveDB()}
 
 function drawBoxes(){
-  if(GRIDBOX){const B=GRIDBOX,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
-    octx.strokeStyle=editWhich==='grid'?'#4a9eda':'#e0a92e';octx.lineWidth=editWhich==='grid'?2.5:1.5;octx.setLineDash(editWhich==='grid'?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
-    octx.strokeStyle='rgba(224,169,46,.3)';octx.lineWidth=1;for(let i=1;i<3;i++){octx.beginPath();octx.moveTo(x+w*i/3,y);octx.lineTo(x+w*i/3,y+h);octx.stroke();octx.beginPath();octx.moveTo(x,y+h*i/3);octx.lineTo(x+w,y+h*i/3);octx.stroke()}
-    if(editWhich==='grid'){octx.fillStyle='#4a9eda';octx.beginPath();octx.arc(x+w,y+h,8,0,7);octx.fill()}}
-  if(NEWBOX){const B=NEWBOX,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
-    octx.strokeStyle=editWhich==='new'?'#3ec96a':'#e0a92e';octx.lineWidth=editWhich==='new'?2.5:1.5;octx.setLineDash(editWhich==='new'?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
-    octx.fillStyle=editWhich==='new'?'#3ec96a':'#e0a92e';octx.font='700 10px Rubik';octx.fillText('النتيجة',x+2,y-4);
-    if(editWhich==='new'){octx.fillStyle='#3ec96a';octx.beginPath();octx.arc(x+w,y+h,7,0,7);octx.fill()}}
+  if(CFG.gridBox){const B=CFG.gridBox,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
+    octx.strokeStyle=editGrid?'#4a9eda':'#e0a92e';octx.lineWidth=editGrid?2.5:1.5;octx.setLineDash(editGrid?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
+    octx.strokeStyle='rgba(224,169,46,.3)';octx.lineWidth=1;
+    for(let i=1;i<3;i++){octx.beginPath();octx.moveTo(x+w*i/3,y);octx.lineTo(x+w*i/3,y+h);octx.stroke();octx.beginPath();octx.moveTo(x,y+h*i/3);octx.lineTo(x+w,y+h*i/3);octx.stroke()}
+    if(editGrid){octx.fillStyle='#4a9eda';octx.beginPath();octx.arc(x+w,y+h,8,0,7);octx.fill()}}
+  if(CFG.newBox){const B=CFG.newBox,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
+    octx.strokeStyle=editNew?'#3ec96a':'#e0a92e';octx.lineWidth=editNew?2.5:1.5;octx.setLineDash(editNew?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
+    octx.fillStyle=editNew?'#3ec96a':'#e0a92e';octx.font='700 10px Rubik';octx.fillText('النتيجة',x+2,y-4);
+    if(editNew){octx.fillStyle='#3ec96a';octx.beginPath();octx.arc(x+w,y+h,7,0,7);octx.fill()}}
 }
 
-/* ============ الإعداد والتأكيد ============ */
-function refreshSetup(){
-  $('#tCount').textContent=cleanCount();
-  // معاينة
-  $('#refGrid').innerHTML=FRUITS.map(f=>`<div class="rf ${TPL&&TPL[f.id]?'ok':''}"><canvas width="${VN}" height="${VN}" id="rf_${f.id}"></canvas><div class="nm">${f.name}</div></div>`).join('');
-  if(TPL)for(const f of FRUITS){if(!TPL[f.id])continue;const cv=$('#rf_'+f.id);if(!cv)continue;const g=cv.getContext('2d');const im=g.createImageData(VN,VN);const t=TPL[f.id];
-    for(let i=0,j=0;i<t.length;i+=3,j+=4){im.data[j]=Math.max(0,Math.min(255,t[i]+128));im.data[j+1]=Math.max(0,Math.min(255,t[i+1]+128));im.data[j+2]=Math.max(0,Math.min(255,t[i+2]+128));im.data[j+3]=255}g.putImageData(im,0,0)}
-  // قائمة التأكيد
-  const handN=TPL?Object.keys(TPL).filter(k=>k.includes('_hand')).length:0;
-  const items=[
-    {ok:!!GRIDBOX,t:'ضبط الشبكة 3×3',s:GRIDBOX?'تم تحديدها':'اضغط «الشبكة 3×3» واسحب'},
-    {ok:cleanCount()>=8,t:'تدريب الفواكه الثمان',s:cleanCount()+'/8 محفوظة'},
-    {ok:!!NEWBOX,t:'مربع النتيجة',s:NEWBOX?'تم تحديده':'اضغط «مربع النتيجة» واسحب'},
-    {ok:handN>0,t:'صور اليد عند 24 (اختياري)',s:handN>0?handN+' صورة يد محفوظة':'شغّل «تدريب اليد» والعب جولة'},
-  ];
-  $('#checklist').innerHTML=items.map(it=>`<div class="checkItem ${it.ok?'done':'pending'}"><div class="ic">${it.ok?'✓':'○'}</div><div class="txt">${it.t}<div class="sub">${it.s}</div></div></div>`).join('');
-  // زر البدء: يحتاج شبكة + 8 فواكه + نتيجة
-  const ready=GRIDBOX&&cleanCount()>=8&&NEWBOX;
-  $('#startPlay').disabled=!ready;
-  $('#setupHint').textContent=ready?'✅ كل شي جاهز — اضغط ابدأ الرصد':'أكمل عناصر التأكيد لتفعيل زر البدء';
+/* ===== اللعب ===== */
+function enterPlay(){
+  playing=true;renderSteps();
+  $('#playCamHolder').appendChild($('#camWrap'));
+  $('#camCard').classList.add('hide');$('#importCard').classList.add('hide');
+  $('#playPhase').classList.remove('hide');
+  $('#bankroll').value=DB.bankroll;$('#unit').value=DB.unit;
+  renderLog();
 }
-
-/* ============ التنقل بين المرحلتين ============ */
-const setupCamHolder=$('#camWrap').parentNode; // نحفظ مكانه الأصلي في الإعداد
-$('#startPlay').onclick=()=>{
-  phase='play';$('#stepTag').textContent='الرصد';
-  $('#camWrap2Holder').appendChild($('#camWrap')); // ننقل الفيديو للّعب
-  $('#setupPhase').classList.add('hide');$('#playPhase').classList.remove('hide');
-  render();
+$('#backBtn').onclick=()=>{
+  playing=false;CFG.stage=1;saveCFG();
+  const cc=$('#camCard');cc.classList.remove('hide');
+  cc.insertBefore($('#camWrap'),$('#stageBtns'));
+  $('#importCard').classList.remove('hide');
+  $('#playPhase').classList.add('hide');refreshStage();
 };
-$('#backSetup').onclick=()=>{
-  phase='setup';$('#stepTag').textContent='الإعداد';
-  setupCamHolder.insertBefore($('#camWrap'),setupCamHolder.querySelector('.row')); // نرجّعه فوق صف الأزرار
-  $('#playPhase').classList.add('hide');$('#setupPhase').classList.remove('hide');refreshSetup();
-};
-
-/* ============ الرندر ============ */
-function render(){
-  $('#resCount').textContent=DB.results.length;
-  $('#resStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>`<div class="chip ${i===0?'newest':''}">${F[r.id].em}<span class="idx">${i===0?'N':i+1}</span></div>`).join('')||'<span class="mini" style="padding:6px">لا ضربات</span>';
-  $('#t24Count').textContent=DB.t24.filter(e=>e.hit).length;
-  const acc=DB.t24.length?Math.round(DB.t24.filter(e=>e.hit).length/DB.t24.length*100):0;$('#t24Acc').textContent=acc;
-  // السجل المزدوج: صح/خطأ فوق، 24 صغير، النتيجة كبير
-  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>`<div class="dcol ${e.hit?'hit':'miss'}"><div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div><div class="s24">${F[e.f24].em}</div><div class="sep"></div><div class="sres">${F[e.res].em}</div></div>`).join('')||'<span class="mini" style="padding:6px">لا أحداث</span>';
+function renderLog(){
+  $('#resN').textContent=DB.results.length;
+  $('#resStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>`<div class="chip ${i===0?'newest':''}">${F[r.id].em}</div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
+  $('#hitN').textContent=DB.t24.filter(e=>e.hit).length;
+  $('#accN').textContent=DB.t24.length?Math.round(DB.t24.filter(e=>e.hit).length/DB.t24.length*100):0;
+  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>`<div class="dcol ${e.hit?'hit':'miss'}"><div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div><div class="s24">${F[e.f24].em}</div><div class="sep"></div><div class="sr">${F[e.res].em}</div></div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
 }
-$('#bankroll').addEventListener('input',e=>{DB.bankroll=+e.target.value||0;saveDB()});
-$('#unit').addEventListener('input',e=>{DB.unit=+e.target.value||0;saveDB()});
-$('#exportData').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({DB,TPL,GRIDBOX,NEWBOX})],{type:'application/json'}));a.download='mustafa_all.json';a.click()};
-$('#clearData').onclick=()=>{if(confirm('مسح سجل اللعب فقط؟ (التدريب يبقى)')){DB={results:[],t24:[],bankroll:+$('#bankroll').value||100000,unit:+$('#unit').value||1000};saveDB();render()}};
+$('#bankroll')?.addEventListener('input',e=>{DB.bankroll=+e.target.value||0;saveDB()});
+$('#unit')?.addEventListener('input',e=>{DB.unit=+e.target.value||0;saveDB()});
+
+/* ===== تصدير/استيراد ===== */
+function doExport(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({CFG,DB})],{type:'application/json'}));a.download='mustafa_setup.json';a.click()}
+$('#expBtn').onclick=doExport;$('#expAll').onclick=doExport;
+$('#impBtn').onclick=()=>$('#impFile').click();
+$('#impFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+  if(d.CFG){CFG=d.CFG;saveCFG()}if(d.DB){DB=d.DB;saveDB()}
+  refreshStage();alert('تم الاستيراد — '+(CFG.stage>=5?'الإعداد كامل، جاهز للعب':'أكمل من المرحلة '+CFG.stage))}catch(e){alert('ملف غير صالح')}};r.readAsText(f)};
+$('#clrLog').onclick=()=>{if(confirm('مسح سجل اللعب؟ (الإعداد يبقى)')){DB.results=[];DB.t24=[];saveDB();renderLog()}};
 
 /* إقلاع */
-$('#bankroll').value=DB.bankroll;$('#unit').value=DB.unit;
-refreshSetup();render();
+refreshStage();
 </script>
 </body>
 </html>
