@@ -130,6 +130,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <button class="btn small" id="cellsBtn">🖐️ تحرير الخانات</button>
       <button class="btn small" id="balBtn">💰 مربع الرصيد</button>
       <button class="btn small" id="hudBtn">🎯 رهانات على الشاشة</button>
+      <button class="btn small" id="winBtn">🏆 مربع النتيجة المنبثقة</button>
       <button class="btn small ghost" id="calibBtn">🌈 معايرة الألوان</button>
       <button class="btn small ghost" id="lockBtn">🔒 تثبيت</button>
       <button class="btn small danger" id="stopCam" style="display:none">إيقاف</button>
@@ -147,9 +148,14 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <span>⏱ الوقت: <b id="tRead" style="color:var(--blue);font-size:17px">--</b></span>
       <span>☝️ الإصبع على: <b id="ptrRead">--</b></span>
       <span id="t24Flag" style="color:var(--green);display:none">📸 التقطت الـ<span class="trigN">24</span>!</span>
+      <span>🆕 آخر ضربة: <b id="lastHit">--</b></span>
       <span>💰 المقروء: <b id="balRead" style="color:var(--purple)">--</b></span>
     </div>
     <div id="t24Pair" style="text-align:center;font-size:13px;margin-top:6px;color:var(--gold)"></div>
+    <div id="t24Live" style="margin-top:8px;padding:8px;border-radius:10px;background:#170d07;border:1px solid var(--gold3);display:none">
+      <div style="font-size:11px;color:var(--dim);text-align:center;margin-bottom:5px">مراقبة لحظة الـ<span class="lt">24</span> مباشرة</div>
+      <div id="t24LiveBody" style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px"></div>
+    </div>
     <div id="calibHint">وضع المعايرة: اضغط على خانة من الشريط الحي فوق ثم اختر الفاكهة الصحيحة — البوت يتعلم ألوان شاشتك.</div>
   </div>
  </div>
@@ -298,7 +304,7 @@ let SIG=loadLS('fruitSig3')||JSON.parse(JSON.stringify(DEFAULT_SIG));
 /* ================= حالة عامة ================= */
 let S=Object.assign({
   bankroll:100000, risk:10, mode:'hedge', mart:false, sim:false, beep:true,
-  rect:{x:.06,y:.2,w:.88,h:.7}, cells:null, board:null, bal:null, trigT:24, recov:false, locked:false
+  rect:{x:.06,y:.2,w:.88,h:.7}, cells:null, board:null, bal:null, win:null, trigT:24, recov:false, locked:false
 }, loadLS('fruitBotS2')||{});
 let history=loadLS('fruitHist')||[];        // أحدث أولاً
 let events24=loadLS('fruitE24')||[];         // أحداث لحظة الـ24
@@ -363,6 +369,10 @@ ovl.addEventListener('pointerdown',e=>{
   const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
   if(editMode==='cells'&&S.cells){
     for(let i=SLOTS-1;i>=0;i--) if(hitRect(S.cells[i],x,y,0.015)){drag={t:'cell',i,dx:x-S.cells[i].x,dy:y-S.cells[i].y};break}
+  }else if(editMode==='win'){
+    const B=S.win||(S.win={x:.35,y:.42,w:.3,h:.16});
+    if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.05)drag={t:'wsize'};
+    else if(hitRect(B,x,y))drag={t:'wmove',dx:x-B.x,dy:y-B.y};
   }else if(editMode==='bal'){
     const B=S.bal||(S.bal={x:.05,y:.12,w:.22,h:.045});
     if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.04)drag={t:'lsize'};
@@ -382,6 +392,8 @@ ovl.addEventListener('pointermove',e=>{
   if(!drag)return;
   const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
   if(drag.t==='cell'){const c=S.cells[drag.i];c.x=Math.min(Math.max(x-drag.dx,0),1-c.w);c.y=Math.min(Math.max(y-drag.dy,0),1-c.h);}
+  else if(drag.t==='wmove'){const B=S.win;B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h);}
+  else if(drag.t==='wsize'){const B=S.win;B.w=Math.min(Math.max(x-B.x,.1),1-B.x);B.h=Math.min(Math.max(y-B.y,.06),1-B.y);}
   else if(drag.t==='lmove'){const B=S.bal;B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h);}
   else if(drag.t==='lsize'){const B=S.bal;B.w=Math.min(Math.max(x-B.x,.05),1-B.x);B.h=Math.min(Math.max(y-B.y,.015),1-B.y);}
   else if(drag.t==='bmove'){const B=S.board;B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h);}
@@ -396,6 +408,13 @@ $('boardBtn').onclick=()=>{
   if(editMode==='board'&&!S.board)S.board={x:.25,y:.25,w:.5,h:.4};
   $('boardBtn').textContent=editMode==='board'?'✅ تم ضبط اللوحة':'🎛️ لوحة اللعبة';
   $('detectMsg').textContent=editMode==='board'?'اسحب المربع البرتقالي على شبكة الفواكه ٣×٣ كاملة (العدّاد بالنص) — النقطة يمين تحت للتحجيم':'';
+  saveAll();
+};
+$('winBtn').onclick=()=>{
+  editMode=editMode==='win'?'rect':'win';
+  if(editMode==='win'&&!S.win)S.win={x:.35,y:.42,w:.3,h:.16};
+  $('winBtn').textContent=editMode==='win'?'✅ تم ضبط النتيجة':'🏆 مربع النتيجة المنبثقة';
+  $('detectMsg').textContent=editMode==='win'?'انتظر تطلع لوحة «نتيجة القرعة» بنهاية الجولة، واسحب المربع الأصفر على الفاكهة الكبيرة بين الشوكة والسكين':'';
   saveAll();
 };
 $('hudBtn').onclick=()=>{showHUD=!showHUD;$('hudBtn').textContent=showHUD?'✅ رهانات ظاهرة':'🎯 رهانات على الشاشة';saveLS('fruitHUD',showHUD)};
@@ -730,14 +749,40 @@ setInterval(()=>{
   pendBal=v;
 },1200);
 
+function readWinPopup(){
+  // نقرأ الفاكهة داخل مربع S.win — تظهر فقط لثوانٍ بنهاية الجولة على خلفية داكنة
+  if(!S.win)return null;
+  const W=work.width,H=work.height,B=S.win;
+  const cx=B.x*W,cy=B.y*H,cw=B.w*W,ch=B.h*H;
+  // شرط الظهور: المنطقة داكنة نسبياً (اللوحة نصف شفافة سوداء)
+  const chk=wctx.getImageData(Math.round(cx),Math.round(cy),Math.max(2,Math.round(cw)),Math.max(2,Math.round(ch))).data;
+  let dark=0,n=0;for(let i=0;i<chk.length;i+=64){if(Math.max(chk[i],chk[i+1],chk[i+2])<120)dark++;n++}
+  if(dark/n<0.25)return null;              // اللوحة مو ظاهرة
+  const vec=sampleVec(cx,cy,cw,ch),shp=cellShape(cx,cy,cw,ch);
+  const cl=classify(vec,shp);
+  return cl.conf>0.4?cl.id:null;
+}
+let winSeen=null,winBuf=[];
 function boardTick(){
   if(!S.board)return;
   const t=readTimer();ptrFruit=readPointer();
   $('tRead').textContent=t===null?'--':(t<10?'0'+t:t);
   $('ptrRead').innerHTML=ptrFruit?fimg(ptrFruit,18)+' '+F[ptrFruit].name:'--';
   if(t!==null){
-    if(curTimer!==null&&t>curTimer+5){t24Armed=true;$('t24Flag').style.display='none'} // جولة جديدة (العداد رجع فوق)
+    if(curTimer!==null&&t>curTimer+5){t24Armed=true;$('t24Flag').style.display='none';t24Fruit=null;t24Opp=null;$('t24Pair').innerHTML=''} // جولة جديدة
     curTimer=t;
+    // عرض حي: قربنا من لحظة الالتقاط؟
+    const T=S.trigT||24;
+    const live=$('t24Live');
+    if(t>=T-3&&t<=T+1&&t24Armed){
+      live.style.display='block';live.querySelectorAll('.lt').forEach(e=>e.textContent=T);
+      $('t24LiveBody').innerHTML=t>T
+        ? '<span style="color:var(--blue)">⏳ ينتظر... العدّاد '+t+' (يلتقط عند '+T+')</span>'
+        : '<span style="color:var(--gold)">🎯 عند '+t+' — الإصبع على: </span>'+(ptrFruit?fimg(ptrFruit,22)+' <b>'+F[ptrFruit].name+'</b>':'<span style="color:var(--red)">لا يوجد إصبع واضح</span>');
+    }else if(t24Fruit){
+      live.style.display='block';
+      $('t24LiveBody').innerHTML='📸 التُقطت الـ'+T+' على '+fimg(t24Fruit,22)+' <b>'+F[t24Fruit].name+'</b>'+(t24Opp?' + مقابل '+fimg(t24Opp,22)+' '+F[t24Opp].name:'')+' — ننتظر الضربة';
+    }else{live.style.display='none'}
     if(t24Armed&&t===(S.trigT||24)&&ptrFruit){
       t24Fruit=ptrFruit;t24Armed=false;
       // المقابل على اللوحة (الخانة المعاكسة قطرياً عبر المركز)
@@ -772,6 +817,13 @@ function loop(){
   }
   drawOverlay(cells);
   boardTick();
+  // لوحة النتيجة المنبثقة (أدق) — إن ظهرت، نعتمدها
+  const wp=readWinPopup();
+  if(wp){winBuf.push(wp);if(winBuf.length>3)winBuf.shift();
+    if(winBuf.length===3&&winBuf.every(x=>x===wp)&&wp!==winSeen&&wp!==lastLogged){
+      winSeen=wp;lastLogged=wp;addResult(wp,'popup');
+    }
+  }else{winBuf=[];winSeen=null}
   detectNewResult(reads[0]);
 }
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
@@ -806,6 +858,13 @@ function drawOverlay(cells){
       octx.fillText('X'+F[id].m,x+w/2,y+hh*.68);
       octx.textAlign='start';
     }
+  }
+  if(S.win){
+    const B=S.win,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,hh=B.h*ovl.height;
+    octx.strokeStyle='#f5c451';octx.lineWidth=editMode==='win'?2.5:1.2;octx.setLineDash(editMode==='win'?[6,4]:[]);
+    octx.strokeRect(x,y,w,hh);octx.setLineDash([]);
+    if(editMode==='win'){octx.fillStyle='#f5c451';octx.beginPath();octx.arc(x+w,y+hh,8,0,7);octx.fill()}
+    octx.fillStyle='#f5c451';octx.font='700 10px Cairo';octx.fillText('🏆 النتيجة',x+2,y-3);
   }
   if(S.bal){
     const B=S.bal,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,hh=B.h*ovl.height;
@@ -872,6 +931,7 @@ function addResult(id,src){
   settlePlan(id);
   renderHist(); makePredictions(); saveAll();
   $('roundTag').innerHTML='جولة #'+roundNo+' — آخر نتيجة: '+fimg(id,16);
+  $('lastHit').innerHTML=fimg(id,16)+' '+F[id].name;
 }
 $('undoBtn').onclick=()=>{history.shift();lastLogged=history[0]||null;renderHist();makePredictions();saveAll()};
 $('clearBtn').onclick=()=>{if(confirm('مسح كل السجل؟')){history=[];lastLogged=null;renderHist();makePredictions();saveAll()}};
