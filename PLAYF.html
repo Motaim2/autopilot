@@ -34,7 +34,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .btn.big{font-size:15px;padding:13px;width:100%}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
-.live2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.live2{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
 .live2 .bx{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
 .live2 .bx .l{font-size:9px;color:var(--dim)}.live2 .bx .v{font-size:19px;font-weight:900;color:var(--blue);direction:ltr}
 .live2 .bx.f .v{font-size:14px;color:var(--gold)}
@@ -105,7 +105,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
     <div class="row" style="margin-top:8px" id="stageBtns"></div>
     <div class="live2">
       <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal">--</div></div>
-      <div class="bx f"><div class="l">اليد على</div><div class="v" id="fVal">--</div></div>
     </div>
     <div class="stageMsg" id="stageMsg">شغّل الالتقاط</div>
     <div id="pop">
@@ -127,7 +126,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
           <div id="playCamHolder"></div>
           <div class="live2">
             <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal2">--</div></div>
-            <div class="bx f"><div class="l">اليد على</div><div class="v" id="fVal2">--</div></div>
           </div>
           <div class="stageMsg" id="playMsg">بانتظار الـ24...</div>
           <div id="betPanel">
@@ -255,12 +253,14 @@ function readTimer(){const core=digitCore();if(!core)return null;const{mask,bw,b
     if(d1===null&&d2===null)return null;if(d1===null)return d2;return d1*10+(d2===null?0:d2)}
   return readSegD(mask,bw,bh,x1,y1,w,hh)}
 
-function findFinger(){if(!CFG.gridBox)return null;const W=work.width,H=work.height;let best=null,bf=0;
-  for(const cell of CELLS){const cl=cellRect(cell.r,cell.c),iw=Math.round(cl.w*W),ih=Math.round(cl.h*H);
-    const img=wctx.getImageData(Math.round(cl.x*W),Math.round(cl.y*H),iw,ih),d=img.data;let wh=0,n=0;
-    for(let y=0;y<ih;y+=3)for(let x=0;x<iw;x+=3){const i=(y*iw+x)*4;n++;if(d[i]>195&&d[i+1]>185&&d[i+2]>170&&Math.abs(d[i]-d[i+2])<60)wh++}
-    const f=wh/n;if(f>bf){bf=f;best=cell}}
-  return bf>.03?best:null}
+function findHandCell(){ // الخانة الأبعد عن مرجعها النظيف = عليها اليد (+ نستأنس بلقطات المرحلة ٣)
+  if(Object.keys(CFG.fruits).length<8)return null;
+  let best=null,bs=-1e18;
+  for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);const cur=tplOf(cl.x,cl.y,cl.w,cl.h);
+    let score=distV(cur,CFG.fruits[cell.id]);
+    if(CFG.handVec&&CFG.handVec[cell.id])score-=distV(cur,CFG.handVec[cell.id]);
+    if(score>bs){bs=score;best=cell}}
+  return best}
 
 /* ===== المراحل ===== */
 const STAGES=[
@@ -361,7 +361,7 @@ function buildPopBtns(){
 function answerPop(id){
   if(!grabbed)return;
   if(grabbed.type==='fruit'){CFG.fruits[id]=grabbed.vec;fqi++;saveCFG();renderFr8();nextFruit();return}
-  if(grabbed.type==='hand'){CFG.handDone[id]=true;saveCFG();$('#pop').style.display='none';grabbed=null;refreshStage();return}
+  if(grabbed.type==='hand'){CFG.handDone[id]=true;CFG.handVec=CFG.handVec||{};if(grabbed.cellVecs&&grabbed.cellVecs[id])CFG.handVec[id]=grabbed.cellVecs[id];saveCFG();$('#pop').style.display='none';grabbed=null;refreshStage();return}
   if(grabbed.type==='result'){CFG.resultsDone[id]=grabbed.vec;saveCFG();$('#pop').style.display='none';grabbed=null;refreshStage();return}
 }
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
@@ -373,20 +373,20 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
   if(!CFG.gridBox)return;
   const t=readTimer();lastTimerOk=(t!==null);
-  const fg=findFinger();const ff=fg?GRID[fg.r][fg.c]:null;
   const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
-  const fT=ff?F[ff].em+' '+F[ff].name:'--';$('#fVal').innerHTML=fT;$('#fVal2').innerHTML=fT;
 
   if(t!==null){
     if(curT!==null&&t>curT+5){armed=true;t24F=null;t24O=null;if(playing)$('#betPanel').style.display='none'}
     curT=t;
     if(armed&&t===24){armed=false;
-      if(CFG.stage===3&&fg){ // مرحلة تأكيد اليد: لقطة كاملة
+      if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
         work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
-        grabbed={type:'hand'};
+        const cv={};for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);cv[cell.id]=tplOf(cl.x,cl.y,cl.w,cl.h)}
+        grabbed={type:'hand',cellVecs:cv};
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
-      }else if(playing&&ff){t24F=ff;t24O=opp(ff);buildBet();
-        $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[ff].em+' '+F[ff].name+' + '+(t24O?F[t24O].em:'')}
+      }else if(playing){const hc=findHandCell();
+        if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);buildBet();
+          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].em+' '+F[t24F].name+' + '+(t24O?F[t24O].em:'')}}
     }
     if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
   }
