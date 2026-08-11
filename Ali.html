@@ -130,6 +130,35 @@ input.code{letter-spacing:6px;text-align:center;font-family:'Baloo Bhaijaan 2';f
 .progress-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--glow),var(--gold));transition:width .3s}
 .progress-wrap p{font-size:12.5px;color:var(--dim);text-align:center;margin-top:6px}
 
+/* ---------- ورشة بناء المجسم ---------- */
+.pv-box{
+  border-radius:16px;overflow:hidden;border:1px solid rgba(240,184,75,.3);
+  background:var(--surface);position:relative;
+}
+#pvMount{height:220px;position:relative}
+#pvMount a-scene{width:100%!important;height:220px!important;position:absolute;inset:0}
+#pvMount canvas{border-radius:0!important}
+.pv-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px}
+.part-row{
+  background:var(--surface);border:1px solid var(--surface2);border-radius:14px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.part-row .pr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.part-row .pr-head b{font-size:13px;color:var(--dim);font-weight:500}
+.pr-del{border:none;background:transparent;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 6px}
+.shape-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.shape-b{
+  flex:1;min-width:42px;padding:7px 0;border-radius:10px;border:1.5px solid var(--surface2);
+  background:var(--surface2);cursor:pointer;text-align:center;font-size:17px;color:var(--ink);
+}
+.shape-b.sel{border-color:var(--gold);box-shadow:0 0 8px rgba(240,184,75,.3)}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.color-b{width:28px;height:28px;border-radius:50%;border:2.5px solid transparent;cursor:pointer}
+.color-b.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4)}
+.size-row{display:flex;gap:6px;margin-inline-start:auto}
+.size-b{padding:5px 10px;border-radius:9px;border:1.5px solid var(--surface2);background:var(--surface2);color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit}
+.size-b.sel{border-color:var(--glow);color:var(--glow)}
+
 /* ---------- AR ---------- */
 #arContainer{position:fixed;inset:0;z-index:80;background:#000;display:none}
 #arContainer.active{display:block}
@@ -291,10 +320,21 @@ input.code{letter-spacing:6px;text-align:center;font-family:'Baloo Bhaijaan 2';f
         <div class="obj-opt" data-type="ring">💍<small>خاتم</small></div>
         <div class="obj-opt" data-type="photo">🖼️<small>صورتك</small></div>
         <div class="obj-opt" data-type="glb">🧊<small>GLB</small></div>
+        <div class="obj-opt" data-type="custom">🛠️<small>ابنيها!</small></div>
       </div>
       <input type="file" id="photoFile" accept="image/*" style="display:none">
       <input type="text" id="glbUrl" placeholder="رابط ملف .glb" dir="ltr"
         style="display:none;margin-top:8px;width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:14px">
+
+      <!-- ورشة بناء المجسم -->
+      <div id="builderPanel" style="display:none;margin-top:12px">
+        <div class="pv-box">
+          <div id="pvMount"><div class="pv-loading">تجهيز المعاينة 3D<span class="dots"></span></div></div>
+        </div>
+        <div class="hintbar" style="margin:6px 0 10px">القطع تتراكب فوق بعض من الأسفل للأعلى — ركّب رجل ثلج ☃️، صاروخ 🚀، برج، آيسكريم 🍦..</div>
+        <div id="partsList"></div>
+        <button class="btn ghost" type="button" onclick="addPart()" style="margin-top:4px">➕ أضف قطعة فوق</button>
+      </div>
     </div>
     <div class="field">
       <label>حجم المجسم: <span id="scaleVal">متوسط</span></label>
@@ -398,7 +438,7 @@ let camStream=null, capturedCanvas=null, dragPos={x:.5,y:.5}, selType="gift", ph
 let roundObject=null, arSceneEl=null, iFound=false;
 let currentPhaseScreen="";
 
-const OBJ_EMOJI={gift:"🎁",gem:"💎",coin:"🪙",orb:"🔮",ring:"💍",photo:"🖼️",glb:"🧊"};
+const OBJ_EMOJI={gift:"🎁",gem:"💎",coin:"🪙",orb:"🔮",ring:"💍",photo:"🖼️",glb:"🧊",custom:"☃️"};
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2800);}
 function loader(on,msg){$("loaderOv").classList.toggle("active",!!on);if(msg)$("loaderTxt").textContent=msg;}
@@ -411,6 +451,37 @@ const URL_FB_DB ="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-co
 const URL_COMPILER="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js";
 const URL_AFRAME="https://aframe.io/releases/1.4.2/aframe.min.js";
 const URL_MINDAR_AF="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js";
+const URL_COMPILER_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js";
+const URL_MINDAR_AF_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js";
+
+/* mind-ar 1.2.x مبنية كـ ES Module — نحمّلها بـ import() وإذا فشل نرجع للنسخة القديمة */
+let _CompilerClass=null, _mindVer="new", _afLoaded=false;
+async function getCompiler(){
+  if(_CompilerClass) return _CompilerClass;
+  try{
+    const m = await import(URL_COMPILER);
+    _CompilerClass = m.Compiler || (m.default&&m.default.Compiler) || (window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler);
+  }catch(e){ console.warn("import compiler failed", e); }
+  if(!_CompilerClass){
+    _mindVer="old";
+    await loadScript(URL_COMPILER_OLD);
+    _CompilerClass = window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler;
+  }
+  if(!_CompilerClass) throw new Error("تعذّر تحميل محرك بناء البصمة — تأكد من الإنترنت وحدّث الصفحة");
+  return _CompilerClass;
+}
+async function loadARRuntime(){
+  await loadScript(URL_AFRAME);
+  if(_afLoaded) return;
+  if(_mindVer==="old"){ await loadScript(URL_MINDAR_AF_OLD); _afLoaded=true; return; }
+  try{ await import(URL_MINDAR_AF); _afLoaded=true; }
+  catch(e){
+    console.warn("import mindar-aframe failed", e);
+    _mindVer="old";
+    await loadScript(URL_MINDAR_AF_OLD);
+    _afLoaded=true;
+  }
+}
 
 /* ============================================================
    ٣) تهيئة Firebase
@@ -679,6 +750,8 @@ $("objRow").addEventListener("click",e=>{
   document.querySelectorAll(".obj-opt").forEach(o=>o.classList.remove("sel"));
   opt.classList.add("sel"); selType=opt.dataset.type;
   $("glbUrl").style.display = selType==="glb"?"block":"none";
+  $("builderPanel").style.display = selType==="custom"?"block":"none";
+  if(selType==="custom") openBuilder();
   if(selType==="photo"&&!photoObjData)$("photoFile").click();
   updateDragVisual();
 });
@@ -695,6 +768,100 @@ $("photoFile").addEventListener("change",e=>{
 });
 $("scaleRange").addEventListener("input",updateDragVisual);
 
+/* ============================================================
+   ٨-ب) ورشة بناء المجسمات 🛠️
+============================================================ */
+const SHAPES=[
+  {id:"box",    em:"⬛", name:"مكعب"},
+  {id:"sphere", em:"⚪", name:"كرة"},
+  {id:"cylinder",em:"🛢️", name:"اسطوانة"},
+  {id:"cone",   em:"🔺", name:"مخروط"},
+  {id:"pyramid",em:"🔶", name:"هرم"},
+  {id:"torus",  em:"⭕", name:"حلقة"},
+];
+const PART_COLORS=["#E24C4C","#F0B84B","#4FD6C4","#8A5CF6","#4C8DE2","#57C15B","#F27BB4","#F5F0FF","#5A4632"];
+let builderParts=[{shape:"sphere",color:"#F5F0FF",size:1.2},{shape:"sphere",color:"#F5F0FF",size:0.85}]; // رجل ثلج كبداية
+let pvReady=false;
+
+function renderBuilder(){
+  const list=$("partsList"); list.innerHTML="";
+  builderParts.forEach((p,i)=>{
+    const row=document.createElement("div"); row.className="part-row";
+    row.innerHTML=`
+      <div class="pr-head">
+        <b>القطعة ${i+1}${i===0?" (الأسفل)":i===builderParts.length-1?" (الأعلى)":""}</b>
+        ${builderParts.length>1?`<button class="pr-del" onclick="delPart(${i})">✕</button>`:""}
+      </div>
+      <div class="shape-row">
+        ${SHAPES.map(s=>`<button type="button" class="shape-b ${p.shape===s.id?"sel":""}" onclick="setPart(${i},'shape','${s.id}')" title="${s.name}">${s.em}</button>`).join("")}
+      </div>
+      <div class="color-row">
+        ${PART_COLORS.map(c=>`<button type="button" class="color-b ${p.color===c?"sel":""}" style="background:${c}" onclick="setPart(${i},'color','${c}')"></button>`).join("")}
+        <span class="size-row">
+          ${[["0.7","صغير"],["1","وسط"],["1.4","كبير"]].map(([v,n])=>`<button type="button" class="size-b ${Math.abs(p.size-parseFloat(v))<.2?"sel":""}" onclick="setPart(${i},'size',${v})">${n}</button>`).join("")}
+        </span>
+      </div>`;
+    list.appendChild(row);
+  });
+  refreshPreview();
+}
+function setPart(i,k,v){ builderParts[i][k]=v; renderBuilder(); }
+function addPart(){
+  if(builderParts.length>=5) return toast("الحد الأقصى ٥ قطع");
+  builderParts.push({shape:"box",color:PART_COLORS[builderParts.length%PART_COLORS.length],size:1});
+  renderBuilder();
+}
+function delPart(i){ builderParts.splice(i,1); renderBuilder(); }
+
+/* ارتفاع كل شكل وتوليد كوده */
+function partH(shape,u){ return shape==="torus"?u*0.35:u; }
+function partHTML(p,u,cy){
+  const mat=`material="metalness:.35;roughness:.4"`;
+  switch(p.shape){
+    case "sphere":  return `<a-sphere position="0 ${cy.toFixed(3)} 0" radius="${(u/2).toFixed(3)}" color="${p.color}" ${mat}></a-sphere>`;
+    case "cylinder":return `<a-cylinder position="0 ${cy.toFixed(3)} 0" radius="${(u*.42).toFixed(3)}" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cylinder>`;
+    case "cone":    return `<a-cone position="0 ${cy.toFixed(3)} 0" radius-bottom="${(u*.5).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cone>`;
+    case "pyramid": return `<a-cone position="0 ${cy.toFixed(3)} 0" segments-radial="4" radius-bottom="${(u*.6).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" rotation="0 45 0" color="${p.color}" ${mat}></a-cone>`;
+    case "torus":   return `<a-torus position="0 ${cy.toFixed(3)} 0" rotation="90 0 0" radius="${(u*.42).toFixed(3)}" radius-tubular="${(u*.13).toFixed(3)}" color="${p.color}" ${mat}></a-torus>`;
+    default:        return `<a-box position="0 ${cy.toFixed(3)} 0" width="${u.toFixed(3)}" height="${u.toFixed(3)}" depth="${u.toFixed(3)}" color="${p.color}" ${mat}></a-box>`;
+  }
+}
+function customInner(parts,unit){
+  let total=0; parts.forEach(p=>total+=partH(p.shape,unit*(p.size||1)));
+  let y=-total/2, html="";
+  parts.forEach(p=>{
+    const u=unit*(p.size||1), h=partH(p.shape,u);
+    html+=partHTML(p,u,y+h/2); y+=h;
+  });
+  return html;
+}
+
+/* معاينة 3D دوّارة داخل الورشة */
+async function openBuilder(){
+  $("builderPanel").style.display="block";
+  renderBuilder();
+  try{
+    await loadScript(URL_AFRAME);
+    if(!pvReady){
+      $("pvMount").innerHTML=`
+        <a-scene embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
+          renderer="colorManagement:true" background="color:#1E1735">
+          <a-entity light="type:ambient;intensity:1"></a-entity>
+          <a-entity light="type:directional;intensity:.8" position="1 2 2"></a-entity>
+          <a-entity id="pvModel" position="0 0.1 -2.1"
+            animation="property: rotation; to: 0 360 0; dur:6000; loop:true; easing:linear"></a-entity>
+          <a-entity camera="fov:45" position="0 0.5 0.6" rotation="-8 0 0" look-controls="enabled:false" wasd-controls="enabled:false"></a-entity>
+        </a-scene>`;
+      pvReady=true;
+    }
+    refreshPreview();
+  }catch(e){ $("pvMount").innerHTML='<div class="pv-loading">تعذّرت المعاينة — بس البناء شغّال، كمّل عادي 👍</div>'; }
+}
+function refreshPreview(){
+  const m=document.getElementById("pvModel");
+  if(m) m.innerHTML=customInner(builderParts,0.5);
+}
+
 function abToB64(buf){const b=new Uint8Array(buf);let s="";const CH=0x8000;for(let i=0;i<b.length;i+=CH)s+=String.fromCharCode.apply(null,b.subarray(i,i+CH));return btoa(s);}
 function b64ToBlob(b64){const bin=atob(b64),by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return new Blob([by]);}
 
@@ -706,10 +873,10 @@ async function saveHidden(){
   $("saveBtn").disabled=true; $("progWrap").style.display="block"; $("progBar").style.width="3%";
   try{
     $("progTxt").textContent="تحميل محرك التعرّف...";
-    await loadScript(URL_COMPILER);
+    const CompilerC = await getCompiler();
     $("progTxt").textContent="تحليل المكان وبناء البصمة... (١٠–٣٠ ثانية)";
     const img=new Image(); img.src=capturedCanvas.toDataURL("image/jpeg",.9); await img.decode();
-    const compiler=new window.MINDAR.IMAGE.Compiler();
+    const compiler=new CompilerC();
     await compiler.compileImageTargets([img],p=>{$("progBar").style.width=(5+p*.85)+"%";});
     const mindB64=abToB64(await compiler.exportData());
 
@@ -722,6 +889,8 @@ async function saveHidden(){
       aspect:capturedCanvas.height/capturedCanvas.width,
       photo:selType==="photo"?photoObjData:null,
       glb:selType==="glb"?$("glbUrl").value.trim():null,
+      parts:selType==="custom"?builderParts:null,
+      mindVer:_mindVer,
       mind:mindB64, ts:Date.now()
     });
     await stateRef.update({phase:"seeking",ts:Date.now()});
@@ -751,6 +920,7 @@ function buildModelHTML(o){
     case "ring": return `<a-torus ${base} ${spin} ${float} radius="${s}" radius-tubular="${s*.16}" color="#F0B84B" material="metalness:.95;roughness:.15"></a-torus>`;
     case "photo": return `<a-plane ${base} ${float} width="${s*2.4}" height="${s*2.4}" material="src:#photoTex;transparent:true" animation__s="property: rotation; from:0 -12 0; to:0 12 0; dur:2600; dir:alternate; loop:true; easing:easeInOutSine"></a-plane>`;
     case "glb": return `<a-gltf-model ${base} ${spin} ${float} src="${o.glb}" scale="${s} ${s} ${s}"></a-gltf-model>`;
+    case "custom": { const pr=Array.isArray(o.parts)?o.parts:Object.values(o.parts||{}); return `<a-entity ${base} ${spin} ${float}>${customInner(pr, s*0.95)}</a-entity>`; }
     default: return `<a-entity ${base} ${spin} ${float}>
       <a-box width="${s*1.5}" height="${s*1.1}" depth="${s*1.5}" color="#E24C4C" material="roughness:.5"></a-box>
       <a-box width="${s*1.56}" height="${s*1.12}" depth="${s*.3}" color="#F0B84B" material="metalness:.6"></a-box>
@@ -763,7 +933,8 @@ async function startAR(){
   const o=roundObject; if(!o||!o.mind) return toast("بيانات الجولة ناقصة");
   loader(true,"تجهيز الكاميرا ومحرك البحث...");
   try{
-    await loadScript(URL_AFRAME); await loadScript(URL_MINDAR_AF);
+    if(!_afLoaded && o.mindVer) _mindVer = o.mindVer; // نفس إصدار البصمة المحفوظة
+    await loadARRuntime();
     const mindURL=URL.createObjectURL(b64ToBlob(o.mind));
     const assets=o.type==="photo"&&o.photo?`<a-assets><img id="photoTex" src="${o.photo}"></a-assets>`:"";
     $("arScene").innerHTML=`
