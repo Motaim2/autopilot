@@ -128,6 +128,21 @@ input[type=number]{background:#1a0a14;border:1px solid var(--gold3);border-radiu
         <div id="resLive" style="text-align:center;font-size:13px;margin-top:8px;color:var(--gold)"></div>
       </div>
     </div>
+  <div class="card" id="predCard" style="border-color:var(--gold)">
+    <h2>🎯 توقع الجولة الحالية <span class="tag" id="predStatus">بانتظار الـ<span class="hTrig2">24</span></span></h2>
+    <div id="predBody" style="text-align:center;padding:6px">
+      <div style="color:var(--dim);font-size:13px">لما يوصل العدّاد للـ<span class="hTrig2">24</span>، يظهر توقع البوت ورهانه هنا</div>
+    </div>
+    <div id="predResult" style="text-align:center;font-size:14px;margin-top:8px;padding:8px;border-radius:10px;display:none"></div>
+    <div class="field" style="margin-top:8px">
+      <label style="font-size:11px;color:var(--dim)">وحدة الرهان الأساسية</label>
+      <input type="number" id="unit" value="1000" style="width:100px">
+      <span style="font-size:11px;color:var(--dim)">· تصعيد ×</span>
+      <input type="number" id="escF" value="2" step="0.5" style="width:50px">
+      <span style="font-size:11px;color:var(--dim)">عند الخطأ (سقف <input type="number" id="escCap" value="3" style="width:40px">)</span>
+    </div>
+  </div>
+
   <div class="card">
     <h2>📊 تحليل الاتجاهات <span class="tag"><span id="cnt">0</span> حدث · دقة <span id="acc">0</span>٪</span></h2>
     <div id="e24Summary"></div>
@@ -357,6 +372,10 @@ function readResultNew(){
 
 /* ===== منطق الـ24 + رصد النتيجة ===== */
 let zeroPtr=null,zeroSince=0,lastResult=null,newBuf=[];
+let curPred=null,escStep=0; // توقع الجولة الحالية + خطوة التصعيد
+function unitVal(){return Math.max(100,+($('unit')?.value)||1000)}
+function escF(){return Math.max(1,+($('escF')?.value)||2)}
+function escCapV(){return Math.max(1,+($('escCap')?.value)||3)}
 function tick(t){
   $('counterBig').textContent=t===null?'--':(t<10?'0'+t:t);
   const T=S.trig;
@@ -373,6 +392,7 @@ function tick(t){
         const f=wh/n;if(f>bf){bf=f;pr=r;pc=c}}
       t24Opp=(pr!==null)?GRID[2-pr][2-pc]:null;
       $('pairBox').innerHTML='🎯 '+fim(t24Fruit)+' X'+F[t24Fruit].m+(t24Opp?' + '+fim(t24Opp)+' X'+F[t24Opp].m:'');
+      buildPrediction();
     }
     // العرض الحي
     if(t24Fruit){$('liveState').innerHTML='📸 التُقطت الـ'+T+' على <b>'+F[t24Fruit].name+'</b> — ننتظر الضربة';$('liveState').style.color='var(--gold)'}
@@ -387,16 +407,68 @@ function tick(t){
   // العرض الحي لآخر ضربة
   if(lastResult)$('resLive').innerHTML='آخر ضربة: '+fim(lastResult)+' <b>'+F[lastResult].name+'</b>';
 }
+
+/* ===== بناء توقع الجولة عند الـ24 ===== */
+function buildPrediction(){
+  if(!t24Fruit)return;
+  // نحلل التاريخ: إلى أين تتجه الضربة عادة نسبة لموقع الـ24
+  const oc={};events.forEach(e=>oc[e.off]=(oc[e.off]||0)+1);
+  const i24=RING.indexOf(t24Fruit);
+  // المرشحون: الثنائي (الإصبع + المقابل) + أكثر اتجاه متكرر تاريخياً
+  const bets=[];
+  const unit=unitVal();
+  const mul=escStep>0?Math.pow(escF(),Math.min(escStep,escCapV())):1;
+  // الثنائي الأساسي
+  bets.push({id:t24Fruit,amt:Math.round(unit*mul/100)*100,why:'الإصبع'});
+  if(t24Opp)bets.push({id:t24Opp,amt:Math.round(unit*mul/100)*100,why:'المقابل'});
+  // لو فيه اتجاه تاريخي قوي (≥30%)، نضيفه
+  if(events.length>=6){
+    const tot=events.length;const top=Object.keys(oc).sort((a,b)=>oc[b]-oc[a])[0];
+    const p=oc[top]/tot;
+    if(p>=0.3){const fid=RING[(i24+ +top)%8];
+      if(!bets.find(b=>b.id===fid))bets.push({id:fid,amt:Math.round(unit*mul*0.7/100)*100,why:'نمط '+OFFN(+top)+' '+Math.round(p*100)+'٪'});}
+  }
+  const total=bets.reduce((s,b)=>s+b.amt,0);
+  curPred={bets,total,f24:t24Fruit,opp:t24Opp};
+  $('predStatus').innerHTML=escStep>0?'<span style="color:var(--red)">تصعيد ×'+mul.toFixed(1)+'</span>':'<span style="color:var(--green)">رهان أساسي</span>';
+  $('predBody').innerHTML=
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:8px">الـ'+(S.trig)+' جاءت على '+fim(t24Fruit)+' <b>'+F[t24Fruit].name+'</b> — البوت يقترح:</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
+    bets.map(b=>'<div style="background:#170912;border:1.5px solid var(--gold);border-radius:12px;padding:8px 10px;min-width:90px">'+
+      '<div style="font-size:26px">'+F[b.id].em+'</div>'+
+      '<div style="font-size:11px;color:var(--dim)">'+F[b.id].name+' X'+F[b.id].m+'</div>'+
+      '<div style="font-size:15px;font-weight:900;color:var(--gold);direction:ltr">'+fmt(b.amt)+'</div>'+
+      '<div style="font-size:9px;color:var(--green)">↩ '+fmt(b.amt*F[b.id].m)+'</div>'+
+      '<div style="font-size:8px;color:var(--blue)">'+b.why+'</div></div>').join('')+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--gold);margin-top:8px">إجمالي الرهان: <b style="direction:ltr">'+fmt(total)+'</b></div>';
+  $('predResult').style.display='none';
+}
+
 function logResult(resId){
   lastResult=resId;
-  if(t24Fruit){
+  if(t24Fruit&&curPred){
     const off=(RING.indexOf(resId)-RING.indexOf(t24Fruit)+8)%8;
-    const isHit=(resId===t24Fruit||resId===t24Opp);
+    // صح لو النتيجة ضمن رهانات التوقع
+    const betHit=curPred.bets.find(b=>b.id===resId);
+    const isHit=!!betHit;
     streak=isHit?0:Math.min(streak+1,6);
+    // التصعيد
+    escStep=isHit?0:Math.min(escStep+1,escCapV());
+    // الربح/الخسارة
+    const ret=betHit?betHit.amt*F[resId].m:0;
+    const net=ret-curPred.total;
     const d=new Date();
-    events.unshift({trig:S.trig,f24:t24Fruit,opp:t24Opp,res:resId,off,hit:isHit,when:d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')});
+    events.unshift({trig:S.trig,f24:t24Fruit,opp:t24Opp,res:resId,off,hit:isHit,net,when:d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')});
     if(events.length>300)events.pop();
-    beep(isHit);t24Fruit=null;t24Opp=null;$('pairBox').innerHTML='';render();save();
+    // عرض النتيجة صح/خطأ
+    const pr=$('predResult');pr.style.display='block';
+    if(isHit){pr.style.background='rgba(57,217,122,.15)';pr.style.color='var(--green)';
+      pr.innerHTML='✅ صح! الضربة '+fim(resId)+' <b>'+F[resId].name+'</b> ضمن التوقع — عائد '+fmt(ret)+' (صافي '+(net>=0?'+':'')+fmt(net)+')';}
+    else{pr.style.background='rgba(255,90,106,.12)';pr.style.color='var(--red)';
+      pr.innerHTML='❌ خطأ. الضربة '+fim(resId)+' <b>'+F[resId].name+'</b> خارج التوقع — خسارة '+fmt(curPred.total)+(escStep>0?' · تصعيد ×'+escStep:'');}
+    beep(isHit);
+    t24Fruit=null;t24Opp=null;curPred=null;$('pairBox').innerHTML='';render();save();
   }
 }
 
