@@ -118,17 +118,27 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <video id="video" playsinline muted></video>
       <canvas id="ovl"></canvas>
       <div id="camMsg">
-        <div>اضغط «التقاط شاشة LDPlayer» واختر نافذة المحاكي (أو التبويب) — بعدها اسحب الإطار الأخضر على شريط «النتيجة» (٧ خانات)</div>
+        <div>اضغط «التقاط شاشة LDPlayer» واختر نافذة المحاكي — بعدها اسحب المربع الأخضر بحيث يغطي <b>شاشة اللعبة كاملة تقريباً</b> (مو لازم دقة)، ثم اضغط «اكتشاف الشريط تلقائياً»</div>
         <button class="btn" id="startCap">🖥️ التقاط شاشة LDPlayer</button>
         <button class="btn ghost small" id="startCam">📷 كاميرا (احتياطي)</button>
       </div>
     </div>
     <div id="liveStrip"></div>
     <div class="row" style="margin-top:10px;justify-content:center">
-      <button class="btn small ghost" id="calibBtn">🎯 معايرة الألوان</button>
-      <button class="btn small ghost" id="lockBtn">🔒 تثبيت الإطار</button>
+      <button class="btn small" id="autoBtn">🎯 اكتشاف الشريط تلقائياً</button>
+      <button class="btn small ghost" id="calibBtn">🌈 معايرة الألوان</button>
+      <button class="btn small ghost" id="lockBtn">🔒 تثبيت</button>
       <button class="btn small danger" id="stopCam" style="display:none">إيقاف</button>
     </div>
+    <div class="row" id="nudgeRow" style="margin-top:8px;justify-content:center;display:none">
+      <button class="btn small ghost nud" data-d="l">⬅</button>
+      <button class="btn small ghost nud" data-d="u">⬆</button>
+      <button class="btn small ghost nud" data-d="d">⬇</button>
+      <button class="btn small ghost nud" data-d="r">➡</button>
+      <button class="btn small ghost nud" data-d="wider">↔ أوسع</button>
+      <button class="btn small ghost nud" data-d="narrower">↔ أضيق</button>
+    </div>
+    <div id="detectMsg" style="font-size:11px;color:var(--blue);text-align:center;margin-top:6px"></div>
     <div id="calibHint">وضع المعايرة: اضغط على خانة من الشريط الحي فوق ثم اختر الفاكهة الصحيحة — البوت يتعلم ألوان شاشتك.</div>
   </div>
  </div>
@@ -213,19 +223,19 @@ const FRUITS=[
  {id:'pine',   em:'🍍', name:'أناناس', m:10},
 ];
 const F=Object.fromEntries(FRUITS.map(f=>[f.id,f]));
-/* توقيعات لونية افتراضية (متوسط RGB لعينات 3×3) — المعايرة تحسّنها */
+/* توقيعات لونية: [متوسط البكسلات الملونة RGB ، متوسط الكل RGB] — المعايرة تحسّنها */
 const DEFAULT_SIG={
- apple:[[190,40,45]], melon:[[120,150,70],[180,70,80]], cherry:[[160,20,35]],
- banana:[[230,200,60]], grape:[[120,60,160]], orange:[[240,150,40]],
- mango:[[230,120,60],[200,160,70]], pine:[[220,180,60],[140,160,60]]
+ apple:[[200,45,50,150,70,65]], melon:[[170,90,80,130,120,80]], cherry:[[165,25,40,120,45,50]],
+ banana:[[235,205,70,190,170,80]], grape:[[125,60,165,100,60,120]], orange:[[245,155,45,200,130,60]],
+ mango:[[225,140,70,180,130,80]], pine:[[210,175,65,160,150,75]]
 };
-let SIG=loadLS('fruitSig')||JSON.parse(JSON.stringify(DEFAULT_SIG));
+let SIG=loadLS('fruitSig2')||JSON.parse(JSON.stringify(DEFAULT_SIG));
 
 /* ================= حالة عامة ================= */
 let S=Object.assign({
   bankroll:100000, risk:10, mode:'hedge', mart:false, sim:false, beep:true,
-  rect:{x:.06,y:.86,w:.88,h:.075}, locked:false
-}, loadLS('fruitBotS')||{});
+  rect:{x:.06,y:.2,w:.88,h:.7}, cells:null, locked:false
+}, loadLS('fruitBotS2')||{});
 let history=loadLS('fruitHist')||[];        // أحدث أولاً
 let lastPlan=null, martStep=0, roundNo=0;
 let stream=null, running=false, calibMode=false, calibSlot=-1;
@@ -233,7 +243,7 @@ let stableBuf=[], lastLogged=null;
 
 function loadLS(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function saveLS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-function saveAll(){saveLS('fruitBotS',S);saveLS('fruitHist',history);saveLS('fruitSig',SIG)}
+function saveAll(){saveLS('fruitBotS2',S);saveLS('fruitHist',history);saveLS('fruitSig2',SIG)}
 const $=id=>document.getElementById(id);
 const fmt=n=>Math.round(n).toLocaleString('en');
 
@@ -287,7 +297,78 @@ ovl.addEventListener('pointermove',e=>{
 ovl.addEventListener('pointerup',()=>{drag=null;saveAll()});
 $('lockBtn').onclick=()=>{S.locked=!S.locked;$('lockBtn').textContent=S.locked?'🔓 فك التثبيت':'🔒 تثبيت الإطار';saveAll()};
 
-/* ================= شريط الخانات الحية ================= */
+/* ================= اكتشاف شريط النتيجة تلقائياً =================
+   الفكرة: داخل مربع المستخدم، ندور على «الحبة الغامقة» (خلفية Result السوداء)
+   وسط الخلفية الذهبية الفاتحة، بعدها نحدد منطقة الفواكه الملونة داخلها ونقسمها ٧ */
+function px(x,y,d,w){const i=(y*w+x)*4;return[d[i],d[i+1],d[i+2]]}
+function satBr(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return[mx?(mx-mn)/mx:0,mx]}
+$('autoBtn').onclick=()=>{
+  if(!running||video.videoWidth===0){$('detectMsg').textContent='شغّل الالتقاط أولاً';return}
+  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  const W=work.width,H=work.height,R=S.rect;
+  const rx=Math.round(R.x*W),ry=Math.round(R.y*H),rw=Math.round(R.w*W),rh=Math.round(R.h*H);
+  const img=wctx.getImageData(rx,ry,rw,rh),d=img.data,step=Math.max(2,Math.round(rw/300));
+  // ١) صفوف فيها امتداد أفقي طويل «مو خلفية ذهبية» في النصف السفلي
+  const bandRows=[];
+  for(let y=Math.round(rh*0.45);y<rh;y+=step){
+    let run=0,maxRun=0;
+    for(let x=0;x<rw;x+=step){
+      const[r,g,b]=px(x,y,d,rw),[s,br]=satBr(r,g,b);
+      const pill=(br<130)||(s>0.45&&br>60); // غامق أو فاكهة ملونة
+      if(pill){run+=step;if(run>maxRun)maxRun=run}else run=0;
+    }
+    if(maxRun>rw*0.4)bandRows.push(y);
+  }
+  if(!bandRows.length){$('detectMsg').textContent='❌ ما لقيت الشريط — كبّر المربع بحيث يشمل شريط Result وحاول ثانية';return}
+  // ٢) نجمع الصفوف المتلاصقة ونأخذ آخر حزمة بارتفاع منطقي (شريط النتيجة أسفل الشاشة)
+  const bands=[];let cur=[bandRows[0]];
+  for(let i=1;i<bandRows.length;i++){if(bandRows[i]-bandRows[i-1]<=step*2)cur.push(bandRows[i]);else{bands.push(cur);cur=[bandRows[i]]}}
+  bands.push(cur);
+  const good=bands.filter(b=>{const h=b[b.length-1]-b[0];return h>rh*0.015&&h<rh*0.12});
+  if(!good.length){$('detectMsg').textContent='❌ الشريط غير واضح — تأكد أن أسفل اللعبة داخل المربع';return}
+  const band=good[good.length-1],y1=band[0],y2=band[band.length-1],ym=Math.round((y1+y2)/2);
+  // ٣) الامتداد الأفقي للحبة عند منتصفها
+  let x1=-1,x2=-1;
+  for(let x=0;x<rw;x+=1){const[r,g,b]=px(x,ym,d,rw),[s,br]=satBr(r,g,b);const pill=(br<130)||(s>0.45&&br>60);
+    if(pill){if(x1<0)x1=x;x2=x}else if(x1>=0&&x-x2>rw*0.06)break;}
+  if(x1<0){$('detectMsg').textContent='❌ فشل تحديد عرض الشريط';return}
+  // ٤) داخل الحبة: أعمدة «ملونة» = فواكه (نص Result أبيض غير مشبع فيستبعد)
+  const score=new Array(rw).fill(0);
+  for(let y=y1;y<=y2;y+=Math.max(1,step>>1))for(let x=x1;x<=x2;x+=1){
+    const[r,g,b]=px(x,y,d,rw),[s,br]=satBr(r,g,b);
+    if(s>0.4&&br>70)score[x]++;
+  }
+  const th=Math.max(2,(y2-y1)/6);let fx1=-1,fx2=-1,gap=0;
+  for(let x=x1;x<=x2;x++){
+    if(score[x]>th){if(fx1<0)fx1=x;fx2=x;gap=0}
+    else if(fx1>=0){gap++;if(gap>(x2-x1)*0.12){ if((fx2-fx1)>(x2-x1)*0.45)break; fx1=-1;fx2=-1;gap=0;} }
+  }
+  if(fx1<0||fx2-fx1<rw*0.15){$('detectMsg').textContent='❌ ما تميزت الفواكه — انتظر ظهور نتائج بالشريط وحاول';return}
+  // ٥) نبني ٧ خانات (منسوبة لأبعاد الفيديو كاملة)
+  const cw=(fx2-fx1)/SLOTS, pad=(y2-y1)*0.12;
+  S.cells=[];
+  for(let i=0;i<SLOTS;i++)S.cells.push({
+    x:(rx+fx1+cw*i)/W, y:(ry+y1+pad)/H, w:cw/W, h:(y2-y1-pad*2)/H
+  });
+  S.locked=true;$('lockBtn').textContent='🔓 فك التثبيت';
+  $('nudgeRow').style.display='flex';
+  $('detectMsg').textContent='✅ انضبط الشريط: ٧ خانات (NEW يسار). لو الخانات مزحزحة شوي استخدم أسهم التحريك.';
+  lastLogged=null;stableBuf=[];saveAll();
+};
+/* تحريك دقيق */
+document.querySelectorAll('.nud').forEach(b=>b.onclick=()=>{
+  if(!S.cells)return;const d=b.dataset.d,dx=0.0025,dy=0.004;
+  S.cells.forEach(c=>{
+    if(d==='l')c.x-=dx; if(d==='r')c.x+=dx; if(d==='u')c.y-=dy; if(d==='d')c.y+=dy;
+  });
+  if(d==='wider'||d==='narrower'){
+    const c0=S.cells[0],cN=S.cells[SLOTS-1];
+    const L=c0.x, Rr=cN.x+cN.w, span=Rr-L, f=d==='wider'?1.03:0.97, nspan=span*f, mid=(L+Rr)/2;
+    const cw=nspan/SLOTS;
+    for(let i=0;i<SLOTS;i++){S.cells[i].x=mid-nspan/2+cw*i;S.cells[i].w=cw;}
+  }
+  saveAll();
+});
 const liveStrip=$('liveStrip'),slotEls=[];
 for(let i=0;i<SLOTS;i++){
   const d=document.createElement('div');d.className='slot'+(i===0?' new':'');
@@ -310,35 +391,29 @@ function askCalib(i){
 /* ================= القراءة والتصنيف ================= */
 let lastVecs=new Array(SLOTS).fill(null);
 function sampleVec(cx,cy,cw,ch){
-  // 3×3 نقاط من مركز الخانة (نتجنب الحواف)
-  const v=[];
-  for(let gy=0;gy<3;gy++)for(let gx=0;gx<3;gx++){
-    const px=Math.round(cx+cw*(.3+.2*gx)), py=Math.round(cy+ch*(.3+.2*gy));
-    const d=wctx.getImageData(px,py,2,2).data;
-    v.push([(d[0]+d[4]+d[8]+d[12])/4,(d[1]+d[5]+d[9]+d[13])/4,(d[2]+d[6]+d[10]+d[14])/4]);
+  // نمسح شبكة 8×8 داخل الخانة، ونفصل بكسلات الفاكهة الملونة عن الخلفية الغامقة
+  const img=wctx.getImageData(Math.round(cx),Math.round(cy),Math.max(2,Math.round(cw)),Math.max(2,Math.round(ch)));
+  const d=img.data,w=img.width,h=img.height;
+  let cr=0,cg=0,cb=0,cn=0, ar=0,ag=0,ab=0,an=0;
+  for(let gy=0;gy<8;gy++)for(let gx=0;gx<8;gx++){
+    const x=Math.round(w*(.15+.7*gx/7)),y=Math.round(h*(.15+.7*gy/7));
+    const i=(y*w+x)*4,r=d[i],g=d[i+1],b=d[i+2];
+    const mx=Math.max(r,g,b),mn=Math.min(r,g,b),s=mx?(mx-mn)/mx:0;
+    ar+=r;ag+=g;ab+=b;an++;
+    if(s>0.3&&mx>70){cr+=r;cg+=g;cb+=b;cn++}
   }
-  return v;
-}
-function vecDist(a,tpl){
-  // مسافة متوسط مرتب حسب الإضاءة — نقارن توزيع الألوان مو مواقعها بالضبط
-  const flat=v=>v.map(p=>p).sort((p,q)=>(p[0]+p[1]+p[2])-(q[0]+q[1]+q[2]));
-  const A=flat(a); let best=1e9;
-  // القوالب المحفوظة إمّا 9 نقاط (معايرة) أو نقطة واحدة (افتراضي)
-  if(tpl.length===9){const B=flat(tpl);let s=0;for(let i=0;i<9;i++)s+=Math.hypot(A[i][0]-B[i][0],A[i][1]-B[i][1],A[i][2]-B[i][2]);return s/9}
-  // افتراضي: أقرب نقطة قالب لمتوسط العينة
-  const avg=[0,0,0];A.forEach(p=>{avg[0]+=p[0]/9;avg[1]+=p[1]/9;avg[2]+=p[2]/9});
-  tpl.forEach(t=>{const d=Math.hypot(avg[0]-t[0],avg[1]-t[1],avg[2]-t[2]);if(d<best)best=d});
-  return best;
+  if(cn<4)return null; // ما فيه فاكهة واضحة بالخانة
+  return[cr/cn,cg/cn,cb/cn, ar/an,ag/an,ab/an];
 }
 function classify(vec){
+  if(!vec)return{id:null,conf:0};
   let bestId=null,bestD=1e9;
-  for(const id in SIG){
-    const cands=SIG[id];
-    // لو معايرة: كل عنصر 9 نقاط. لو افتراضي: مصفوفة نقاط مفردة
-    const list=(Array.isArray(cands[0][0]))?cands:[cands];
-    for(const tpl of list){const d=vecDist(vec,tpl);if(d<bestD){bestD=d;bestId=id}}
+  for(const id in SIG)for(const t of SIG[id]){
+    if(t.length!==6)continue;
+    const d=Math.hypot(vec[0]-t[0],vec[1]-t[1],vec[2]-t[2])+0.5*Math.hypot(vec[3]-t[3],vec[4]-t[4],vec[5]-t[5]);
+    if(d<bestD){bestD=d;bestId=id}
   }
-  return {id:bestId,conf:Math.max(0,Math.min(1,1-bestD/160))};
+  return{id:bestId,conf:Math.max(0,Math.min(1,1-bestD/220))};
 }
 
 let lastT=0;
@@ -349,30 +424,35 @@ function loop(){
   if(video.videoWidth===0)return;
   work.width=video.videoWidth;work.height=video.videoHeight;
   wctx.drawImage(video,0,0);
-  const R=S.rect, rx=R.x*work.width, ry=R.y*work.height, rw=R.w*work.width, rh=R.h*work.height;
-  const cw=rw/SLOTS;
+  const cells=S.cells|| (()=>{const R=S.rect,cw=R.w/SLOTS;return Array.from({length:SLOTS},(_,i)=>({x:R.x+cw*i,y:R.y,w:cw,h:R.h}))})();
   const reads=[];
   for(let i=0;i<SLOTS;i++){
-    const cx=rx+cw*i;
-    const vec=sampleVec(cx,ry,cw,rh); lastVecs[i]=vec;
-    const c=classify(vec); reads.push(c);
-    // معاينة الخانة
+    const c=cells[i],cx=c.x*work.width,cy=c.y*work.height,cw=c.w*work.width,ch=c.h*work.height;
+    const vec=sampleVec(cx,cy,cw,ch); lastVecs[i]=vec;
+    const cl=classify(vec); reads.push(cl);
     const pc=slotEls[i].querySelector('canvas').getContext('2d');
-    pc.drawImage(work,cx,ry,cw,rh,0,0,60,60);
-    slotEls[i].querySelector('.lbl').textContent=c.id?F[c.id].em:'؟';
-    if(i>0)slotEls[i].querySelector('.cf').textContent=c.id?Math.round(c.conf*100)+'%':'';
+    pc.drawImage(work,cx,cy,cw,ch,0,0,60,60);
+    slotEls[i].querySelector('.lbl').textContent=cl.id?F[cl.id].em:'·';
+    if(i>0)slotEls[i].querySelector('.cf').textContent=cl.id?Math.round(cl.conf*100)+'%':'';
   }
-  drawOverlay();
+  drawOverlay(cells);
   detectNewResult(reads[0]);
 }
-function drawOverlay(){
+function drawOverlay(cells){
   octx.clearRect(0,0,ovl.width,ovl.height);
-  const R=S.rect,x=R.x*ovl.width,y=R.y*ovl.height,w=R.w*ovl.width,h=R.h*ovl.height;
-  octx.strokeStyle=S.locked?'#f5c451':'#39d97a';octx.lineWidth=2;octx.setLineDash([6,4]);
-  octx.strokeRect(x,y,w,h);octx.setLineDash([]);
-  for(let i=1;i<SLOTS;i++){octx.beginPath();octx.moveTo(x+w/SLOTS*i,y);octx.lineTo(x+w/SLOTS*i,y+h);octx.strokeStyle='rgba(57,217,122,.4)';octx.stroke()}
-  if(!S.locked){octx.fillStyle='#39d97a';octx.beginPath();octx.arc(x+w,y+h,9,0,7);octx.fill()}
-  octx.fillStyle='#39d97a';octx.font='700 11px Cairo';octx.fillText('NEW ⬅',x+2,y-5);
+  if(!S.cells){ // وضع المربع التقريبي
+    const R=S.rect,x=R.x*ovl.width,y=R.y*ovl.height,w=R.w*ovl.width,h=R.h*ovl.height;
+    octx.strokeStyle='#39d97a';octx.lineWidth=2;octx.setLineDash([6,4]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
+    octx.fillStyle='#39d97a';octx.beginPath();octx.arc(x+w,y+h,9,0,7);octx.fill();
+    octx.font='700 12px Cairo';octx.fillText('غطِّ شاشة اللعبة ثم اضغط اكتشاف',x+4,y+16);
+    return;
+  }
+  cells.forEach((c,i)=>{
+    octx.strokeStyle=i===0?'#39d97a':'#4fc3f7';octx.lineWidth=i===0?2.5:1.5;
+    octx.strokeRect(c.x*ovl.width,c.y*ovl.height,c.w*ovl.width,c.h*ovl.height);
+  });
+  octx.fillStyle='#39d97a';octx.font='700 11px Cairo';
+  octx.fillText('NEW',cells[0].x*ovl.width,cells[0].y*ovl.height-4);
 }
 
 /* رصد نتيجة جديدة: الخانة اليسرى تتغير وتثبت 4 قراءات */
