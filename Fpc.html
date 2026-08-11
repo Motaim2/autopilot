@@ -131,6 +131,7 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <button class="btn small" id="balBtn">💰 مربع الرصيد</button>
       <button class="btn small" id="hudBtn">🎯 رهانات على الشاشة</button>
       <button class="btn small" id="winBtn">🏆 مربع النتيجة المنبثقة</button>
+      <button class="btn small ghost" id="diagBtn">🔬 تشخيص</button>
       <button class="btn small ghost" id="calibBtn">🌈 معايرة الألوان</button>
       <button class="btn small ghost" id="lockBtn">🔒 تثبيت</button>
       <button class="btn small danger" id="stopCam" style="display:none">إيقاف</button>
@@ -144,6 +145,10 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <button class="btn small ghost nud" data-d="narrower">↔ أضيق</button>
     </div>
     <div id="detectMsg" style="font-size:11px;color:var(--blue);text-align:center;margin-top:6px"></div>
+    <div id="diagPanel" style="display:none;margin-top:10px;background:#0d0704;border:1px solid var(--gold3);border-radius:12px;padding:10px;font-size:11px">
+      <div style="color:var(--gold);font-weight:700;margin-bottom:6px">🔬 ما الذي يراه البوت الآن (حدّث الضبط حتى تتطابق مع شاشتك)</div>
+      <div id="diagBody" style="line-height:2"></div>
+    </div>
     <div id="boardLive" style="display:flex;justify-content:center;gap:14px;margin-top:8px;font-size:13px;align-items:center">
       <span>⏱ الوقت: <b id="tRead" style="color:var(--blue);font-size:17px">--</b></span>
       <span>☝️ الإصبع على: <b id="ptrRead">--</b></span>
@@ -410,6 +415,8 @@ $('boardBtn').onclick=()=>{
   $('detectMsg').textContent=editMode==='board'?'اسحب المربع البرتقالي على شبكة الفواكه ٣×٣ كاملة (العدّاد بالنص) — النقطة يمين تحت للتحجيم':'';
   saveAll();
 };
+let diagOn=false;
+$('diagBtn').onclick=()=>{diagOn=!diagOn;$('diagPanel').style.display=diagOn?'block':'none';$('diagBtn').textContent=diagOn?'✅ تشخيص':'🔬 تشخيص'};
 $('winBtn').onclick=()=>{
   editMode=editMode==='win'?'rect':'win';
   if(editMode==='win'&&!S.win)S.win={x:.35,y:.42,w:.3,h:.16};
@@ -763,11 +770,31 @@ function readWinPopup(){
   return cl.conf>0.4?cl.id:null;
 }
 let winSeen=null,winBuf=[];
+let diagLastReads=[];
+function updateDiag(timerVal){
+  const rows=[];
+  // ١) العدّاد
+  rows.push('⏱ <b>العدّاد:</b> '+(timerVal===null?'<span style="color:var(--red)">لا يُقرأ — اضبط «لوحة اللعبة» على الشبكة ٣×٣</span>':'<b style="color:var(--blue)">'+timerVal+'</b>'));
+  // ٢) الإصبع
+  rows.push('☝️ <b>الإصبع:</b> '+(ptrFruit?fimg(ptrFruit,16)+' '+F[ptrFruit].name:'<span style="color:var(--dim)">لا يوجد (طبيعي إن ما كان في إصبع)</span>'));
+  // ٣) الخانات السبع بالشريط
+  if(diagLastReads.length){
+    rows.push('🎞 <b>الشريط:</b> '+diagLastReads.map((r,i)=>(i===0?'<u>':'')+(r.id?fimg(r.id,15):'·')+(r.id?'<sub style="color:var(--dim)">'+Math.round(r.conf*100)+'</sub>':'')+(i===0?'</u>':'')).join(' '));
+  }
+  // ٤) لوحة النتيجة المنبثقة
+  const wp=S.win?readWinPopup():null;
+  rows.push('🏆 <b>لوحة النتيجة:</b> '+(S.win?(wp?fimg(wp,16)+' '+F[wp].name+' <span style="color:var(--green)">(ظاهرة)</span>':'<span style="color:var(--dim)">غير ظاهرة الآن</span>'):'<span style="color:var(--red)">لم تُحدَّد بعد</span>'));
+  // ٥) الرصيد
+  const bv=S.bal?readBalance():null;
+  rows.push('💰 <b>الرصيد:</b> '+(S.bal?(bv!==null?'<b style="color:var(--purple)">'+fmt(bv)+'</b>':'<span style="color:var(--red)">لا يُقرأ — ضيّق المربع على الرقم فقط</span>'):'<span style="color:var(--red)">لم يُحدَّد بعد</span>'));
+  $('diagBody').innerHTML=rows.map(r=>'<div>'+r+'</div>').join('');
+}
 function boardTick(){
   if(!S.board)return;
   const t=readTimer();ptrFruit=readPointer();
   $('tRead').textContent=t===null?'--':(t<10?'0'+t:t);
   $('ptrRead').innerHTML=ptrFruit?fimg(ptrFruit,18)+' '+F[ptrFruit].name:'--';
+  if(diagOn)updateDiag(t);
   if(t!==null){
     if(curTimer!==null&&t>curTimer+5){t24Armed=true;$('t24Flag').style.display='none';t24Fruit=null;t24Opp=null;$('t24Pair').innerHTML=''} // جولة جديدة
     curTimer=t;
@@ -816,6 +843,7 @@ function loop(){
     if(i>0)slotEls[i].querySelector('.cf').textContent=cl.id?Math.round(cl.conf*100)+'%':'';
   }
   drawOverlay(cells);
+  diagLastReads=reads;
   boardTick();
   // لوحة النتيجة المنبثقة (أدق) — إن ظهرت، نعتمدها
   const wp=readWinPopup();
