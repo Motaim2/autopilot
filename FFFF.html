@@ -85,6 +85,11 @@ header .sub{font-size:11px;color:var(--dim);margin-top:2px}
       <button class="btn small ghost" id="stopCap" style="display:none">إيقاف</button>
     </div>
     <div class="hint" id="capHint"></div>
+    <div id="liveCounter" style="display:none;text-align:center;margin-top:10px;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px">
+      <span style="font-size:12px;color:var(--dim)">العدّاد المقروء لايف: </span>
+      <span id="counterVal" style="font-size:28px;font-weight:900;color:var(--blue);direction:ltr">--</span>
+      <span id="t24Flag" style="font-size:13px;color:var(--green);font-weight:700;margin-inline-start:10px;display:none">🎯 الـ24!</span>
+    </div>
   </div>
 
   <!-- التدريب -->
@@ -97,12 +102,15 @@ header .sub{font-size:11px;color:var(--dim);margin-top:2px}
       <canvas id="trainImg" width="80" height="80"></canvas>
       <div class="fruitBtns" id="teachBtns"></div>
       <div style="font-size:10px;color:var(--dim);margin-top:8px">لو فيها يد تغطيها، عرّفها من الجزء الظاهر — البوت بيتعلم شكلها</div>
+      <button class="btn small ghost" id="discardBtn" style="margin-top:8px">🗑️ امسح هذي الصورة (غلط)</button>
     </div>
 
     <div id="trainIdle" style="text-align:center">
       <div class="hint" id="idleHint">حدّد الشبكة 3×3 أولاً، ثم اضغط «ابدأ التدريب»</div>
       <button class="btn gold" id="grabBtn" style="margin-top:8px;display:none">📸 ابدأ تدريب الشبكة</button>
       <button class="btn green" id="grabNewBtn" style="margin-top:8px;display:none">🆕 صوّر فاكهة النتيجة وعلّمني</button>
+      <button class="btn blue" id="grabHandBtn" style="margin-top:8px;display:none">✋ صوّر خانة فيها يد وعلّمني (للـ24)</button>
+      <div style="font-size:10px;color:var(--dim);margin-top:6px">للـ24: لما تكون اليد على فاكهة، صوّرها وعلّم البوت شكلها واليد عليها — عشان يعرفها وقت اللعب</div>
     </div>
 
     <div class="savedStrip" id="savedStrip"></div>
@@ -143,6 +151,7 @@ const GRID=[['apple','melon','cherry'],['banana',null,'grape'],['orange','mango'
 // قائمة الخانات الثمان (نتخطى العدّاد)
 const CELLS=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c])CELLS.push({r,c,id:GRID[r][c]});
 let trainQueue=[],trainIdx=0; // طابور التدريب
+let teachMode='grid'; // grid=تدريب الشبكة، free=نتيجة/يد (يعرض كل الفواكه)
 
 const video=$('#video'),ovl=$('#ovl'),octx=ovl.getContext('2d');
 const work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
@@ -163,7 +172,17 @@ addEventListener('resize',fitOvl);setTimeout(fitOvl,300);
 // ===== سحب مربع NEW =====
 let drag=null;
 function hit(B,x,y,p=.04){return x>B.x-p&&x<B.x+B.w+p&&y>B.y-p&&y<B.y+B.h+p}
-ovl.addEventListener('pointerdown',e=>{if(!editWhich)return;const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+ovl.addEventListener('pointerdown',e=>{
+  const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+  // لو مو في وضع تحديد ومربع الشبكة موجود: الضغط على خانة يصوّرها
+  if(!editWhich&&GRIDBOX&&running){
+    const B=GRIDBOX;
+    if(x>B.x&&x<B.x+B.w&&y>B.y&&y<B.y+B.h){
+      const c=Math.floor((x-B.x)/(B.w/3)),rr=Math.floor((y-B.y)/(B.h/3));
+      if(!(rr===1&&c===1)){grabCell(rr,c);return}
+    }
+  }
+  if(!editWhich)return;
   const isNew=editWhich==='new';
   const B=isNew?(NEWBOX||(NEWBOX={x:.72,y:.9,w:.12,h:.06})):(GRIDBOX||(GRIDBOX={x:.12,y:.25,w:.76,h:.5}));
   const minW=isNew?.04:.2,minH=isNew?.03:.2;
@@ -192,13 +211,45 @@ $('#newBoxBtn').onclick=()=>{editWhich=editWhich==='new'?null:'new';if(editWhich
 function updateGrabState(){
   $('#grabBtn').style.display=(running&&GRIDBOX&&!isDone())?'inline-block':'none';
   $('#grabNewBtn').style.display=(running&&NEWBOX)?'inline-block':'none';
+  $('#grabHandBtn').style.display=(running&&GRIDBOX)?'inline-block':'none';
   const hints=[];
   if(!running)hints.push('شغّل الالتقاط');
   else{
     if(!GRIDBOX)hints.push('حدّد الشبكة 3×3');
     if(!NEWBOX)hints.push('حدّد مربع النتيجة (اختياري)');
   }
-  $('#idleHint').textContent=hints.length?hints.join(' · '):(isDone()?'التدريب مكتمل ✓ — تقدر تصوّر النتيجة وتصحّح أي فاكهة':'اضغط «ابدأ تدريب الشبكة» ليعرض كل خانة ويسألك');
+  $('#idleHint').innerHTML=hints.length?hints.join(' · '):(isDone()?'التدريب مكتمل ✓ — <b>اضغط أي خانة على الشبكة</b> لتصوّرها وتعلّمها/تصحّحها، أو صوّر النتيجة':'اضغط «ابدأ تدريب الشبكة»، أو <b>اضغط أي خانة على الشبكة مباشرة</b> لتصوّرها');
+}
+
+// ===== قراءة العدّاد =====
+const SEG=[[.5,.10],[.20,.28],[.80,.28],[.5,.5],[.20,.72],[.80,.72],[.5,.90]];
+const SMAP={'1110111':0,'0010010':1,'1011101':2,'1011011':3,'0111010':4,'1101011':5,'1101111':6,'1010010':7,'1111111':8,'1111011':9};
+function counterCell(){const B=GRIDBOX;return {x:B.x+B.w/3,y:B.y+B.h/3,w:B.w/3,h:B.h/3}} // الخانة الوسطى
+function digitCore(){
+  if(!GRIDBOX)return null;const c=counterCell(),W=work.width,H=work.height;
+  const bx=Math.round((c.x+c.w*.20)*W),by=Math.round((c.y+c.h*.20)*H);
+  const bw=Math.round(c.w*.6*W),bh=Math.round(c.h*.6*H);if(bw<8||bh<8)return null;
+  const img=wctx.getImageData(bx,by,bw,bh),d=img.data;
+  const mask=new Uint8Array(bw*bh);let cnt=0,blue=0,x1=bw,x2=0,y1=bh,y2=0;
+  for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){const i=(y*bw+x)*4,r=d[i],g=d[i+1],b=d[i+2];
+    if(r>120&&g>110&&(r-b)>25&&(g-b)>15){mask[y*bw+x]=1;cnt++;if(x<x1)x1=x;if(x>x2)x2=x;if(y<y1)y1=y;if(y>y2)y2=y}
+    else if(b>90&&b>r+15&&b>g)blue++}
+  const total=bw*bh;if(cnt<12||cnt/total>0.62||blue/total<0.08)return null;
+  return {mask,bw,bh,x1,y1,x2,y2};
+}
+function readSeg(m,bw,bh,x0,y0,w,hh){let b='';
+  for(const[sx,sy]of SEG){const px=Math.round(x0+w*sx),py=Math.round(y0+hh*sy);
+    const rx=Math.max(1,Math.round(w*0.10)),ry=Math.max(1,Math.round(hh*0.06));
+    let on=0,n=0;for(let dy=-ry;dy<=ry;dy++)for(let dx=-rx;dx<=rx;dx++){const yy=py+dy,xx=px+dx;
+      if(yy>=0&&yy<bh&&xx>=0&&xx<bw){n++;if(m[yy*bw+xx])on++}}
+    b+=(n&&on/n>0.30)?'1':'0'}
+  if(b==='0000000')return null;if(b in SMAP)return SMAP[b];
+  let bd=9,bv=null;for(const k in SMAP){let dd=0;for(let i=0;i<7;i++)if(k[i]!==b[i])dd++;if(dd<bd){bd=dd;bv=SMAP[k]}}return bd<=1?bv:null}
+function readTimer(){const core=digitCore();if(!core)return null;const{mask,bw,bh,x1,y1,x2,y2}=core;
+  const w=x2-x1,hh=y2-y1;if(w<5||hh<9)return null;
+  if(w>hh*0.62){const half=w/2;const d1=readSeg(mask,bw,bh,x1,y1,half*0.92,hh),d2=readSeg(mask,bw,bh,x1+half*1.08,y1,half*0.92,hh);
+    if(d1===null&&d2===null)return null;if(d1===null)return d2;return d1*10+(d2===null?0:d2)}
+  else return readSeg(mask,bw,bh,x1,y1,w,hh);
 }
 
 // ===== قالب الصورة (نطرح المتوسط لإزالة أثر الخلفية) =====
@@ -226,7 +277,7 @@ $('#grabBtn').onclick=()=>{
   if(!running||!GRIDBOX)return;
   work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   // نبني طابور الخانات غير المحفوظة
-  trainQueue=CELLS.filter(c=>!TPL||!TPL[c.id]);trainIdx=0;
+  trainQueue=CELLS.filter(c=>!TPL||!TPL[c.id]);trainIdx=0;teachMode='grid';
   if(!trainQueue.length){return}
   showTrainCell();
 };
@@ -239,7 +290,45 @@ $('#grabNewBtn').onclick=()=>{
   g.drawImage(work,B.x*W+mx,B.y*H+my,B.w*W-2*mx,B.h*H-2*my,0,0,80,80);
   $('#cellNo').textContent='النتيجة NEW';
   $('#trainArea').style.display='block';$('#trainIdle').style.display='none';
-  trainQueue=[];trainIdx=0; // خارج طابور الشبكة
+  trainQueue=[];trainIdx=0;teachMode='free'; // يعرض كل الفواكه
+  buildTeachBtns();
+};
+// إيجاد الخانة اللي فيها يد (أكثر بكسلات بيضاء)
+// تصوير خانة بالضغط عليها
+function grabCell(r,c){
+  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  const id=GRID[r][c];
+  grabbed={id:null,vec:templateAtCell(r,c),cellPos:[r,c]};
+  const ti=$('#trainImg');ti.width=80;ti.height=80;const g=ti.getContext('2d');g.imageSmoothingEnabled=false;
+  const W=work.width,H=work.height,cl=cellRect(r,c),mx=cl.w*W*.12,my=cl.h*H*.12;
+  g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,80,80);
+  $('#cellNo').textContent='خانة الشبكة (اضغطتها)';
+  $('#trainArea').style.display='block';$('#trainIdle').style.display='none';
+  trainQueue=[];trainIdx=0;teachMode='free';
+  buildTeachBtns();
+  $('#capHint').textContent='صوّرت الخانة — تحت شوفها واختر اسمها، أو امسح لو غلط';
+}
+function findHandCell(){
+  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  const W=work.width,H=work.height;let best=null,bf=0;
+  for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);
+    const iw=Math.round(cl.w*W),ih=Math.round(cl.h*H);
+    const img=wctx.getImageData(Math.round(cl.x*W),Math.round(cl.y*H),iw,ih),d=img.data;
+    let wh=0,n=0;for(let y=0;y<ih;y+=3)for(let x=0;x<iw;x+=3){const i=(y*iw+x)*4;n++;if(d[i]>195&&d[i+1]>185&&d[i+2]>170&&Math.abs(d[i]-d[i+2])<60)wh++}
+    const f=wh/n;if(f>bf){bf=f;best=cell}}
+  return bf>.03?best:null;
+}
+$('#grabHandBtn').onclick=()=>{
+  if(!running||!GRIDBOX)return;
+  const cell=findHandCell();
+  if(!cell){$('#capHint').textContent='ما لقيت يد واضحة على أي خانة — تأكد اليد ظاهرة';return}
+  grabbed={id:null,hand:true,vec:templateAtCell(cell.r,cell.c)};
+  const ti=$('#trainImg');ti.width=80;ti.height=80;const g=ti.getContext('2d');g.imageSmoothingEnabled=false;
+  const W=work.width,H=work.height,cl=cellRect(cell.r,cell.c),mx=cl.w*W*.12,my=cl.h*H*.12;
+  g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,80,80);
+  $('#cellNo').textContent='خانة فيها يد ✋';
+  $('#trainArea').style.display='block';$('#trainIdle').style.display='none';
+  trainQueue=[];trainIdx=0;teachMode='free';
   buildTeachBtns();
 };
 // قالب من مربع حر (للنتيجة)
@@ -271,19 +360,37 @@ function showTrainCell(){
   buildTeachBtns();
 }
 
+$('#discardBtn').onclick=()=>{
+  grabbed=null;
+  $('#trainArea').style.display='none';$('#trainIdle').style.display='block';
+  // لو كنا في طابور تدريب الشبكة، نتخطى هالخانة للتالية
+  if(teachMode==='grid'&&trainQueue.length){trainIdx++;if(trainIdx<trainQueue.length){showTrainCell();return}}
+  $('#idleHint').textContent='مسحت الصورة — اضغط خانة ثانية أو صوّر من جديد';
+  updateGrabState();
+};
 function buildTeachBtns(){
-  const remaining=FRUITS.filter(f=>!TPL||!TPL[f.id]);
-  $('#teachBtns').innerHTML=remaining.map(f=>`<button data-id="${f.id}"><span class="em">${f.em}</span><span class="nm">${f.name}</span></button>`).join('');
+  const list=teachMode==='free'?FRUITS:FRUITS.filter(f=>!TPL||!TPL[f.id]);
+  $('#teachBtns').innerHTML=list.map(f=>`<button data-id="${f.id}"><span class="em">${f.em}</span><span class="nm">${f.name}${TPL&&TPL[f.id]?' ✓':''}</span></button>`).join('');
   $$('#teachBtns button').forEach(b=>b.onclick=()=>teach(b.dataset.id));
 }
 function teach(id){
   if(!grabbed)return;
-  TPL=TPL||{};TPL[id]=grabbed.vec; // نحفظ بالاسم اللي اخترته (مو بالضرورة موقع الخانة — لو اللعبة رتبت غير)
+  TPL=TPL||{};
+  // في وضع اليد/النتيجة: نحفظ نسخة إضافية بمفتاح خاص (id_hand) عشان ما تمسح النظيفة
+  if(teachMode==='free'&&grabbed.hand){TPL[id+'_hand']=grabbed.vec}
+  else{TPL[id]=grabbed.vec}
   localStorage.setItem('trainTpl',JSON.stringify(TPL));
+  const wasFree=teachMode==='free';
   grabbed=null;renderSaved();
+  if(wasFree){ // نتيجة أو يد — نرجع للخمول
+    $('#trainArea').style.display='none';$('#trainIdle').style.display='block';
+    $('#idleHint').textContent='✅ حُفظت! تقدر تصوّر خانة/نتيجة ثانية أو تكمل';
+    if(isDone())$('#doneMsg').style.display='block';
+    return;
+  }
   trainIdx++;
   if(isDone()){$('#trainArea').style.display='none';$('#trainIdle').style.display='block';$('#doneMsg').style.display='block';$('#grabBtn').style.display='none';$('#idleHint').textContent='';return}
-  showTrainCell(); // الخانة التالية
+  showTrainCell();
 }
 
 function renderSaved(){
@@ -304,6 +411,11 @@ let lastT=0;
 function loop(){if(!running)return;requestAnimationFrame(loop);const n=performance.now();if(n-lastT<200)return;lastT=n;
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);
+  // العدّاد لايف
+  if(GRIDBOX){const t=readTimer();$('#liveCounter').style.display='block';
+    $('#counterVal').textContent=t===null?'--':(t<10?'0'+t:t);
+    $('#t24Flag').style.display=(t===24)?'inline':'none';
+  }
   if(GRIDBOX){const B=GRIDBOX,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
     octx.strokeStyle=editWhich==='grid'?'#4a9eda':'#e0a92e';octx.lineWidth=editWhich==='grid'?2.5:1.5;octx.setLineDash(editWhich==='grid'?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
     // خطوط 3×3
@@ -311,7 +423,8 @@ function loop(){if(!running)return;requestAnimationFrame(loop);const n=performan
     for(let i=1;i<3;i++){octx.beginPath();octx.moveTo(x+w*i/3,y);octx.lineTo(x+w*i/3,y+h);octx.stroke();octx.beginPath();octx.moveTo(x,y+h*i/3);octx.lineTo(x+w,y+h*i/3);octx.stroke()}
     // علّم العدّاد بالنص
     octx.fillStyle='rgba(74,158,218,.25)';octx.fillRect(x+w/3,y+h/3,w/3,h/3);
-    octx.fillStyle=editWhich==='grid'?'#4a9eda':'#e0a92e';octx.font='700 11px Rubik';octx.fillText('الشبكة 3×3',x+2,y-4);
+    octx.fillStyle=editWhich==='grid'?'#4a9eda':'#e0a92e';octx.font='700 11px Rubik';
+    octx.fillText(editWhich==='grid'?'الشبكة 3×3':'اضغط خانة لتصويرها',x+2,y-4);
     if(editWhich==='grid'){octx.fillStyle='#4a9eda';octx.beginPath();octx.arc(x+w,y+h,8,0,7);octx.fill()}
   }
   if(NEWBOX){const B=NEWBOX,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
