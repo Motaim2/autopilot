@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>مصطفى — تدريب الفواكه</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0e14;--ink:#e8edf4;--dim:#8b96a8;--line:#1e2530;--panel:#121824;--panel2:#0f141e;
+  --accent:#e94f37;--gold:#e0a92e;--green:#3ec96a;--red:#e8455f;--blue:#4a9eda}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(circle at 50% -10%,#1a2230,var(--bg) 55%);color:var(--ink);font-family:'Rubik',sans-serif;min-height:100vh;padding-bottom:24px}
+header{text-align:center;padding:14px}
+header h1{font-size:20px;font-weight:900;color:var(--gold)}
+header .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card h2{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card h2 .tag{margin-inline-start:auto;font-size:11px;color:var(--dim);font-weight:400}
+#camWrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:9/16;touch-action:none;max-height:420px;margin:0 auto}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#ovl{position:absolute;inset:0;width:100%;height:100%}
+#camMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--dim);font-size:13px;text-align:center;padding:24px}
+.btn{border:none;border-radius:11px;font-family:inherit;font-weight:700;font-size:14px;padding:11px 18px;cursor:pointer;color:#fff;background:linear-gradient(180deg,#f0603f,var(--accent));box-shadow:0 3px 0 #a82f1c}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #a82f1c}
+.btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--line);box-shadow:none}
+.btn.small{font-size:12px;padding:7px 13px}
+.btn.gold{background:linear-gradient(180deg,#f0c860,var(--gold));color:#2a1e00;box-shadow:0 3px 0 #8a6a1a}
+.btn.green{background:linear-gradient(180deg,#5ce88a,var(--green));color:#04240f;box-shadow:0 3px 0 #1e7a3e}
+.btn.blue{background:linear-gradient(180deg,#6ab8ea,var(--blue));color:#04182a;box-shadow:0 3px 0 #2a6a9a}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+.field input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-size:13px;padding:9px;outline:none;direction:ltr}
+
+/* التدريب */
+#trainArea{text-align:center}
+#trainImg{width:120px;height:120px;border-radius:14px;border:2px solid var(--gold);background:#000;object-fit:contain;margin:0 auto 12px;display:block}
+.fruitBtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.fruitBtns button{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 4px;cursor:pointer;transition:.12s;display:flex;flex-direction:column;align-items:center;gap:3px}
+.fruitBtns button:active{background:var(--line);transform:scale(.95)}
+.fruitBtns button .em{font-size:26px}
+.fruitBtns button .nm{font-size:10px;color:var(--dim)}
+
+/* شريط الحفظ */
+.savedStrip{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.savedStrip .s{text-align:center}
+.savedStrip .s canvas{width:44px;height:44px;border-radius:9px;background:#000;border:1.5px solid var(--line);display:block}
+.savedStrip .s.done canvas{border-color:var(--green)}
+.savedStrip .s .nm{font-size:9px;color:var(--dim);margin-top:2px}
+.savedStrip .s.done .nm{color:var(--green)}
+.progress{height:8px;background:var(--panel2);border-radius:5px;overflow:hidden;margin:10px 0}
+.progress .fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--green));transition:.3s}
+
+.hint{font-size:12px;color:var(--blue);text-align:center;line-height:1.7;margin-top:8px}
+.note{font-size:10px;color:var(--dim);line-height:1.7;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+.keyRow{display:flex;gap:6px;margin-bottom:10px}
+.keyRow input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-size:12px;padding:8px;outline:none;direction:ltr}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:20px}
+.badge.on{background:rgba(62,201,106,.15);color:var(--green)}
+.badge.off{background:rgba(139,150,168,.12);color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎓 تدريب مصطفى على الفواكه</h1>
+  <div class="sub">درّب البوت على الشبكة 3×3 كاملة — يعرض كل خانة ويسألك عنها، لين يحفظ الثمانية</div>
+</header>
+
+<div class="wrap">
+  <!-- الالتقاط -->
+  <div class="card">
+    <h2>🖥️ شاشة اللعبة</h2>
+    <div id="camWrap">
+      <video id="video" playsinline muted></video>
+      <canvas id="ovl"></canvas>
+      <div id="camMsg">
+        <div>التقط شاشة LDPlayer، ثم اسحب المربع الأزرق على <b>الشبكة 3×3 كاملة</b> (كل الفواكه، العدّاد بالنص)</div>
+        <button class="btn" id="startCap">🖥️ التقاط الشاشة</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn small blue" id="gridBox">🎯 حدّد الشبكة 3×3</button>
+      <button class="btn small ghost" id="stopCap" style="display:none">إيقاف</button>
+    </div>
+    <div class="hint" id="capHint"></div>
+  </div>
+
+  <!-- التدريب -->
+  <div class="card" id="trainCard">
+    <h2>🎓 تدريب الفواكه <span class="tag"><span id="trainCount">0</span>/8 محفوظة</span></h2>
+    <div class="progress"><div class="fill" id="progFill" style="width:0%"></div></div>
+
+    <div id="trainArea" style="display:none">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">خانة رقم <b id="cellNo" style="color:var(--gold)"></b> من الشبكة — وش الفاكهة فيها؟</div>
+      <canvas id="trainImg" width="80" height="80"></canvas>
+      <div class="fruitBtns" id="teachBtns"></div>
+      <div style="font-size:10px;color:var(--dim);margin-top:8px">لو فيها يد تغطيها، عرّفها من الجزء الظاهر — البوت بيتعلم شكلها</div>
+    </div>
+
+    <div id="trainIdle" style="text-align:center">
+      <div class="hint" id="idleHint">حدّد الشبكة 3×3 أولاً، ثم اضغط «ابدأ التدريب»</div>
+      <button class="btn gold" id="grabBtn" style="margin-top:8px;display:none">📸 ابدأ تدريب الشبكة</button>
+    </div>
+
+    <div class="savedStrip" id="savedStrip"></div>
+
+    <div id="doneMsg" style="display:none;text-align:center;margin-top:12px;padding:12px;background:rgba(62,201,106,.12);border:1px solid var(--green);border-radius:12px;color:var(--green);font-weight:700">
+      ✅ تم! مصطفى حفظ الثمان فواكه وصار خبير. ما راح يسألك عنها بعد اليوم.
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn small ghost" id="resetTrain">↺ امسح التدريب</button>
+      <button class="btn small ghost" id="exportTrain">⬇ تصدير</button>
+      <button class="btn small ghost" id="importTrain">⬆ استيراد</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+  </div>
+
+  <div class="note">
+    التدريب مرة واحدة: تحدّد الشبكة 3×3، والبوت يعرض كل خانة ويسألك عنها. تضغط اسم الفاكهة، يحفظها كمرجع من شاشتك. حتى لو فيها يد، عرّفها من الجزء الظاهر. لما يكمل الثمانية، يصير جاهز يتعرّف عليها أثناء اللعب. محفوظ بجهازك للأبد.
+  </div>
+</div>
+
+<script>
+const FRUITS=[
+ {id:'apple',em:'🍎',name:'تفاح'},{id:'melon',em:'🍉',name:'بطيخ'},{id:'cherry',em:'🍒',name:'كرز'},
+ {id:'banana',em:'🍌',name:'موز'},{id:'grape',em:'🍇',name:'عنب'},{id:'orange',em:'🍊',name:'برتقال'},
+ {id:'mango',em:'🥭',name:'مانجو'},{id:'pine',em:'🍍',name:'أناناس'}];
+const F=Object.fromEntries(FRUITS.map(f=>[f.id,f]));
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const VN=24; // دقة القالب
+
+// ذاكرة
+let TPL=JSON.parse(localStorage.getItem('trainTpl')||'null');       // {id:[rgb...]}
+let GRIDBOX=JSON.parse(localStorage.getItem('trainGridBox')||'null'); // {x,y,w,h} للشبكة كاملة
+// ترتيب الشبكة 3×3 (يطابق اللعبة). null = العدّاد بالنص
+const GRID=[['apple','melon','cherry'],['banana',null,'grape'],['orange','mango','pine']];
+// قائمة الخانات الثمان (نتخطى العدّاد)
+const CELLS=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c])CELLS.push({r,c,id:GRID[r][c]});
+let trainQueue=[],trainIdx=0; // طابور التدريب
+
+const video=$('#video'),ovl=$('#ovl'),octx=ovl.getContext('2d');
+const work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
+let stream=null,running=false,editBox=false,grabbed=null;
+
+
+// ===== الالتقاط =====
+async function attach(st){stream=st;video.srcObject=st;await video.play();
+  const fix=()=>{if(video.videoWidth){$('#camWrap').style.aspectRatio=video.videoWidth+'/'+video.videoHeight;setTimeout(fitOvl,80)}};
+  video.onloadedmetadata=fix;fix();st.getVideoTracks()[0].onended=()=>$('#stopCap').click();
+  $('#camMsg').style.display='none';$('#stopCap').style.display='';running=true;updateGrabState();loop()}
+$('#startCap').onclick=async()=>{if(!navigator.mediaDevices?.getDisplayMedia){$('#camMsg').firstElementChild.textContent='افتح من كروم/إيدج على الكمبيوتر';return}
+  try{await attach(await navigator.mediaDevices.getDisplayMedia({video:{frameRate:8}}))}catch(e){$('#camMsg').firstElementChild.textContent=e.message}};
+$('#stopCap').onclick=()=>{running=false;stream&&stream.getTracks().forEach(t=>t.stop());$('#camMsg').style.display='flex';$('#stopCap').style.display='none'};
+function fitOvl(){const r=$('#camWrap').getBoundingClientRect();ovl.width=r.width;ovl.height=r.height}
+addEventListener('resize',fitOvl);setTimeout(fitOvl,300);
+
+// ===== سحب مربع NEW =====
+let drag=null;
+function hit(B,x,y,p=.04){return x>B.x-p&&x<B.x+B.w+p&&y>B.y-p&&y<B.y+B.h+p}
+ovl.addEventListener('pointerdown',e=>{if(!editBox)return;const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+  const B=GRIDBOX||(GRIDBOX={x:.12,y:.25,w:.76,h:.5});
+  if(Math.hypot(x-(B.x+B.w),y-(B.y+B.h))<.05)drag={t:'s'};else if(hit(B,x,y))drag={t:'m',dx:x-B.x,dy:y-B.y};
+  if(drag)ovl.setPointerCapture(e.pointerId)});
+ovl.addEventListener('pointermove',e=>{if(!drag)return;const r=ovl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height,B=NEWBOX;
+  if(drag.t==='m'){B.x=Math.min(Math.max(x-drag.dx,0),1-B.w);B.y=Math.min(Math.max(y-drag.dy,0),1-B.h)}else{B.w=Math.min(Math.max(x-B.x,.2),1-B.x);B.h=Math.min(Math.max(y-B.y,.2),1-B.y)}});
+ovl.addEventListener('pointerup',()=>{drag=null;if(GRIDBOX)localStorage.setItem('trainGridBox',JSON.stringify(GRIDBOX))});
+$('#gridBox').onclick=()=>{editBox=!editBox;if(editBox&&!GRIDBOX)GRIDBOX={x:.12,y:.25,w:.76,h:.5};
+  $('#gridBox').textContent=editBox?'✅ تم تحديد الشبكة':'🎯 حدّد الشبكة 3×3';
+  $('#capHint').textContent=editBox?'اسحب المربع على الشبكة 3×3 كاملة — كل الفواكه الثمان مع العدّاد بالنص':'';
+  updateGrabState()};
+
+function updateGrabState(){
+  const ready=running&&GRIDBOX;
+  $('#grabBtn').style.display=ready&&!isDone()?'inline-block':'none';
+  $('#idleHint').textContent=!running?'شغّل الالتقاط أولاً':!GRIDBOX?'حدّد الشبكة 3×3 أولاً':isDone()?'':'اضغط «ابدأ تدريب الشبكة» — بيعرض لك كل خانة ويسألك';
+}
+
+// ===== قالب الصورة (نطرح المتوسط لإزالة أثر الخلفية) =====
+// إحداثيات خانة (r,c) داخل مربع الشبكة
+function cellRect(r,c){const B=GRIDBOX;return {x:B.x+B.w*c/3,y:B.y+B.h*r/3,w:B.w/3,h:B.h/3}}
+function templateAtCell(r,c){
+  const W=work.width,H=work.height,cl=cellRect(r,c);
+  const t=document.createElement('canvas');t.width=VN;t.height=VN;const g=t.getContext('2d',{willReadFrequently:true});
+  const mx=cl.w*W*.12,my=cl.h*H*.12;
+  g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,VN,VN);
+  const d=g.getImageData(0,0,VN,VN).data,v=[];let mr=0,mg=0,mb=0;
+  for(let i=0;i<d.length;i+=4){mr+=d[i];mg+=d[i+1];mb+=d[i+2]}const n=d.length/4;mr/=n;mg/=n;mb/=n;
+  for(let i=0;i<d.length;i+=4)v.push(d[i]-mr,d[i+1]-mg,d[i+2]-mb);
+  return v;
+}
+function drawTpl(cv,vec){const g=cv.getContext('2d');const im=g.createImageData(VN,VN);
+  for(let i=0,j=0;i<vec.length;i+=3,j+=4){im.data[j]=Math.max(0,Math.min(255,vec[i]+128));im.data[j+1]=Math.max(0,Math.min(255,vec[i+1]+128));im.data[j+2]=Math.max(0,Math.min(255,vec[i+2]+128));im.data[j+3]=255}
+  g.putImageData(im,0,0)}
+
+// ===== التدريب =====
+function isDone(){return TPL&&Object.keys(TPL).length>=8}
+function nextUnsaved(){return FRUITS.find(f=>!TPL||!TPL[f.id])}
+
+$('#grabBtn').onclick=()=>{
+  if(!running||!GRIDBOX)return;
+  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  // نبني طابور الخانات غير المحفوظة
+  trainQueue=CELLS.filter(c=>!TPL||!TPL[c.id]);trainIdx=0;
+  if(!trainQueue.length){return}
+  showTrainCell();
+};
+function showTrainCell(){
+  if(trainIdx>=trainQueue.length){ // خلصنا الطابور
+    $('#trainArea').style.display='none';$('#trainIdle').style.display='block';
+    updateGrabState();return;
+  }
+  // نلتقط لقطة جديدة كل خانة (عشان لو تحرّكت اللعبة)
+  work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  const cell=trainQueue[trainIdx];
+  grabbed={id:cell.id,vec:templateAtCell(cell.r,cell.c)};
+  // اعرض قص الخانة للوضوح
+  const ti=$('#trainImg');ti.width=80;ti.height=80;const g=ti.getContext('2d');g.imageSmoothingEnabled=false;
+  const W=work.width,H=work.height,cl=cellRect(cell.r,cell.c),mx=cl.w*W*.12,my=cl.h*H*.12;
+  g.drawImage(work,cl.x*W+mx,cl.y*H+my,cl.w*W-2*mx,cl.h*H-2*my,0,0,80,80);
+  $('#cellNo').textContent=(trainIdx+1)+' من '+trainQueue.length;
+  $('#trainArea').style.display='block';$('#trainIdle').style.display='none';
+  buildTeachBtns();
+}
+
+function buildTeachBtns(){
+  const remaining=FRUITS.filter(f=>!TPL||!TPL[f.id]);
+  $('#teachBtns').innerHTML=remaining.map(f=>`<button data-id="${f.id}"><span class="em">${f.em}</span><span class="nm">${f.name}</span></button>`).join('');
+  $$('#teachBtns button').forEach(b=>b.onclick=()=>teach(b.dataset.id));
+}
+function teach(id){
+  if(!grabbed)return;
+  TPL=TPL||{};TPL[id]=grabbed.vec; // نحفظ بالاسم اللي اخترته (مو بالضرورة موقع الخانة — لو اللعبة رتبت غير)
+  localStorage.setItem('trainTpl',JSON.stringify(TPL));
+  grabbed=null;renderSaved();
+  trainIdx++;
+  if(isDone()){$('#trainArea').style.display='none';$('#trainIdle').style.display='block';$('#doneMsg').style.display='block';$('#grabBtn').style.display='none';$('#idleHint').textContent='';return}
+  showTrainCell(); // الخانة التالية
+}
+
+function renderSaved(){
+  const n=TPL?Object.keys(TPL).length:0;
+  $('#trainCount').textContent=n;
+  $('#progFill').style.width=(n/8*100)+'%';
+  $('#savedStrip').innerHTML=FRUITS.map(f=>`<div class="s ${TPL&&TPL[f.id]?'done':''}"><canvas width="${VN}" height="${VN}" id="sv_${f.id}"></canvas><div class="nm">${f.name}${TPL&&TPL[f.id]?' ✓':''}</div></div>`).join('');
+  if(TPL)for(const id in TPL){const cv=$('#sv_'+id);if(cv)drawTpl(cv,TPL[id])}
+}
+
+$('#resetTrain').onclick=()=>{if(confirm('امسح كل التدريب المحفوظ؟')){TPL=null;localStorage.removeItem('trainTpl');$('#doneMsg').style.display='none';renderSaved();updateGrabState();$('#idleHint').textContent='امسح تم — ابدأ التدريب من جديد'}};
+$('#exportTrain').onclick=()=>{if(!TPL){alert('ما فيه تدريب محفوظ');return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({TPL,GRIDBOX})],{type:'application/json'}));a.download='mustafa_fruits.json';a.click()};
+$('#importTrain').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.TPL){TPL=d.TPL;localStorage.setItem('trainTpl',JSON.stringify(TPL))}if(d.GRIDBOX){GRIDBOX=d.GRIDBOX;localStorage.setItem('trainGridBox',JSON.stringify(GRIDBOX))}renderSaved();updateGrabState();if(isDone())$('#doneMsg').style.display='block'}catch(e){alert('ملف غير صالح')}};r.readAsText(f)};
+
+// ===== اللوب: رسم مربع NEW =====
+let lastT=0;
+function loop(){if(!running)return;requestAnimationFrame(loop);const n=performance.now();if(n-lastT<200)return;lastT=n;
+  if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
+  octx.clearRect(0,0,ovl.width,ovl.height);
+  if(GRIDBOX){const B=GRIDBOX,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
+    octx.strokeStyle=editBox?'#4a9eda':'#e0a92e';octx.lineWidth=editBox?2.5:1.5;octx.setLineDash(editBox?[6,4]:[]);octx.strokeRect(x,y,w,h);octx.setLineDash([]);
+    // خطوط 3×3
+    octx.strokeStyle='rgba(224,169,46,.4)';octx.lineWidth=1;
+    for(let i=1;i<3;i++){octx.beginPath();octx.moveTo(x+w*i/3,y);octx.lineTo(x+w*i/3,y+h);octx.stroke();octx.beginPath();octx.moveTo(x,y+h*i/3);octx.lineTo(x+w,y+h*i/3);octx.stroke()}
+    // علّم العدّاد بالنص
+    octx.fillStyle='rgba(74,158,218,.25)';octx.fillRect(x+w/3,y+h/3,w/3,h/3);
+    octx.fillStyle=editBox?'#4a9eda':'#e0a92e';octx.font='700 11px Rubik';octx.fillText('الشبكة 3×3',x+2,y-4);
+    if(editBox){octx.fillStyle='#4a9eda';octx.beginPath();octx.arc(x+w,y+h,8,0,7);octx.fill()}
+  }
+}
+
+// إقلاع
+renderSaved();
+if(isDone())$('#doneMsg').style.display='block';
+updateGrabState();
+</script>
+</body>
+</html>
