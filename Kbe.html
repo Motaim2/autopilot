@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>خبّيها 👁️ — غرف جماعية لحظية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#120E1F; --surface:#1E1735; --surface2:#2A2148;
+  --gold:#F0B84B; --gold-deep:#C98F1E;
+  --glow:#4FD6C4; --danger:#F06A6A;
+  --ink:#F5F0FF; --dim:#9C90C2;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Arabic',sans-serif;overflow-x:hidden}
+h1,h2,h3,.display{font-family:'Baloo Bhaijaan 2',cursive}
+.screen{display:none;min-height:100vh;padding:20px 18px 40px}
+.screen.active{display:block}
+.full{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column}
+.full.active{display:flex}
+
+.hero{text-align:center;padding:26px 0 8px}
+.hero .eye{
+  width:84px;height:84px;margin:0 auto 10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #3A2E63, var(--surface2));
+  display:flex;align-items:center;justify-content:center;font-size:42px;
+  border:2px solid rgba(240,184,75,.45);
+  box-shadow:0 0 34px rgba(79,214,196,.25), inset 0 0 18px rgba(79,214,196,.15);
+  animation:eyeFloat 4s ease-in-out infinite;
+}
+@keyframes eyeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.hero h1{font-size:32px;font-weight:800}
+.hero h1 span{color:var(--gold)}
+.hero p{color:var(--dim);font-size:13.5px;margin-top:4px}
+
+.field{margin-bottom:13px}
+.field label{display:block;font-size:13.5px;color:var(--dim);margin-bottom:6px}
+.field input[type=text]{
+  width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);
+  background:var(--surface);color:var(--ink);font-size:16px;font-family:inherit;
+}
+input.code{letter-spacing:6px;text-align:center;font-family:'Baloo Bhaijaan 2';font-size:22px!important;text-transform:uppercase}
+.field input[type=range]{width:100%;accent-color:var(--gold)}
+
+.btn{
+  display:block;width:100%;padding:15px;border:none;border-radius:14px;
+  font-family:'Baloo Bhaijaan 2';font-size:18px;font-weight:700;cursor:pointer;
+  color:#1A1206;background:linear-gradient(135deg,var(--gold),var(--gold-deep));
+  box-shadow:0 6px 20px rgba(240,184,75,.3);transition:transform .12s;margin-top:8px;
+}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--dim);box-shadow:none;border:1px solid var(--surface2);font-size:15px}
+.btn.glow{background:linear-gradient(135deg,var(--glow),#2BA593);color:#06201C;box-shadow:0 6px 20px rgba(79,214,196,.3)}
+.btn:disabled{opacity:.45;pointer-events:none}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.topbar .back{width:40px;height:40px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:18px;cursor:pointer;flex-shrink:0}
+.topbar h2{font-size:19px;font-weight:700}
+.topbar small{color:var(--dim);display:block;font-size:12px;font-family:'IBM Plex Sans Arabic'}
+
+/* ---------- الغرفة ---------- */
+.room-code-box{
+  text-align:center;background:linear-gradient(145deg,var(--surface),var(--surface2));
+  border:1px dashed rgba(240,184,75,.5);border-radius:18px;padding:16px;margin-bottom:16px;
+}
+.room-code-box small{color:var(--dim);font-size:12px}
+.room-code-box .code{font-family:'Baloo Bhaijaan 2';font-size:38px;letter-spacing:10px;color:var(--gold);margin:2px 0 6px;direction:ltr}
+.share-row{display:flex;gap:8px;justify-content:center}
+.chip-btn{padding:8px 16px;border-radius:99px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:13px;cursor:pointer;font-family:inherit}
+
+.sec-title{font-family:'Baloo Bhaijaan 2';font-size:16px;margin:14px 0 8px;color:var(--dim)}
+.players{display:flex;flex-wrap:wrap;gap:8px}
+.pl{
+  display:flex;align-items:center;gap:7px;background:var(--surface);
+  border:1.5px solid var(--surface2);border-radius:99px;padding:8px 14px;font-size:14px;
+  cursor:pointer;transition:border-color .2s;
+}
+.pl .st{width:8px;height:8px;border-radius:50%;background:#5a5478}
+.pl.on .st{background:var(--glow);box-shadow:0 0 8px var(--glow)}
+.pl.hider{border-color:var(--gold);background:var(--surface2)}
+.pl.hider::before{content:"🫣 "}
+.pl.me{outline:1px dashed rgba(79,214,196,.4)}
+.pl.found-p{border-color:var(--glow)}
+.pl.found-p::after{content:" ✅";font-size:12px}
+
+.host-panel{margin-top:18px}
+.note{color:var(--dim);font-size:12.5px;line-height:1.9;text-align:center;margin-top:10px}
+.wait-anim{text-align:center;padding:60px 20px}
+.wait-anim .big{font-size:66px;display:inline-block;animation:peek 2.2s ease-in-out infinite}
+@keyframes peek{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.wait-anim h2{font-size:24px;margin-top:10px}
+.wait-anim p{color:var(--dim);font-size:14px;margin-top:6px;line-height:1.9}
+.dots::after{content:"";animation:dots 1.6s steps(4) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+
+/* ---------- سجل الأحداث ---------- */
+.feed{margin-top:16px;display:grid;gap:7px}
+.feed .ev{
+  background:var(--surface);border:1px solid var(--surface2);border-radius:12px;
+  padding:9px 13px;font-size:13.5px;color:var(--dim);
+}
+.feed .ev b{color:var(--ink)}
+.feed .ev.win{border-color:rgba(79,214,196,.5);color:var(--glow)}
+
+/* ---------- الكاميرا ---------- */
+.cam-wrap{position:relative;flex:1;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center}
+.cam-wrap video{width:100%;height:100%;object-fit:cover}
+.cam-frame{position:absolute;inset:26px;border:2px dashed rgba(240,184,75,.6);border-radius:20px;pointer-events:none}
+.cam-tip{position:absolute;top:40px;left:0;right:0;text-align:center;pointer-events:none;color:#fff;font-size:13.5px;text-shadow:0 1px 6px #000;padding:0 40px;line-height:1.7}
+.cam-actions{padding:16px 18px calc(20px + env(safe-area-inset-bottom));background:var(--bg)}
+.shutter{width:74px;height:74px;border-radius:50%;margin:0 auto;display:block;cursor:pointer;border:4px solid #fff;background:var(--gold);box-shadow:0 0 24px rgba(240,184,75,.5)}
+.shutter:active{transform:scale(.92)}
+
+/* ---------- التجهيز ---------- */
+.prep{flex:1;overflow-y:auto;padding:0 18px 30px}
+.spot-preview{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--surface2);touch-action:none;user-select:none;-webkit-user-select:none}
+.spot-preview img.spot{width:100%;display:block}
+#dragObj{position:absolute;transform:translate(-50%,-50%);cursor:grab;filter:drop-shadow(0 4px 10px rgba(0,0,0,.6));line-height:1}
+#dragObj img{border-radius:10px;border:2px solid var(--gold);display:block}
+.hintbar{color:var(--dim);font-size:12.5px;text-align:center;margin:8px 0 14px}
+.obj-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+.obj-opt{background:var(--surface);border:1.5px solid var(--surface2);border-radius:12px;padding:10px 4px;text-align:center;cursor:pointer;font-size:26px}
+.obj-opt small{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+.obj-opt.sel{border-color:var(--gold);background:var(--surface2);box-shadow:0 0 12px rgba(240,184,75,.25)}
+.progress-wrap{margin-top:16px;display:none}
+.progress-bar{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.progress-bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--glow),var(--gold));transition:width .3s}
+.progress-wrap p{font-size:12.5px;color:var(--dim);text-align:center;margin-top:6px}
+
+/* ---------- ورشة بناء المجسم ---------- */
+.pv-box{
+  border-radius:16px;overflow:hidden;border:1px solid rgba(240,184,75,.3);
+  background:var(--surface);position:relative;
+}
+#pvMount{height:220px;position:relative}
+#pvMount a-scene{width:100%!important;height:220px!important;position:absolute;inset:0}
+#pvMount canvas{border-radius:0!important}
+.pv-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px}
+.part-row{
+  background:var(--surface);border:1px solid var(--surface2);border-radius:14px;
+  padding:10px 12px;margin-bottom:8px;
+}
+.part-row .pr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.part-row .pr-head b{font-size:13px;color:var(--dim);font-weight:500}
+.pr-del{border:none;background:transparent;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 6px}
+.shape-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.shape-b{
+  flex:1;min-width:42px;padding:7px 0;border-radius:10px;border:1.5px solid var(--surface2);
+  background:var(--surface2);cursor:pointer;text-align:center;font-size:17px;color:var(--ink);
+}
+.shape-b.sel{border-color:var(--gold);box-shadow:0 0 8px rgba(240,184,75,.3)}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.color-b{width:28px;height:28px;border-radius:50%;border:2.5px solid transparent;cursor:pointer}
+.color-b.sel{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.4)}
+.size-row{display:flex;gap:6px;margin-inline-start:auto}
+.size-b{padding:5px 10px;border-radius:9px;border:1.5px solid var(--surface2);background:var(--surface2);color:var(--dim);font-size:12px;cursor:pointer;font-family:inherit}
+.size-b.sel{border-color:var(--glow);color:var(--glow)}
+
+/* ---------- AR ---------- */
+#arContainer{position:fixed;inset:0;z-index:80;background:#000;display:none}
+#arContainer.active{display:block}
+#arScene{position:absolute;inset:0}
+#arScene a-scene{width:100%!important;height:100%!important}
+.ar-top{position:absolute;top:0;left:0;right:0;z-index:10;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent)}
+.ar-top .title{font-family:'Baloo Bhaijaan 2';font-size:15px;color:#fff;text-shadow:0 1px 4px #000}
+.ar-exit{width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;background:rgba(0,0,0,.55);color:#fff;font-size:17px;backdrop-filter:blur(4px)}
+.radar{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:190px;height:190px;pointer-events:none}
+.radar .ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(79,214,196,.7);animation:radarPulse 1.9s ease-out infinite}
+.radar .ring:nth-child(2){animation-delay:.63s}
+.radar .ring:nth-child(3){animation-delay:1.26s}
+@keyframes radarPulse{0%{transform:scale(.35);opacity:1}100%{transform:scale(1.15);opacity:0}}
+.radar .dot{position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;background:var(--glow);transform:translate(-50%,-50%);box-shadow:0 0 14px var(--glow)}
+.ar-status{position:absolute;bottom:calc(110px + env(safe-area-inset-bottom));left:0;right:0;z-index:10;text-align:center;padding:0 30px;pointer-events:none}
+.ar-status .pill{display:inline-block;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);border:1px solid rgba(79,214,196,.4);border-radius:99px;padding:9px 20px;color:#fff;font-size:14px}
+.ar-status .pill.hot{border-color:var(--gold);color:var(--gold);box-shadow:0 0 18px rgba(240,184,75,.4)}
+.ar-bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:14px 18px calc(20px + env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
+#foundBtn{display:none}
+
+/* ---------- الاحتفال ---------- */
+#celebrate{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(10,7,20,.86);backdrop-filter:blur(5px);text-align:center;padding:30px}
+#celebrate.active{display:flex}
+#celebrate .card{max-width:340px;width:100%}
+#celebrate .big{font-size:74px;animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+#celebrate h2{font-size:28px;color:var(--gold);margin:8px 0 4px}
+#celebrate p{color:var(--dim);font-size:14px;margin-bottom:20px;line-height:1.8}
+.confetti{position:fixed;top:-12px;font-size:20px;z-index:210;animation:fall linear forwards;pointer-events:none}
+@keyframes fall{to{transform:translateY(110vh) rotate(680deg)}}
+
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid rgba(240,184,75,.4);color:var(--ink);border-radius:99px;padding:11px 22px;font-size:14px;z-index:300;opacity:0;transition:.35s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.banner{background:rgba(240,106,106,.12);border:1px solid rgba(240,106,106,.45);border-radius:12px;padding:11px 14px;font-size:13px;color:#FFB4B4;margin-top:16px;line-height:1.8;display:none}
+.banner.show{display:block}
+#loaderOv{position:fixed;inset:0;z-index:400;background:rgba(10,7,20,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loaderOv.active{display:flex}
+.spin{width:46px;height:46px;border-radius:50%;border:4px solid var(--surface2);border-top-color:var(--gold);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#loaderOv p{color:var(--dim);font-size:14px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ================= شاشة الدخول ================= -->
+<div class="screen active" id="scrJoin">
+  <div class="hero">
+    <div class="eye">👁️</div>
+    <h1>خبّيها <span>ولقّها</span></h1>
+    <p>لعبة عائلية جماعية بالواقع المعزز — واحد يخبّي والباقي يدوّرون بكاميراتهم</p>
+  </div>
+  <div class="field" style="margin-top:20px">
+    <label>اسمك</label>
+    <input type="text" id="myName" placeholder="مثال: أبو فهد" maxlength="18">
+  </div>
+  <div class="field">
+    <label>كود الغرفة (إذا عندك)</label>
+    <input type="text" id="roomInput" class="code" placeholder="- - - -" maxlength="4" dir="ltr" autocapitalize="characters">
+  </div>
+  <button class="btn glow" onclick="joinRoom()">🚪 ادخل الغرفة</button>
+  <button class="btn" onclick="createRoom()">✨ أنشئ غرفة جديدة</button>
+  <div class="banner" id="fbBanner">
+    ⚠️ اللعب الجماعي يحتاج Firebase — الصق إعدادات مشروعك في متغيّر <b>FIREBASE_CONFIG</b> أعلى الكود ثم ارفع الملف على GitHub Pages.
+  </div>
+</div>
+
+<!-- ================= اللوبي / الغرفة ================= -->
+<div class="full" id="scrLobby">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>غرفة اللعب</h2><small id="lobbySub">بانتظار اللاعبين...</small></div>
+  </div>
+  <div class="prep">
+    <div class="room-code-box">
+      <small>كود الغرفة — شاركه مع العائلة</small>
+      <div class="code" id="codeShow">----</div>
+      <div class="share-row">
+        <button class="chip-btn" onclick="shareRoom()">📤 مشاركة الرابط</button>
+        <button class="chip-btn" onclick="copyRoom()">📋 نسخ الكود</button>
+      </div>
+    </div>
+
+    <div class="sec-title">اللاعبون المتصلون الآن</div>
+    <div class="players" id="playersBox"></div>
+
+    <div class="host-panel" id="hostPanel" style="display:none">
+      <div class="sec-title">👑 أنت مدير الغرفة — اضغط على لاعب لتختاره "المخبّي"</div>
+      <button class="btn ghost" onclick="randomHider()">🎲 قرعة عشوائية</button>
+      <button class="btn" id="startBtn" onclick="startRound()" disabled>🚀 ابدأ الجولة</button>
+    </div>
+    <p class="note" id="guestNote" style="display:none">بانتظار مدير الغرفة يختار المخبّي ويبدأ الجولة<span class="dots"></span></p>
+
+    <div class="sec-title" id="feedTitle" style="display:none">سجل الجولات</div>
+    <div class="feed" id="feedBox"></div>
+  </div>
+</div>
+
+<!-- ================= انتظار المخبّي (للمدوّرين) ================= -->
+<div class="full" id="scrWait">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>الجولة بدأت!</h2><small id="waitSub"></small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🫣</span>
+    <h2 id="waitHider">... يخبّي الآن</h2>
+    <p>غمّضوا عيونكم 😄 أول ما يخلص التخبئة بتنفتح لكم الكاميرا للبحث<span class="dots"></span></p>
+  </div>
+</div>
+
+<!-- ================= دور المخبّي: ابدأ ================= -->
+<div class="full" id="scrYourTurn">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>دورك أنت! 🫣</h2><small>الكل بانتظارك يخبّي</small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🎯</span>
+    <h2>اختير أنت المخبّي</h2>
+    <p>روح لمكان بالبيت، صوّره، وثبّت المجسم فيه.<br>لا تخلي أحد يشوفك! 🤫</p>
+    <button class="btn" onclick="startHideFlow()" style="max-width:280px;margin:18px auto 0">📷 افتح الكاميرا وخبّي</button>
+  </div>
+</div>
+
+<!-- ================= الكاميرا ================= -->
+<div class="full" id="scrCam">
+  <div class="topbar">
+    <button class="back" onclick="closeCam()">✕</button>
+    <div><h2>صوّر مكان التخبئة</h2><small>وجّه الكاميرا على المكان اللي بتخبّي فيه</small></div>
+  </div>
+  <div class="cam-wrap">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <div class="cam-frame"></div>
+    <div class="cam-tip">💡 اختر مكانًا فيه تفاصيل واضحة (لوحة، رف، ركن مميز..) — الجدران السادة تصعّب التعرّف</div>
+  </div>
+  <div class="cam-actions"><button class="shutter" onclick="capturePlace()" aria-label="التقاط"></button></div>
+</div>
+
+<!-- ================= تجهيز المجسم ================= -->
+<div class="full" id="scrPrep">
+  <div class="topbar">
+    <button class="back" onclick="backToCam()">→</button>
+    <div><h2>ركّب المجسم</h2><small>اسحبه لمكانه بالضبط داخل الصورة</small></div>
+  </div>
+  <div class="prep">
+    <div class="spot-preview" id="spotPreview">
+      <img class="spot" id="spotImg" alt="مكان التخبئة">
+      <div id="dragObj">🎁</div>
+    </div>
+    <div class="hintbar">👆 اسحب المجسم للنقطة اللي تبغاه يظهر فيها</div>
+    <div class="field">
+      <label>نوع المجسم</label>
+      <div class="obj-row" id="objRow">
+        <div class="obj-opt sel" data-type="gift">🎁<small>هدية</small></div>
+        <div class="obj-opt" data-type="gem">💎<small>جوهرة</small></div>
+        <div class="obj-opt" data-type="coin">🪙<small>كنز</small></div>
+        <div class="obj-opt" data-type="orb">🔮<small>كرة سحرية</small></div>
+        <div class="obj-opt" data-type="ring">💍<small>خاتم</small></div>
+        <div class="obj-opt" data-type="photo">🖼️<small>صورتك</small></div>
+        <div class="obj-opt" data-type="glb">🧊<small>GLB</small></div>
+        <div class="obj-opt" data-type="custom">🛠️<small>ابنيها!</small></div>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" style="display:none">
+      <input type="text" id="glbUrl" placeholder="رابط ملف .glb" dir="ltr"
+        style="display:none;margin-top:8px;width:100%;padding:13px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface);color:var(--ink);font-size:14px">
+
+      <!-- ورشة بناء المجسم -->
+      <div id="builderPanel" style="display:none;margin-top:12px">
+        <div class="pv-box">
+          <div id="pvMount"><div class="pv-loading">تجهيز المعاينة 3D<span class="dots"></span></div></div>
+        </div>
+        <div class="hintbar" style="margin:6px 0 10px">القطع تتراكب فوق بعض من الأسفل للأعلى — ركّب رجل ثلج ☃️، صاروخ 🚀، برج، آيسكريم 🍦..</div>
+        <div id="partsList"></div>
+        <button class="btn ghost" type="button" onclick="addPart()" style="margin-top:4px">➕ أضف قطعة فوق</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>حجم المجسم: <span id="scaleVal">متوسط</span></label>
+      <input type="range" id="scaleRange" min="1" max="10" value="4">
+    </div>
+    <div class="field">
+      <label>اسم المجسم</label>
+      <input type="text" id="objName" placeholder="مثال: كنز العيلة 🪙" maxlength="30">
+    </div>
+    <button class="btn" id="saveBtn" onclick="saveHidden()">🫣 خبّها وابدأ الصيد</button>
+    <div class="progress-wrap" id="progWrap">
+      <div class="progress-bar"><i id="progBar"></i></div>
+      <p id="progTxt">جاري تحليل المكان وبناء البصمة... ١٠–٣٠ ثانية</p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= جاهز للصيد (للمدوّرين) ================= -->
+<div class="full" id="scrReady">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>الصيد بدأ! 🏁</h2><small id="readySub"></small></div>
+  </div>
+  <div class="wait-anim">
+    <span class="big">🔍</span>
+    <h2 id="readyName">المجسم انخبّى!</h2>
+    <p>لفّوا بالبيت وقرّبوا الكاميرا من الأماكن المشبوهة..<br>أول واحد تظهر له يضغط "لقيته!"</p>
+    <button class="btn glow" onclick="startAR()" style="max-width:280px;margin:18px auto 0">📷 شغّل كاميرا البحث</button>
+  </div>
+</div>
+
+<!-- ================= لوحة المتابعة الحية ================= -->
+<div class="full" id="scrBoard">
+  <div class="topbar">
+    <button class="back" onclick="leaveRoom()">✕</button>
+    <div><h2>المتابعة الحية 📡</h2><small id="boardSub"></small></div>
+  </div>
+  <div class="prep">
+    <div class="sec-title">حالة المدوّرين</div>
+    <div class="players" id="boardPlayers"></div>
+    <div class="sec-title">آخر الأحداث</div>
+    <div class="feed" id="boardFeed"></div>
+    <div id="boardHostArea" style="display:none">
+      <button class="btn" onclick="newRound()" style="margin-top:22px">🔄 جولة جديدة</button>
+    </div>
+    <button class="btn ghost" id="rejoinHunt" onclick="startAR()" style="display:none">📷 ارجع للبحث</button>
+  </div>
+</div>
+
+<!-- ================= AR ================= -->
+<div id="arContainer">
+  <div id="arScene"></div>
+  <div class="ar-top">
+    <span class="title" id="arTitle">🔍 تدوّر على...</span>
+    <button class="ar-exit" onclick="exitAR(true)">✕</button>
+  </div>
+  <div class="radar" id="radar">
+    <div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="dot"></div>
+  </div>
+  <div class="ar-status"><span class="pill" id="arPill">لفّ بالكاميرا وقرّبها من الأماكن المشبوهة 👀</span></div>
+  <div class="ar-bottom"><button class="btn glow" id="foundBtn" onclick="markFound()">🎉 لقيته!</button></div>
+</div>
+
+<!-- ================= الاحتفال ================= -->
+<div id="celebrate">
+  <div class="card">
+    <div class="big">🏆</div>
+    <h2 id="celTitle">لقيتها!</h2>
+    <p id="celTxt"></p>
+    <button class="btn" onclick="closeCelebrate()">تمام 🙌</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="loaderOv"><div class="spin"></div><p id="loaderTxt">جاري التحميل...</p></div>
+
+<script>
+/* ============================================================
+   ١) إعدادات Firebase — الصق إعدادات مشروعك هنا (Realtime DB)
+============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD2m4fXnK2dy00ggfQF75qerllD5FXnHOk",
+  authDomain: "mineral-oarlock-297910.firebaseapp.com",
+  databaseURL: "https://mineral-oarlock-297910-default-rtdb.firebaseio.com",
+  projectId: "mineral-oarlock-297910",
+  storageBucket: "mineral-oarlock-297910.firebasestorage.app",
+  messagingSenderId: "980237692993",
+  appId: "1:980237692993:web:57e4f23ce30b542566d6c0"
+};
+const ROOT = "arHideSeek/rooms";
+
+/* ============================================================
+   ٢) الحالة العامة
+============================================================ */
+let db=null, ready=false;
+let roomCode=null, myId=null, myNameV="";
+let roomState={}, players={}, isHost=false, iAmHider=false;
+let stateRef=null, playersRef=null, eventsRef=null;
+let selectedHider=null;
+let camStream=null, capturedCanvas=null, dragPos={x:.5,y:.5}, selType="gift", photoObjData=null;
+let roundObject=null, arSceneEl=null, iFound=false;
+let currentPhaseScreen="";
+
+const OBJ_EMOJI={gift:"🎁",gem:"💎",coin:"🪙",orb:"🔮",ring:"💍",photo:"🖼️",glb:"🧊",custom:"☃️"};
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2800);}
+function loader(on,msg){$("loaderOv").classList.toggle("active",!!on);if(msg)$("loaderTxt").textContent=msg;}
+function esc(s){return String(s||"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));}
+
+const _loaded={};
+function loadScript(u){if(_loaded[u])return _loaded[u];_loaded[u]=new Promise((res,rej)=>{const s=document.createElement("script");s.src=u;s.onload=res;s.onerror=()=>rej(new Error("فشل تحميل: "+u));document.head.appendChild(s);});return _loaded[u];}
+const URL_FB_APP="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
+const URL_FB_DB ="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js";
+const URL_COMPILER="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js";
+const URL_AFRAME="https://aframe.io/releases/1.4.2/aframe.min.js";
+const URL_MINDAR_AF="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js";
+const URL_COMPILER_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js";
+const URL_MINDAR_AF_OLD="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js";
+
+/* mind-ar 1.2.x مبنية كـ ES Module — نحمّلها بـ import() وإذا فشل نرجع للنسخة القديمة */
+let _CompilerClass=null, _mindVer="new", _afLoaded=false;
+async function getCompiler(){
+  if(_CompilerClass) return _CompilerClass;
+  try{
+    const m = await import(URL_COMPILER);
+    _CompilerClass = m.Compiler || (m.default&&m.default.Compiler) || (window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler);
+  }catch(e){ console.warn("import compiler failed", e); }
+  if(!_CompilerClass){
+    _mindVer="old";
+    await loadScript(URL_COMPILER_OLD);
+    _CompilerClass = window.MINDAR&&window.MINDAR.IMAGE&&window.MINDAR.IMAGE.Compiler;
+  }
+  if(!_CompilerClass) throw new Error("تعذّر تحميل محرك بناء البصمة — تأكد من الإنترنت وحدّث الصفحة");
+  return _CompilerClass;
+}
+async function loadARRuntime(){
+  await loadScript(URL_AFRAME);
+  if(_afLoaded) return;
+  if(_mindVer==="old"){ await loadScript(URL_MINDAR_AF_OLD); _afLoaded=true; return; }
+  try{ await import(URL_MINDAR_AF); _afLoaded=true; }
+  catch(e){
+    console.warn("import mindar-aframe failed", e);
+    _mindVer="old";
+    await loadScript(URL_MINDAR_AF_OLD);
+    _afLoaded=true;
+  }
+}
+
+/* ============================================================
+   ٣) تهيئة Firebase
+============================================================ */
+async function initDB(){
+  myId = localStorage.getItem("arhs_pid") || ("p_"+Math.random().toString(36).slice(2,10));
+  localStorage.setItem("arhs_pid", myId);
+  const savedName = localStorage.getItem("arhs_name"); if(savedName) $("myName").value=savedName;
+
+  if(FIREBASE_CONFIG.apiKey==="PASTE_HERE"){ $("fbBanner").classList.add("show"); return; }
+  try{
+    await loadScript(URL_FB_APP); await loadScript(URL_FB_DB);
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database(); ready = true;
+    // دخول تلقائي إذا الرابط فيه ?room=
+    const p = new URLSearchParams(location.search).get("room");
+    if(p) $("roomInput").value = p.toUpperCase();
+  }catch(e){ $("fbBanner").classList.add("show"); toast("تعذّر الاتصال بـ Firebase"); }
+}
+
+/* ============================================================
+   ٤) إنشاء / دخول / مغادرة الغرفة
+============================================================ */
+const CODE_CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function genCode(){let c="";for(let i=0;i<4;i++)c+=CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)];return c;}
+function needName(){
+  myNameV = $("myName").value.trim();
+  if(!myNameV){ toast("اكتب اسمك أول 🙏"); return false; }
+  localStorage.setItem("arhs_name", myNameV); return true;
+}
+async function createRoom(){
+  if(!ready) return toast("⚠️ لازم تضبط Firebase أول (شوف التنبيه تحت)");
+  if(!needName()) return;
+  loader(true,"إنشاء الغرفة...");
+  const code = genCode();
+  await db.ref(`${ROOT}/${code}/state`).set({phase:"lobby",hostId:myId,hiderId:null,round:1,ts:Date.now()});
+  loader(false);
+  enterRoom(code);
+}
+async function joinRoom(){
+  if(!ready) return toast("⚠️ لازم تضبط Firebase أول (شوف التنبيه تحت)");
+  if(!needName()) return;
+  const code = $("roomInput").value.trim().toUpperCase();
+  if(code.length!==4) return toast("اكتب كود الغرفة (٤ خانات)");
+  loader(true,"البحث عن الغرفة...");
+  const snap = await db.ref(`${ROOT}/${code}/state`).once("value");
+  loader(false);
+  if(!snap.exists()) return toast("❌ ما فيه غرفة بهذا الكود");
+  enterRoom(code);
+}
+function enterRoom(code){
+  roomCode = code;
+  $("codeShow").textContent = code;
+  history.replaceState(null,"", location.pathname+"?room="+code);
+
+  // تسجيل حضوري + مؤشر الاتصال اللحظي
+  const meRef = db.ref(`${ROOT}/${code}/players/${myId}`);
+  meRef.update({name:myNameV, online:true, joinedAt:firebase.database.ServerValue.TIMESTAMP});
+  meRef.onDisconnect().update({online:false});
+
+  // المستمعون اللحظيون
+  stateRef   = db.ref(`${ROOT}/${code}/state`);
+  playersRef = db.ref(`${ROOT}/${code}/players`);
+  eventsRef  = db.ref(`${ROOT}/${code}/events`).limitToLast(25);
+  stateRef.on("value", s=>{ roomState=s.val()||{}; onStateChange(); });
+  playersRef.on("value", s=>{ players=s.val()||{}; renderPlayers(); });
+  eventsRef.on("value", s=>{ renderFeed(s.val()||{}); });
+
+  pushEvent("join", `${myNameV} دخل الغرفة 👋`);
+  showPhaseScreen("scrLobby");
+}
+function leaveRoom(){
+  if(confirm("تبغى تطلع من الغرفة؟")){
+    if(stateRef){stateRef.off();playersRef.off();eventsRef.off();}
+    if(db && roomCode) db.ref(`${ROOT}/${roomCode}/players/${myId}`).update({online:false});
+    exitARQuiet();
+    roomCode=null;
+    document.querySelectorAll(".full").forEach(f=>f.classList.remove("active"));
+    $("arContainer").classList.remove("active");
+    currentPhaseScreen="";
+  }
+}
+function pushEvent(type,text){
+  if(db&&roomCode) db.ref(`${ROOT}/${roomCode}/events`).push({type,text,ts:Date.now()});
+}
+function shareRoom(){
+  const url = location.origin+location.pathname+"?room="+roomCode;
+  const txt = `تعالوا نلعب "خبّيها ولقّها" 👁️🎁\nكود الغرفة: ${roomCode}\n${url}`;
+  if(navigator.share) navigator.share({title:"خبّيها ولقّها",text:txt,url}).catch(()=>{});
+  else { navigator.clipboard.writeText(txt); toast("انسخ الرابط ✅"); }
+}
+function copyRoom(){ navigator.clipboard.writeText(roomCode); toast("انسخ الكود ✅ "+roomCode); }
+
+/* ============================================================
+   ٥) آلة الحالات: تتغير الشاشة لحظيًا حسب مرحلة الغرفة
+============================================================ */
+function showPhaseScreen(id){
+  if(currentPhaseScreen===id) return;
+  ["scrLobby","scrWait","scrYourTurn","scrReady","scrBoard"].forEach(s=>$(s).classList.remove("active"));
+  // لا نقاطع المخبّي وهو داخل الكاميرا/التجهيز
+  if(["scrCam","scrPrep"].some(s=>$(s).classList.contains("active"))) return;
+  if($("arContainer").classList.contains("active")) return;
+  $(id).classList.add("active");
+  currentPhaseScreen=id;
+}
+function onStateChange(){
+  if(!roomCode) return;
+  isHost   = roomState.hostId===myId;
+  iAmHider = roomState.hiderId===myId;
+  selectedHider = roomState.hiderId||null;
+
+  $("hostPanel").style.display = isHost?"block":"none";
+  $("guestNote").style.display = isHost?"none":"block";
+  $("startBtn").disabled = !selectedHider;
+  $("lobbySub").textContent = isHost ? "أنت مدير الغرفة 👑" : "بانتظار مدير الغرفة";
+
+  const hiderName = players[selectedHider]?.name || "أحدهم";
+
+  if(roomState.phase==="lobby"){
+    iFound=false; roundObject=null;
+    exitARQuiet();
+    showPhaseScreen("scrLobby");
+  }
+  else if(roomState.phase==="hiding"){
+    if(iAmHider){ showPhaseScreen("scrYourTurn"); }
+    else { $("waitHider").textContent = hiderName+" يخبّي الآن"; $("waitSub").textContent="الجولة "+(roomState.round||1); showPhaseScreen("scrWait"); }
+  }
+  else if(roomState.phase==="seeking"){
+    loadRoundObject().then(()=>{
+      const myFound = players[myId]?.found;
+      if(iAmHider || myFound){ renderBoard(); showPhaseScreen("scrBoard"); }
+      else{
+        $("readyName").textContent = `"${roundObject?.name||"المجسم"}" انخبّى!`;
+        $("readySub").textContent  = "خبّاها: "+hiderName;
+        showPhaseScreen("scrReady");
+      }
+    });
+  }
+  renderPlayers(); renderBoard();
+}
+async function loadRoundObject(){
+  if(roundObject && roundObject._round===roomState.round) return;
+  const s = await db.ref(`${ROOT}/${roomCode}/object`).once("value");
+  roundObject = s.val(); if(roundObject) roundObject._round = roomState.round;
+}
+
+/* ============================================================
+   ٦) عرض اللاعبين والسجل
+============================================================ */
+function renderPlayers(){
+  const box=$("playersBox"); if(!box) return; box.innerHTML="";
+  Object.entries(players).forEach(([pid,p])=>{
+    const d=document.createElement("div");
+    d.className="pl"+(p.online?" on":"")+(pid===selectedHider?" hider":"")+(pid===myId?" me":"")+(p.found?" found-p":"");
+    d.innerHTML=`<span class="st"></span>${esc(p.name)}${roomState.hostId===pid?" 👑":""}`;
+    if(isHost && roomState.phase==="lobby"){
+      d.onclick=()=>{ stateRef.update({hiderId:pid}); toast("🫣 المخبّي: "+p.name); };
+    }
+    box.appendChild(d);
+  });
+}
+function renderFeed(evs){
+  const arr=Object.values(evs).sort((a,b)=>b.ts-a.ts);
+  const html = arr.map(e=>`<div class="ev ${e.type==='found'?'win':''}">${esc(e.text)}</div>`).join("");
+  $("feedBox").innerHTML = html; $("boardFeed").innerHTML = html;
+  $("feedTitle").style.display = arr.length?"block":"none";
+  // إشعار لحظي أثناء البحث
+  const last=arr[0];
+  if(last && last.type==="found" && $("arContainer").classList.contains("active") && Date.now()-last.ts<6000){
+    toast(last.text);
+  }
+}
+function renderBoard(){
+  const box=$("boardPlayers"); if(!box) return; box.innerHTML="";
+  Object.entries(players).forEach(([pid,p])=>{
+    if(pid===selectedHider) return;
+    const d=document.createElement("div");
+    d.className="pl"+(p.online?" on":"")+(p.found?" found-p":"");
+    d.innerHTML=`<span class="st"></span>${esc(p.name)} ${p.found?"":"🔍"}`;
+    box.appendChild(d);
+  });
+  $("boardSub").textContent = iAmHider? "أنت المخبّي — تابع مين يلقاها 😏" : "لقيتها! تابع الباقين";
+  $("boardHostArea").style.display = isHost?"block":"none";
+  $("rejoinHunt").style.display = (!iAmHider && !players[myId]?.found && roomState.phase==="seeking")?"block":"none";
+}
+
+/* ============================================================
+   ٧) تحكم المدير: القرعة وبدء الجولة وجولة جديدة
+============================================================ */
+function randomHider(){
+  const ids=Object.keys(players).filter(pid=>players[pid].online);
+  if(!ids.length) return;
+  const pick=ids[Math.floor(Math.random()*ids.length)];
+  stateRef.update({hiderId:pick});
+  pushEvent("info","🎲 القرعة اختارت: "+players[pick].name);
+}
+function startRound(){
+  if(!selectedHider) return toast("اختر المخبّي أول");
+  stateRef.update({phase:"hiding",ts:Date.now()});
+  pushEvent("info",`🚀 بدأت الجولة ${roomState.round||1} — ${players[selectedHider]?.name} يخبّي`);
+}
+async function newRound(){
+  loader(true,"تجهيز جولة جديدة...");
+  const ups={};
+  Object.keys(players).forEach(pid=>ups[`players/${pid}/found`]=null);
+  ups["object"]=null;
+  ups["state/phase"]="lobby";
+  ups["state/hiderId"]=null;
+  ups["state/round"]=(roomState.round||1)+1;
+  await db.ref(`${ROOT}/${roomCode}`).update(ups);
+  loader(false);
+  pushEvent("info","🔄 جولة جديدة! مدير الغرفة يختار المخبّي");
+}
+
+/* ============================================================
+   ٨) تدفق التخبئة (نفس محرك النسخة الأولى)
+============================================================ */
+async function startHideFlow(){
+  $("scrCam").classList.add("active");
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:1280},height:{ideal:960}},audio:false});
+    $("camVideo").srcObject = camStream;
+  }catch(e){ toast("⚠️ ما قدرت أفتح الكاميرا — تأكد من الإذن ومن https"); closeCam(); }
+}
+function stopCam(){ if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} $("camVideo").srcObject=null; }
+function closeCam(){ stopCam(); $("scrCam").classList.remove("active"); }
+function capturePlace(){
+  const v=$("camVideo"); if(!v.videoWidth) return toast("انتظر ثانية.. الكاميرا لسّه");
+  const MAX=720, r=Math.min(1,MAX/v.videoWidth);
+  const c=document.createElement("canvas");
+  c.width=Math.round(v.videoWidth*r); c.height=Math.round(v.videoHeight*r);
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  capturedCanvas=c; stopCam();
+  $("scrCam").classList.remove("active");
+  openPrep();
+}
+function backToCam(){ $("scrPrep").classList.remove("active"); startHideFlow(); }
+function openPrep(){
+  $("scrPrep").classList.add("active");
+  $("spotImg").src = capturedCanvas.toDataURL("image/jpeg",.85);
+  dragPos={x:.5,y:.5}; positionDragObj(); updateDragVisual();
+}
+function positionDragObj(){ const d=$("dragObj"); d.style.left=(dragPos.x*100)+"%"; d.style.top=(dragPos.y*100)+"%"; }
+function updateDragVisual(){
+  const d=$("dragObj"), s=parseInt($("scaleRange").value,10), px=26+s*7;
+  if(selType==="photo"&&photoObjData){ d.innerHTML=`<img src="${photoObjData}" style="width:${px*1.4}px">`; }
+  else{ d.textContent=OBJ_EMOJI[selType]; d.style.fontSize=px+"px"; }
+  const names=["","صغير جدًا","صغير","صغير+","متوسط","متوسط+","كبير","كبير+","ضخم","ضخم+","عملاق"];
+  $("scaleVal").textContent=names[s]||"متوسط";
+}
+(function(){
+  const wrap=$("spotPreview"); let dragging=false;
+  const move=e=>{
+    if(!dragging)return;
+    const r=wrap.getBoundingClientRect(), p=e.touches?e.touches[0]:e;
+    dragPos.x=Math.min(.97,Math.max(.03,(p.clientX-r.left)/r.width));
+    dragPos.y=Math.min(.97,Math.max(.03,(p.clientY-r.top)/r.height));
+    positionDragObj(); e.preventDefault();
+  };
+  wrap.addEventListener("pointerdown",e=>{dragging=true;move(e);});
+  window.addEventListener("pointermove",move,{passive:false});
+  window.addEventListener("pointerup",()=>dragging=false);
+})();
+$("objRow").addEventListener("click",e=>{
+  const opt=e.target.closest(".obj-opt"); if(!opt)return;
+  document.querySelectorAll(".obj-opt").forEach(o=>o.classList.remove("sel"));
+  opt.classList.add("sel"); selType=opt.dataset.type;
+  $("glbUrl").style.display = selType==="glb"?"block":"none";
+  $("builderPanel").style.display = selType==="custom"?"block":"none";
+  if(selType==="custom") openBuilder();
+  if(selType==="photo"&&!photoObjData)$("photoFile").click();
+  updateDragVisual();
+});
+$("photoFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const img=new Image();
+  img.onload=()=>{
+    const M=512,r=Math.min(1,M/Math.max(img.width,img.height));
+    const c=document.createElement("canvas"); c.width=img.width*r;c.height=img.height*r;
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    photoObjData=c.toDataURL("image/jpeg",.82); updateDragVisual();
+  };
+  img.src=URL.createObjectURL(f);
+});
+$("scaleRange").addEventListener("input",updateDragVisual);
+
+/* ============================================================
+   ٨-ب) ورشة بناء المجسمات 🛠️
+============================================================ */
+const SHAPES=[
+  {id:"box",    em:"⬛", name:"مكعب"},
+  {id:"sphere", em:"⚪", name:"كرة"},
+  {id:"cylinder",em:"🛢️", name:"اسطوانة"},
+  {id:"cone",   em:"🔺", name:"مخروط"},
+  {id:"pyramid",em:"🔶", name:"هرم"},
+  {id:"torus",  em:"⭕", name:"حلقة"},
+];
+const PART_COLORS=["#E24C4C","#F0B84B","#4FD6C4","#8A5CF6","#4C8DE2","#57C15B","#F27BB4","#F5F0FF","#5A4632"];
+let builderParts=[{shape:"sphere",color:"#F5F0FF",size:1.2},{shape:"sphere",color:"#F5F0FF",size:0.85}]; // رجل ثلج كبداية
+let pvReady=false;
+
+function renderBuilder(){
+  const list=$("partsList"); list.innerHTML="";
+  builderParts.forEach((p,i)=>{
+    const row=document.createElement("div"); row.className="part-row";
+    row.innerHTML=`
+      <div class="pr-head">
+        <b>القطعة ${i+1}${i===0?" (الأسفل)":i===builderParts.length-1?" (الأعلى)":""}</b>
+        ${builderParts.length>1?`<button class="pr-del" onclick="delPart(${i})">✕</button>`:""}
+      </div>
+      <div class="shape-row">
+        ${SHAPES.map(s=>`<button type="button" class="shape-b ${p.shape===s.id?"sel":""}" onclick="setPart(${i},'shape','${s.id}')" title="${s.name}">${s.em}</button>`).join("")}
+      </div>
+      <div class="color-row">
+        ${PART_COLORS.map(c=>`<button type="button" class="color-b ${p.color===c?"sel":""}" style="background:${c}" onclick="setPart(${i},'color','${c}')"></button>`).join("")}
+        <span class="size-row">
+          ${[["0.7","صغير"],["1","وسط"],["1.4","كبير"]].map(([v,n])=>`<button type="button" class="size-b ${Math.abs(p.size-parseFloat(v))<.2?"sel":""}" onclick="setPart(${i},'size',${v})">${n}</button>`).join("")}
+        </span>
+      </div>`;
+    list.appendChild(row);
+  });
+  refreshPreview();
+}
+function setPart(i,k,v){ builderParts[i][k]=v; renderBuilder(); }
+function addPart(){
+  if(builderParts.length>=5) return toast("الحد الأقصى ٥ قطع");
+  builderParts.push({shape:"box",color:PART_COLORS[builderParts.length%PART_COLORS.length],size:1});
+  renderBuilder();
+}
+function delPart(i){ builderParts.splice(i,1); renderBuilder(); }
+
+/* ارتفاع كل شكل وتوليد كوده */
+function partH(shape,u){ return shape==="torus"?u*0.35:u; }
+function partHTML(p,u,cy){
+  const mat=`material="metalness:.35;roughness:.4"`;
+  switch(p.shape){
+    case "sphere":  return `<a-sphere position="0 ${cy.toFixed(3)} 0" radius="${(u/2).toFixed(3)}" color="${p.color}" ${mat}></a-sphere>`;
+    case "cylinder":return `<a-cylinder position="0 ${cy.toFixed(3)} 0" radius="${(u*.42).toFixed(3)}" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cylinder>`;
+    case "cone":    return `<a-cone position="0 ${cy.toFixed(3)} 0" radius-bottom="${(u*.5).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" color="${p.color}" ${mat}></a-cone>`;
+    case "pyramid": return `<a-cone position="0 ${cy.toFixed(3)} 0" segments-radial="4" radius-bottom="${(u*.6).toFixed(3)}" radius-top="0.001" height="${u.toFixed(3)}" rotation="0 45 0" color="${p.color}" ${mat}></a-cone>`;
+    case "torus":   return `<a-torus position="0 ${cy.toFixed(3)} 0" rotation="90 0 0" radius="${(u*.42).toFixed(3)}" radius-tubular="${(u*.13).toFixed(3)}" color="${p.color}" ${mat}></a-torus>`;
+    default:        return `<a-box position="0 ${cy.toFixed(3)} 0" width="${u.toFixed(3)}" height="${u.toFixed(3)}" depth="${u.toFixed(3)}" color="${p.color}" ${mat}></a-box>`;
+  }
+}
+function customInner(parts,unit){
+  let total=0; parts.forEach(p=>total+=partH(p.shape,unit*(p.size||1)));
+  let y=-total/2, html="";
+  parts.forEach(p=>{
+    const u=unit*(p.size||1), h=partH(p.shape,u);
+    html+=partHTML(p,u,y+h/2); y+=h;
+  });
+  return html;
+}
+
+/* معاينة 3D دوّارة داخل الورشة */
+async function openBuilder(){
+  $("builderPanel").style.display="block";
+  renderBuilder();
+  try{
+    await loadScript(URL_AFRAME);
+    if(!pvReady){
+      $("pvMount").innerHTML=`
+        <a-scene embedded vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false"
+          renderer="colorManagement:true" background="color:#1E1735">
+          <a-entity light="type:ambient;intensity:1"></a-entity>
+          <a-entity light="type:directional;intensity:.8" position="1 2 2"></a-entity>
+          <a-entity id="pvModel" position="0 0.1 -2.1"
+            animation="property: rotation; to: 0 360 0; dur:6000; loop:true; easing:linear"></a-entity>
+          <a-entity camera="fov:45" position="0 0.5 0.6" rotation="-8 0 0" look-controls="enabled:false" wasd-controls="enabled:false"></a-entity>
+        </a-scene>`;
+      pvReady=true;
+    }
+    refreshPreview();
+  }catch(e){ $("pvMount").innerHTML='<div class="pv-loading">تعذّرت المعاينة — بس البناء شغّال، كمّل عادي 👍</div>'; }
+}
+function refreshPreview(){
+  const m=document.getElementById("pvModel");
+  if(m) m.innerHTML=customInner(builderParts,0.5);
+}
+
+function abToB64(buf){const b=new Uint8Array(buf);let s="";const CH=0x8000;for(let i=0;i<b.length;i+=CH)s+=String.fromCharCode.apply(null,b.subarray(i,i+CH));return btoa(s);}
+function b64ToBlob(b64){const bin=atob(b64),by=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)by[i]=bin.charCodeAt(i);return new Blob([by]);}
+
+async function saveHidden(){
+  const name=$("objName").value.trim();
+  if(!name) return toast("اكتب اسم المجسم 🙏");
+  if(selType==="photo"&&!photoObjData) return toast("اختر الصورة أول");
+  if(selType==="glb"&&!$("glbUrl").value.trim()) return toast("حط رابط الـ GLB");
+  $("saveBtn").disabled=true; $("progWrap").style.display="block"; $("progBar").style.width="3%";
+  try{
+    $("progTxt").textContent="تحميل محرك التعرّف...";
+    const CompilerC = await getCompiler();
+    $("progTxt").textContent="تحليل المكان وبناء البصمة... (١٠–٣٠ ثانية)";
+    const img=new Image(); img.src=capturedCanvas.toDataURL("image/jpeg",.9); await img.decode();
+    const compiler=new CompilerC();
+    await compiler.compileImageTargets([img],p=>{$("progBar").style.width=(5+p*.85)+"%";});
+    const mindB64=abToB64(await compiler.exportData());
+
+    $("progTxt").textContent="رفع المجسم وفتح الصيد للجميع...";
+    $("progBar").style.width="95%";
+    await db.ref(`${ROOT}/${roomCode}/object`).set({
+      name, hider:myNameV, type:selType,
+      scale:parseInt($("scaleRange").value,10),
+      pos:{x:dragPos.x,y:dragPos.y},
+      aspect:capturedCanvas.height/capturedCanvas.width,
+      photo:selType==="photo"?photoObjData:null,
+      glb:selType==="glb"?$("glbUrl").value.trim():null,
+      parts:selType==="custom"?builderParts:null,
+      mindVer:_mindVer,
+      mind:mindB64, ts:Date.now()
+    });
+    await stateRef.update({phase:"seeking",ts:Date.now()});
+    pushEvent("info",`🏁 ${myNameV} خبّى "${name}" — الصيد بدأ!`);
+    $("progBar").style.width="100%";
+    setTimeout(()=>{
+      $("scrPrep").classList.remove("active");
+      $("progWrap").style.display="none"; $("saveBtn").disabled=false; $("objName").value="";
+      currentPhaseScreen=""; onStateChange();
+    },600);
+  }catch(e){ console.error(e); toast("❌ خطأ: "+(e.message||e)); $("saveBtn").disabled=false; }
+}
+
+/* ============================================================
+   ٩) البحث AR
+============================================================ */
+function buildModelHTML(o){
+  const s=0.08+(o.scale||4)*0.045;
+  const px=(o.pos?.x??.5)-.5, py=(.5-(o.pos?.y??.5))*(o.aspect||.75);
+  const base=`position="${px.toFixed(3)} ${py.toFixed(3)} 0.05"`;
+  const float=`animation__f="property: object3D.position.y; from:${(py-0.015).toFixed(3)}; to:${(py+0.015).toFixed(3)}; dur:1600; dir:alternate; loop:true; easing:easeInOutSine"`;
+  const spin=`animation__s="property: rotation; to: 0 360 0; dur:5200; loop:true; easing:linear"`;
+  switch(o.type){
+    case "gem": return `<a-octahedron ${base} ${spin} ${float} radius="${s}" color="#4FD6C4" material="metalness:.8;roughness:.15;emissive:#134E46;emissiveIntensity:.5"></a-octahedron>`;
+    case "coin": return `<a-cylinder ${base} ${float} radius="${s}" height="${s*.22}" rotation="90 0 0" color="#F0B84B" material="metalness:.9;roughness:.25" animation__s="property: rotation; from:90 0 0; to:90 360 0; dur:4200; loop:true; easing:linear"></a-cylinder>`;
+    case "orb": return `<a-sphere ${base} ${float} radius="${s}" color="#8A5CF6" material="emissive:#5B2EE0;emissiveIntensity:.8;metalness:.2;roughness:.3"></a-sphere>`;
+    case "ring": return `<a-torus ${base} ${spin} ${float} radius="${s}" radius-tubular="${s*.16}" color="#F0B84B" material="metalness:.95;roughness:.15"></a-torus>`;
+    case "photo": return `<a-plane ${base} ${float} width="${s*2.4}" height="${s*2.4}" material="src:#photoTex;transparent:true" animation__s="property: rotation; from:0 -12 0; to:0 12 0; dur:2600; dir:alternate; loop:true; easing:easeInOutSine"></a-plane>`;
+    case "glb": return `<a-gltf-model ${base} ${spin} ${float} src="${o.glb}" scale="${s} ${s} ${s}"></a-gltf-model>`;
+    case "custom": { const pr=Array.isArray(o.parts)?o.parts:Object.values(o.parts||{}); return `<a-entity ${base} ${spin} ${float}>${customInner(pr, s*0.95)}</a-entity>`; }
+    default: return `<a-entity ${base} ${spin} ${float}>
+      <a-box width="${s*1.5}" height="${s*1.1}" depth="${s*1.5}" color="#E24C4C" material="roughness:.5"></a-box>
+      <a-box width="${s*1.56}" height="${s*1.12}" depth="${s*.3}" color="#F0B84B" material="metalness:.6"></a-box>
+      <a-box width="${s*.3}" height="${s*1.12}" depth="${s*1.56}" color="#F0B84B" material="metalness:.6"></a-box>
+      <a-box position="0 ${s*.62} 0" width="${s*1.62}" height="${s*.18}" depth="${s*1.62}" color="#C93A3A"></a-box>
+    </a-entity>`;
+  }
+}
+async function startAR(){
+  const o=roundObject; if(!o||!o.mind) return toast("بيانات الجولة ناقصة");
+  loader(true,"تجهيز الكاميرا ومحرك البحث...");
+  try{
+    if(!_afLoaded && o.mindVer) _mindVer = o.mindVer; // نفس إصدار البصمة المحفوظة
+    await loadARRuntime();
+    const mindURL=URL.createObjectURL(b64ToBlob(o.mind));
+    const assets=o.type==="photo"&&o.photo?`<a-assets><img id="photoTex" src="${o.photo}"></a-assets>`:"";
+    $("arScene").innerHTML=`
+      <a-scene mindar-image="imageTargetSrc: ${mindURL}; filterMinCF:0.0005; filterBeta:0.01; uiScanning:no; uiLoading:no; uiError:no"
+        color-space="sRGB" renderer="colorManagement:true;physicallyCorrectLights:true"
+        vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false" embedded>
+        ${assets}
+        <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+        <a-entity light="type:ambient;intensity:1.1"></a-entity>
+        <a-entity light="type:directional;intensity:.7" position="0.5 1 1"></a-entity>
+        <a-entity id="anchor" mindar-image-target="targetIndex:0">${buildModelHTML(o)}</a-entity>
+      </a-scene>`;
+    $("arTitle").textContent=`🔍 تدوّر على: ${o.name}`;
+    $("arPill").textContent="لفّ بالكاميرا وقرّبها من الأماكن المشبوهة 👀";
+    $("arPill").classList.remove("hot");
+    $("foundBtn").style.display="none";
+    $("radar").style.display="block";
+    ["scrReady","scrBoard"].forEach(s=>$(s).classList.remove("active"));
+    $("arContainer").classList.add("active");
+    arSceneEl=$("arScene").querySelector("a-scene");
+    arSceneEl.addEventListener("loaded",()=>loader(false));
+    setTimeout(()=>loader(false),6000);
+    const anchor=$("arScene").querySelector("#anchor");
+    anchor.addEventListener("targetFound",()=>{
+      $("radar").style.display="none";
+      $("arPill").textContent="✨ ظهر المجسم! ثبّت الكاميرا عليه";
+      $("arPill").classList.add("hot");
+      $("foundBtn").style.display="block";
+      if(navigator.vibrate)navigator.vibrate([80,40,80]);
+    });
+    anchor.addEventListener("targetLost",()=>{
+      $("radar").style.display="block";
+      $("arPill").textContent="اختفى.. ارجع لنفس الزاوية والمسافة 👣";
+      $("arPill").classList.remove("hot");
+    });
+  }catch(e){ console.error(e); loader(false); toast("❌ تعذّر التشغيل: "+(e.message||e)); exitAR(false); }
+}
+function exitARQuiet(){
+  try{ const sys=arSceneEl&&arSceneEl.systems&&arSceneEl.systems["mindar-image-system"]; if(sys&&sys.stop)sys.stop(); }catch(e){}
+  document.querySelectorAll("#arScene video").forEach(v=>{try{v.srcObject&&v.srcObject.getTracks().forEach(t=>t.stop());}catch(e){}});
+  $("arScene").innerHTML=""; arSceneEl=null;
+  $("arContainer").classList.remove("active");
+}
+function exitAR(showScreen){
+  exitARQuiet();
+  if(showScreen){ currentPhaseScreen=""; onStateChange(); }
+}
+
+/* ============================================================
+   ١٠) العثور — لحظي للجميع
+============================================================ */
+async function markFound(){
+  if(iFound) return;
+  iFound=true;
+  const rank = Object.values(players).filter(p=>p.found).length + 1;
+  await db.ref(`${ROOT}/${roomCode}/players/${myId}`).update({found:Date.now()});
+  pushEvent("found", rank===1 ? `🥇 ${myNameV} أول واحد لقاها!` : `🎉 ${myNameV} لقاها! (رقم ${rank})`);
+  $("celTitle").textContent = rank===1 ? "🥇 أنت الأول!" : "لقيتها! 🏆";
+  $("celTxt").textContent = `"${roundObject?.name}" اللي خبّاها ${roundObject?.hider} — انكشفت لك 👏`;
+  $("celebrate").classList.add("active");
+  confettiBurst();
+}
+function closeCelebrate(){
+  $("celebrate").classList.remove("active");
+  exitARQuiet();
+  currentPhaseScreen=""; onStateChange();
+}
+function confettiBurst(){
+  const em=["🎉","✨","⭐","🎊","💛","🏆"];
+  for(let i=0;i<34;i++){
+    const s=document.createElement("span"); s.className="confetti";
+    s.textContent=em[Math.floor(Math.random()*em.length)];
+    s.style.left=Math.random()*100+"vw";
+    s.style.animationDuration=(2+Math.random()*2.4)+"s";
+    s.style.fontSize=(15+Math.random()*16)+"px";
+    document.body.appendChild(s); setTimeout(()=>s.remove(),5000);
+  }
+}
+
+initDB();
+</script>
+</body>
+</html>
