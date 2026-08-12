@@ -59,7 +59,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .fbtns .em{font-size:21px}.fbtns .nm{font-size:9px;color:var(--dim)}
 /* اللعب */
 .playGrid{display:block}
-@media(min-width:940px){.playGrid{display:grid;grid-template-columns:1fr 400px;gap:12px;align-items:start}}
+@media(min-width:940px){.playGrid{display:grid;grid-template-columns:1.45fr 380px;gap:12px;align-items:start}}
+#camWrap.playBig{max-height:82vh}
 .strip .lbl{font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px;display:flex;gap:6px}
 .strip .lbl .cnt{margin-inline-start:auto;font-size:10px;color:var(--dim);font-weight:400}
 .sScroll{display:flex;gap:5px;overflow-x:auto;padding:8px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;direction:rtl;min-height:60px}
@@ -71,9 +72,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .dcol .s24{font-size:12px;line-height:1;opacity:.9}
 .dcol .sr{font-size:21px;line-height:1}
 .dcol .rnd{font-size:8px;color:var(--dim);line-height:1}
-.absGrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.absGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .absGrid .ab{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 2px;text-align:center}
-.absGrid .ab .e{font-size:15px;line-height:1.1}
+.absGrid .ab .e{font-size:17px;line-height:1.1}
+.absGrid .ab .nm{font-size:9px;font-weight:700;line-height:1.2}
 .absGrid .ab .g{font-size:15px;font-weight:900;color:var(--gold);line-height:1.2}
 .absGrid .ab .mx{font-size:8px;color:var(--dim)}
 .chip{flex:none;width:31px;height:31px;border-radius:7px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;position:relative}
@@ -142,12 +144,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
         </div>
       </div>
       <div>
-        <div class="card">
-          <div class="field">
-            <div class="f"><label>رصيدي</label><input id="bankroll" inputmode="numeric"></div>
-            <div class="f"><label>وحدة الرهان</label><input id="unit" inputmode="numeric"></div>
-          </div>
-        </div>
         <div class="card"><div class="strip">
           <div class="lbl">📊 السجل <span class="cnt"><span id="resN">0</span> جولة · ✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
           <div class="sScroll" id="logStrip"></div>
@@ -156,10 +152,16 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
           <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px">⏳ غياب الفواكه <span style="font-size:9px;color:var(--dim);font-weight:400">كم جولة ما جت · أقصى غياب</span></div>
           <div class="absGrid" id="absGrid"></div>
         </div>
-        <div class="card"><div class="row">
-          <button class="btn small ghost" id="expAll">⬇ تصدير الكل</button>
-          <button class="btn small ghost" id="clrLog">مسح السجل</button>
-        </div></div>
+        <div class="card">
+          <div class="field" style="margin-bottom:8px">
+            <div class="f"><input id="bankroll" inputmode="numeric" title="الرصيد"></div>
+            <div class="f"><label>وحدة الرهان</label><input id="unit" inputmode="numeric"></div>
+          </div>
+          <div class="row">
+            <button class="btn small ghost" id="expAll">⬇ تصدير الكل</button>
+            <button class="btn small ghost" id="clrLog">مسح السجل</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -183,6 +185,7 @@ const F=Object.fromEntries(FRUITS.map(f=>[f.id,f]));
 const GRID=[['apple','melon','cherry'],['banana',null,'grape'],['orange','mango','pine']];
 const opp=id=>{for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c]===id)return GRID[2-r][2-c];return null};
 const CELLS=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c])CELLS.push({r,c,id:GRID[r][c]});
+const C={apple:'#ff2b2b',melon:'#3ddc84',cherry:'#d90429',banana:'#ffe14d',grape:'#a55eea',orange:'#ff6a00',mango:'#ffb020',pine:'#c5e063'};
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const fmt=n=>Math.round(n).toLocaleString('en');
 const VN=24;
@@ -240,7 +243,7 @@ function classifyResult(vec){const keys=Object.keys(CFG.resultsDone);if(!keys.le
   let best=null,bd=1e18,sec=1e18;
   for(const id of keys){const d=distV(vec,CFG.resultsDone[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
   const conf=Math.max(0,Math.min(1,(sec-bd)/(sec+1)));
-  return conf>0.05?best:null}
+  return conf>0.12?best:null}
 
 /* ===== قراءة العدّاد ===== */
 const SEG=[[.5,.10],[.20,.28],[.80,.28],[.5,.5],[.20,.72],[.80,.72],[.5,.90]];
@@ -373,7 +376,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,resultWait=false,lastResVec=null;
+let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,lastResVec=null,resultPending=false,pendMiss=0;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -382,7 +385,12 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
   const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
 
   if(t!==null){
-    if(curT!==null&&t>curT+5){armed=true;t24F=null;t24O=null;if(playing)$('#betPanel').style.display='none'}
+    if(curT!==null&&t>curT+5){ // جولة جديدة بدأت
+      armed=true;
+      if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null;curBet=null;if(playing)$('#betPanel').style.display='none'}}
+      else{resultPending=true;pendMiss=0} // احتياط لو فاتنا الصفر
+    }
+    if(t===0&&!resultPending){resultPending=true;pendMiss=0}
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -404,10 +412,10 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         grabbed={type:'result',vec};
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
-    if(playing){ // اللعب: تعرّف تلقائي
+    if(playing&&resultPending){ // نتيجة وحدة لكل جولة، بعد وصول العدّاد للصفر
       const id=classifyResult(vec);
-      if(id){resBuf.push(id);if(resBuf.length>3)resBuf.shift();
-        if(resBuf.length===3&&resBuf.every(x=>x===id)&&id!==lastRes)logResult(id)}
+      if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
+        if(resBuf.length===4&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;pendMiss=0;resBuf.length=0}}
       else resBuf.length=0;
     }
   }
@@ -448,7 +456,7 @@ function drawBoxes(){
 /* ===== اللعب ===== */
 function enterPlay(){
   playing=true;renderSteps();
-  $('#playCamHolder').appendChild($('#camWrap'));
+  $('#playCamHolder').appendChild($('#camWrap'));$('#camWrap').classList.add('playBig');setTimeout(fitOvl,120);
   $('#camCard').classList.add('hide');$('#importCard').classList.add('hide');
   $('#playPhase').classList.remove('hide');
   $('#bankroll').value=DB.bankroll;$('#unit').value=DB.unit;
@@ -457,7 +465,7 @@ function enterPlay(){
 $('#backBtn').onclick=()=>{
   playing=false;CFG.stage=1;saveCFG();
   const cc=$('#camCard');cc.classList.remove('hide');
-  cc.insertBefore($('#camWrap'),$('#stageBtns'));
+  cc.insertBefore($('#camWrap'),$('#stageBtns'));$('#camWrap').classList.remove('playBig');setTimeout(fitOvl,120);
   $('#importCard').classList.remove('hide');
   $('#playPhase').classList.add('hide');refreshStage();
 };
@@ -474,7 +482,7 @@ function renderLog(){
     const t=r.t24;
     const cls=t?(t.hit?'hit':'miss'):'';
     const mid=t?`<div class="mk" style="color:${t.hit?'var(--green)':'var(--red)'}">${t.hit?'✔':'✘'}</div><div class="s24">${F[t.f24].em}${t.opp?F[t.opp].em:''}</div>`:'';
-    return `<div class="dcol ${cls}"><div class="rep">${rep}</div>${mid}<div class="sr">${F[r.id].em}</div><div class="rnd">${roundNo}</div></div>`;
+    return `<div class="dcol ${cls}"><div class="rep">${rep}</div>${mid}<div class="sr" style="background:${C[r.id]}26;border:1.5px solid ${C[r.id]};border-radius:7px;padding:1px 4px">${F[r.id].em}</div><div class="rnd">${roundNo}</div></div>`;
   }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // غياب الفواكه: الحالي + الأقصى
   $('#absGrid').innerHTML=FRUITS.map(f=>{
@@ -483,7 +491,7 @@ function renderLog(){
     let mx=curG,prev=null;
     for(let i=N-1;i>=0;i--){if(DB.results[i].id===f.id){const pos=N-1-i;
       if(prev!==null){const g=pos-prev-1;if(g>mx)mx=g}prev=pos}}
-    return `<div class="ab"><div class="e">${f.em}</div><div class="g">${N?curG:'—'}</div><div class="mx">أقصى ${N?mx:'—'}</div></div>`;
+    return `<div class="ab" style="border-color:${C[f.id]};background:${C[f.id]}14"><div class="e">${f.em}</div><div class="nm" style="color:${C[f.id]}">${f.name}</div><div class="g">${N?curG:'—'}</div><div class="mx">أقصى ${N?mx:'—'}</div></div>`;
   }).join('');
 }
 $('#bankroll')?.addEventListener('input',e=>{DB.bankroll=+e.target.value||0;saveDB()});
