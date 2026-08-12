@@ -82,12 +82,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .chip.newest{border-color:var(--green)}
 .field{display:flex;gap:8px}.field .f{flex:1}.field label{font-size:10px;color:var(--dim);display:block;margin-bottom:3px}
 .field input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-weight:700;font-size:14px;padding:8px;text-align:center;outline:none}
-#betPanel{display:none;background:linear-gradient(180deg,#1a1420,#100e0a);border:1.5px solid var(--gold);border-radius:12px;padding:11px;margin-top:8px}
-.bC{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
-.bc1{background:var(--panel2);border:1.5px solid var(--gold);border-radius:10px;padding:8px 4px;text-align:center;position:relative}
-.bc1 .em{font-size:24px}.bc1 .nm{font-size:9px;color:var(--dim)}.bc1 .am{font-size:13px;font-weight:900;color:var(--gold);direction:ltr}
-.bc1 .t{position:absolute;top:2px;right:4px;font-size:8px;color:var(--blue)}
-#betRes{text-align:center;font-size:13px;font-weight:700;margin-top:8px;padding:8px;border-radius:9px;display:none}
 .hide{display:none!important}
 .mini{font-size:10px;color:var(--dim)}
 </style>
@@ -136,16 +130,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
             <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal2">--</div></div>
           </div>
           <div class="stageMsg" id="playMsg">بانتظار الـ24...</div>
-          <div id="betPanel">
-            <div style="font-size:12px;color:var(--gold);font-weight:700">🎯 الـ24</div>
-            <div class="bC" id="betCards"></div>
-            <div id="betRes"></div>
-          </div>
         </div>
       </div>
       <div>
         <div class="card"><div class="strip">
-          <div class="lbl">📊 السجل <span class="cnt"><span id="resN">0</span> جولة · ✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
+          <div class="lbl" style="color:var(--blue)">🎯 سجل الـ24 <span class="cnt">✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
+          <div class="sScroll" id="dualStrip"></div>
+        </div></div>
+        <div class="card"><div class="strip">
+          <div class="lbl">📊 كل الضربات <span class="cnt"><span id="resN">0</span> جولة</span></div>
           <div class="sScroll" id="logStrip"></div>
         </div></div>
         <div class="card">
@@ -153,10 +146,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
           <div class="absGrid" id="absGrid"></div>
         </div>
         <div class="card">
-          <div class="field" style="margin-bottom:8px">
-            <div class="f"><input id="bankroll" inputmode="numeric" title="الرصيد"></div>
-            <div class="f"><label>وحدة الرهان</label><input id="unit" inputmode="numeric"></div>
-          </div>
           <div class="row">
             <button class="btn small ghost" id="expAll">⬇ تصدير الكل</button>
             <button class="btn small ghost" id="clrLog">مسح السجل</button>
@@ -185,7 +174,17 @@ const F=Object.fromEntries(FRUITS.map(f=>[f.id,f]));
 const GRID=[['apple','melon','cherry'],['banana',null,'grape'],['orange','mango','pine']];
 const opp=id=>{for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c]===id)return GRID[2-r][2-c];return null};
 const CELLS=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(GRID[r][c])CELLS.push({r,c,id:GRID[r][c]});
-const C={apple:'#ff2b2b',melon:'#3ddc84',cherry:'#d90429',banana:'#ffe14d',grape:'#a55eea',orange:'#ff6a00',mango:'#ffb020',pine:'#c5e063'};
+const SHP={
+ apple:'<circle cx="12" cy="14" r="8" fill="#ff2b2b" stroke="#6d0000" stroke-width="1.2"/><rect x="11.2" y="3.5" width="1.8" height="5" rx=".9" fill="#7a4a21"/><ellipse cx="15.8" cy="5.2" rx="3" ry="1.6" fill="#3ddc84" transform="rotate(28 15.8 5.2)"/>',
+ melon:'<path d="M3 9 A9 9 0 0 1 21 9 L12 21 Z" fill="#ff4d5e" stroke="#0a7a3d"/><path d="M3 9 A9 9 0 0 1 21 9" fill="none" stroke="#0a9a4d" stroke-width="3.4"/><circle cx="10" cy="11" r="1" fill="#222"/><circle cx="14.5" cy="10.5" r="1" fill="#222"/><circle cx="12" cy="14.5" r="1" fill="#222"/>',
+ cherry:'<path d="M12 3 C10.5 7 8.5 9 7.3 12 M12 3 C13.5 7 15.5 9 16.7 12" stroke="#5a7a1a" stroke-width="1.6" fill="none"/><ellipse cx="13" cy="3.6" rx="3" ry="1.5" fill="#3ddc84"/><circle cx="7" cy="15.5" r="4.6" fill="#e11d3c" stroke="#5a0010"/><circle cx="17" cy="15.5" r="4.6" fill="#b1002e" stroke="#5a0010"/>',
+ banana:'<path d="M4.5 5.5 C4.5 14 10 19.5 19.5 19.5 C21 20.5 18.5 22 15.5 22 C7.5 22 2 16 2 8.5 C2 5.8 3.8 4.3 4.5 5.5 Z" fill="#ffe14d" stroke="#8a6d00"/><circle cx="4.4" cy="5.6" r="1.2" fill="#7a4a21"/><circle cx="20" cy="20" r="1" fill="#7a4a21"/>',
+ grape:'<rect x="11.2" y="2.5" width="1.6" height="4" rx=".8" fill="#7a4a21"/><circle cx="12" cy="8" r="3.1" fill="#a55eea" stroke="#4a1a7a"/><circle cx="8.4" cy="12" r="3.1" fill="#9a4ae0" stroke="#4a1a7a"/><circle cx="15.6" cy="12" r="3.1" fill="#9a4ae0" stroke="#4a1a7a"/><circle cx="10" cy="16.5" r="3.1" fill="#8a3ad0" stroke="#4a1a7a"/><circle cx="14" cy="16.5" r="3.1" fill="#8a3ad0" stroke="#4a1a7a"/><circle cx="12" cy="20.4" r="2.9" fill="#7a2ac0" stroke="#4a1a7a"/>',
+ orange:'<circle cx="12" cy="13" r="9" fill="#ff8a1e" stroke="#b34700" stroke-width="1.2"/><circle cx="12" cy="13" r="6.3" fill="#ffd9a6"/><line x1="12" y1="6.7" x2="12" y2="19.3" stroke="#ff7a00" stroke-width="1.4"/><line x1="12" y1="6.7" x2="12" y2="19.3" stroke="#ff7a00" stroke-width="1.4" transform="rotate(60 12 13)"/><line x1="12" y1="6.7" x2="12" y2="19.3" stroke="#ff7a00" stroke-width="1.4" transform="rotate(120 12 13)"/><circle cx="12" cy="13" r="1.4" fill="#ff7a00"/>',
+ mango:'<ellipse cx="12" cy="13.5" rx="8.6" ry="6.4" transform="rotate(-24 12 13.5)" fill="#ffb020" stroke="#9a5c00" stroke-width="1.2"/><ellipse cx="8.6" cy="10.4" rx="3.6" ry="2.4" transform="rotate(-24 8.6 10.4)" fill="#ff5e3a" opacity=".85"/><path d="M17.5 6.5 C19.5 5 21.5 5.5 21.5 5.5 C21 7.5 19 8.3 17.5 7.8 Z" fill="#0a9a4d"/>',
+ pine:'<path d="M12 1.5 L9 6.5 M12 1.5 L12 6.5 M12 1.5 L15 6.5" stroke="#0a9a4d" stroke-width="1.8" fill="none"/><ellipse cx="12" cy="15" rx="6.6" ry="8" fill="#f5c451" stroke="#8a6a1a" stroke-width="1.2"/><line x1="6.5" y1="10.5" x2="17.5" y2="19.5" stroke="#c8922e"/><line x1="6" y1="14.5" x2="15" y2="21.8" stroke="#c8922e"/><line x1="8.5" y1="8.6" x2="18" y2="15.8" stroke="#c8922e"/><line x1="17.5" y1="10.5" x2="6.5" y2="19.5" stroke="#c8922e"/><line x1="18" y1="14.5" x2="9" y2="21.8" stroke="#c8922e"/><line x1="15.5" y1="8.6" x2="6" y2="15.8" stroke="#c8922e"/>'
+};
+const FSVG=(id,s)=>'<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" style="display:block;flex:none">'+(SHP[id]||'')+'</svg>';
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const fmt=n=>Math.round(n).toLocaleString('en');
 const VN=24;
@@ -243,7 +242,7 @@ function classifyResult(vec){const keys=Object.keys(CFG.resultsDone);if(!keys.le
   let best=null,bd=1e18,sec=1e18;
   for(const id of keys){const d=distV(vec,CFG.resultsDone[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
   const conf=Math.max(0,Math.min(1,(sec-bd)/(sec+1)));
-  return conf>0.12?best:null}
+  return conf>0.06?best:null}
 
 /* ===== قراءة العدّاد ===== */
 const SEG=[[.5,.10],[.20,.28],[.80,.28],[.5,.5],[.20,.72],[.80,.72],[.5,.90]];
@@ -387,7 +386,7 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
   if(t!==null){
     if(curT!==null&&t>curT+5){ // جولة جديدة بدأت
       armed=true;
-      if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null;curBet=null;if(playing)$('#betPanel').style.display='none'}}
+      if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null}}
       else{resultPending=true;pendMiss=0} // احتياط لو فاتنا الصفر
     }
     if(t===0&&!resultPending){resultPending=true;pendMiss=0}
@@ -399,11 +398,11 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         grabbed={type:'hand',cellVecs:cv};
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
       }else if(playing){const hc=findHandCell();
-        if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);buildBet();
-          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].em+' '+F[t24F].name+' + '+(t24O?F[t24O].em:'')}}
+        if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);
+          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].name+' + المقابل '+(t24O?F[t24O].name:'')}}
     }
     if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }
+  }else if(curT!==null&&curT<=3&&!resultPending){resultPending=true;pendMiss=0} // العدّاد وصل الصفر والفاكهة غطته
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -414,30 +413,19 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
     }
     if(playing&&resultPending){ // نتيجة وحدة لكل جولة، بعد وصول العدّاد للصفر
       const id=classifyResult(vec);
-      if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
-        if(resBuf.length===4&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;pendMiss=0;resBuf.length=0}}
+      if(id){resBuf.push(id);if(resBuf.length>3)resBuf.shift();
+        if(resBuf.length===3&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;pendMiss=0;resBuf.length=0}}
       else resBuf.length=0;
     }
   }
 }
-function buildBet(){const unit=+$('#unit').value||1000;
-  const bets=[{id:t24F,amt:unit,t:'اليد'}];if(t24O)bets.push({id:t24O,amt:unit,t:'المقابل'});
-  curBet={bets,total:bets.reduce((s,b)=>s+b.amt,0)};
-  $('#betPanel').style.display='block';
-  $('#betCards').innerHTML=bets.map(b=>`<div class="bc1"><div class="t">${b.t}</div><div class="em">${F[b.id].em}</div><div class="nm">${F[b.id].name} ×${F[b.id].m}</div><div class="am">${fmt(b.amt)}</div></div>`).join('');
-  $('#betRes').style.display='none'}
 function logResult(id){lastRes=id;
   const entry={id,at:Date.now()};
   if(t24F)entry.t24={f24:t24F,opp:t24O,hit:(id===t24F||id===t24O)};
   DB.results.unshift(entry);if(DB.results.length>1000000)DB.results.pop();
   if(t24F){const hit=(id===t24F||id===t24O);
     DB.t24.unshift({f24:t24F,opp:t24O,res:id,hit,at:Date.now()});
-    if(curBet){const bet=curBet.bets.find(b=>b.id===id);const ret=bet?bet.amt*F[id].m:0,net=ret-curBet.total;
-      DB.bankroll=(+$('#bankroll').value||0)+net;$('#bankroll').value=Math.round(DB.bankroll);
-      const pr=$('#betRes');pr.style.display='block';
-      if(hit){pr.style.background='rgba(62,201,106,.14)';pr.style.color='var(--green)';pr.innerHTML='✅ صح! '+F[id].em+' — صافي '+(net>=0?'+':'')+fmt(net)}
-      else{pr.style.background='rgba(232,69,95,.12)';pr.style.color='var(--red)';pr.innerHTML='❌ خطأ. '+F[id].em+' — خسارة '+fmt(curBet.total)}}
-    t24F=null;t24O=null;curBet=null;
+    t24F=null;t24O=null;
     $('#playMsg').className='stageMsg';$('#playMsg').textContent='بانتظار الـ24...'}
   renderLog();saveDB()}
 
@@ -459,7 +447,6 @@ function enterPlay(){
   $('#playCamHolder').appendChild($('#camWrap'));$('#camWrap').classList.add('playBig');setTimeout(fitOvl,120);
   $('#camCard').classList.add('hide');$('#importCard').classList.add('hide');
   $('#playPhase').classList.remove('hide');
-  $('#bankroll').value=DB.bankroll;$('#unit').value=DB.unit;
   renderLog();
 }
 $('#backBtn').onclick=()=>{
@@ -475,14 +462,14 @@ function renderLog(){
   $('#hitN').textContent=DB.t24.filter(e=>e.hit).length;
   $('#accN').textContent=DB.t24.length?Math.round(DB.t24.filter(e=>e.hit).length/DB.t24.length*100):0;
   // السجل الموحّد: تكرار فوق، (✔/✘ + زوج الـ24 لو فيه)، النتيجة كبيرة، رقم الجولة تحت
+  // سجل الـ24 لحاله: ✔/✘ + الزوج (الفاكهة+المقابل) + وش جاء
+  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>`<div class="dcol ${e.hit?'hit':'miss'}"><div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div><div class="s24" style="display:flex;gap:1px">${FSVG(e.f24,13)}${e.opp?FSVG(e.opp,13):''}</div><div class="sr">${FSVG(e.res,24)}</div></div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
+  // كل الضربات: تكرار الزوج فوق، الفاكهة بلونها، رقم الجولة تحت
   $('#logStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>{
     const roundNo=N-i;
     const pr=[r.id,opp(r.id)];let rep='—';
     for(let j=i+1;j<DB.results.length;j++){if(pr.includes(DB.results[j].id)){rep=j-i;break}}
-    const t=r.t24;
-    const cls=t?(t.hit?'hit':'miss'):'';
-    const mid=t?`<div class="mk" style="color:${t.hit?'var(--green)':'var(--red)'}">${t.hit?'✔':'✘'}</div><div class="s24">${F[t.f24].em}${t.opp?F[t.opp].em:''}</div>`:'';
-    return `<div class="dcol ${cls}"><div class="rep">${rep}</div>${mid}<div class="sr" style="background:${C[r.id]}26;border:1.5px solid ${C[r.id]};border-radius:7px;padding:1px 4px">${F[r.id].em}</div><div class="rnd">${roundNo}</div></div>`;
+    return `<div class="dcol"><div class="rep">${rep}</div><div class="sr">${FSVG(r.id,24)}</div><div class="rnd">${roundNo}</div></div>`;
   }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // غياب الفواكه: الحالي + الأقصى
   $('#absGrid').innerHTML=FRUITS.map(f=>{
@@ -491,11 +478,9 @@ function renderLog(){
     let mx=curG,prev=null;
     for(let i=N-1;i>=0;i--){if(DB.results[i].id===f.id){const pos=N-1-i;
       if(prev!==null){const g=pos-prev-1;if(g>mx)mx=g}prev=pos}}
-    return `<div class="ab" style="border-color:${C[f.id]};background:${C[f.id]}14"><div class="e">${f.em}</div><div class="nm" style="color:${C[f.id]}">${f.name}</div><div class="g">${N?curG:'—'}</div><div class="mx">أقصى ${N?mx:'—'}</div></div>`;
+    return `<div class="ab"><div style="display:flex;justify-content:center">${FSVG(f.id,20)}</div><div class="nm">${f.name}</div><div class="g">${N?curG:'—'}</div><div class="mx">أقصى ${N?mx:'—'}</div></div>`;
   }).join('');
 }
-$('#bankroll')?.addEventListener('input',e=>{DB.bankroll=+e.target.value||0;saveDB()});
-$('#unit')?.addEventListener('input',e=>{DB.unit=+e.target.value||0;saveDB()});
 
 /* ===== تصدير/استيراد ===== */
 function doExport(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({CFG,DB})],{type:'application/json'}));a.download='mustafa_setup.json';a.click()}
