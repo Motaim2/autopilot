@@ -375,7 +375,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,t24F=null,t24O=null,resBuf=[],lastResVec=null,seq='wait24',zeroAt=0,old24Id=null,jumpSeen=false,need24Vec=false;
+let curT=null,armed=true,t24F=null,t24O=null,resBuf=[],lastResVec=null,seq='wait24',old24Id=null,jumpSeen=false,jumpAt=0,roundEnd=false,base=null,inTrans=false,need24Vec=false;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -385,9 +385,8 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
 
   if(t!==null){
     if(curT!==null&&t>curT+5){armed=true;
-      if(seq==='waitzero'){seq='readresult';zeroAt=performance.now();jumpSeen=true}
-      else if(seq==='readresult')jumpSeen=true;} // بدأت جولة = الشريط اكتمل أكيد
-    if(t===0&&seq==='waitzero'){seq='readresult';zeroAt=performance.now()}
+      if(seq==='waitres'&&!jumpSeen){jumpSeen=true;jumpAt=performance.now()}} // بدأت جولة = الشريط اكتمل أكيد
+    if(t===0&&seq==='waitres')roundEnd=true;
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -400,11 +399,11 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         const hc=findHandCell();
         if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);
           DB.t24.unshift({f24:t24F,opp:t24O,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
-          need24Vec=true;jumpSeen=false;seq='waitzero'; // ② ننتظر النتيجة القادمة
+          need24Vec=true;jumpSeen=false;roundEnd=false;inTrans=false;base=null;seq='waitres'; // ② نراقب أي تغيّر بالشريط لحظياً
           $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].name+' + المقابل '+(t24O?F[t24O].name:'')+' — ننتظر النتيجة'}}
     }
     if(playing&&seq==='wait24'&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }else if(curT!==null&&curT<=3&&seq==='waitzero'){seq='readresult';zeroAt=performance.now()} // وصل الصفر
+  }else if(curT!==null&&curT<=3&&seq==='waitres')roundEnd=true; // وصل الصفر
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -414,15 +413,24 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
     if(playing){
-      if(need24Vec){old24Id=classifyResult(vec);need24Vec=false} // هوية النتيجة القديمة لحظة الـ24
-      if(seq==='readresult'&&performance.now()-zeroAt>700){ // ③ نقرأ نتيجة هالجولة فقط
-        const id=classifyResult(vec);
-        if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
-          if(resBuf.length===4&&resBuf.every(x=>x===id)){
-            const isNew=old24Id?(id!==old24Id):true; // فاكهة مختلفة عن اللي كانت قبل الـ24
-            if(isNew||jumpSeen||performance.now()-zeroAt>6000)finalizeResult(id);
-          }}
-        else resBuf.length=0;
+      if(need24Vec){base=vec;old24Id=classifyResult(vec);need24Vec=false} // بصمة وهوية اللي معروض قبل النتيجة
+      if(seq==='waitres'){ // ③ راصد لحظي: أي تغيّر بالشريط ننقض عليه
+        const d=base?distV(vec,base):1e9;
+        if(!inTrans&&d>600){inTrans=true;resBuf.length=0} // بدأ التغيّر
+        if(inTrans){
+          const id=classifyResult(vec);
+          if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
+            if(resBuf.length===4&&resBuf.every(x=>x===id)){
+              if(id!==old24Id||roundEnd||jumpSeen)finalizeResult(id); // جديدة فعلاً (أو تكرار مؤكد بنهاية الجولة)
+              else{inTrans=false;resBuf.length=0} // وميض كاذب رجع لنفس القديمة قبل نهاية الجولة
+            }}
+          else resBuf.length=0;
+        }else if(jumpSeen&&performance.now()-jumpAt>1500){ // احتياط: جولة جديدة بدأت وما مسكنا الحركة
+          const id=classifyResult(vec);
+          if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
+            if(resBuf.length===4&&resBuf.every(x=>x===id))finalizeResult(id)}
+          else resBuf.length=0;
+        }
       }
     }
   }
@@ -430,7 +438,7 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
 function finalizeResult(id){
   if(DB.t24[0]&&DB.t24[0].pending){DB.t24[0].res=id;DB.t24[0].hit=(id===t24F||id===t24O);delete DB.t24[0].pending}
   DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop(); // ④ تحت في كل الضربات
-  t24F=null;t24O=null;old24Id=null;jumpSeen=false;resBuf.length=0;
+  t24F=null;t24O=null;old24Id=null;jumpSeen=false;roundEnd=false;inTrans=false;base=null;resBuf.length=0;
   seq='wait24'; // ⑤ قفل — ننتظر 24 جديدة
   $('#playMsg').className='stageMsg';$('#playMsg').textContent='✔ سُجّلت — بانتظار الـ24 التالية';
   renderLog();saveDB()}
