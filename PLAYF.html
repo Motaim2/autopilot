@@ -71,7 +71,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
 .dcol .mk{font-size:12px;font-weight:900;line-height:1}
 .dcol .s24{font-size:12px;line-height:1;opacity:.9}
 .dcol .sr{font-size:21px;line-height:1}
-.dcol .rnd{font-size:8px;color:var(--dim);line-height:1}
+.dcol .rnd{font-size:9px;color:var(--ink);line-height:1.1;font-weight:600}
 .absGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
 .absGrid .ab{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 2px;text-align:center}
 .absGrid .ab .e{font-size:17px;line-height:1.1}
@@ -375,7 +375,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,lastResVec=null,resultPending=false,pendMiss=0,roundLogged=false,pendStart=0;
+let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,lastResVec=null,resultPending=false,pendMiss=0,roundLogged=false,pendStart=0,armVec=null,needArm=false;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -386,11 +386,12 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
   if(t!==null){
     if(curT!==null&&t>curT+5){ // جولة جديدة بدأت
       armed=true;
-      if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null}}
-      else if(!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0} // احتياط لو فاتنا الصفر
+      if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null;
+        if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB();renderLog()}}}
+      else if(!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0;needArm=true} // احتياط لو فاتنا الصفر
       roundLogged=false;
     }
-    if(t===0&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0}
+    if(t===0&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0;needArm=true}
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -400,10 +401,11 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
       }else if(playing){const hc=findHandCell();
         if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);
+          DB.t24.unshift({f24:t24F,opp:t24O,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
           $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].name+' + المقابل '+(t24O?F[t24O].name:'')}}
     }
     if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }else if(curT!==null&&curT<=3&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0} // العدّاد وصل الصفر والفاكهة غطته
+  }else if(curT!==null&&curT<=3&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0;needArm=true} // العدّاد وصل الصفر والفاكهة غطته
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -412,10 +414,13 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         grabbed={type:'result',vec};
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
-    if(playing&&resultPending&&performance.now()-pendStart>1200){ // ننتظر انتهاء دوران الصفر ثم نقرأ نتيجة وحدة
+    if(needArm){armVec=vec;needArm=false} // بصمة الشريط القديم لحظة الصفر
+    if(playing&&resultPending&&performance.now()-pendStart>700){
+      const changed=!armVec||distV(vec,armVec)>600; // الشريط تغيّر فعلاً = النتيجة الجديدة نزلت
       const id=classifyResult(vec);
-      if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift();
-        if(resBuf.length===5&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;roundLogged=true;pendMiss=0;resBuf.length=0}}
+      if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
+        if(resBuf.length===4&&resBuf.every(x=>x===id)&&(changed||performance.now()-pendStart>4500)){
+          logResult(id);resultPending=false;roundLogged=true;pendMiss=0;resBuf.length=0;armVec=null}}
       else resBuf.length=0;
     }
   }
@@ -425,7 +430,8 @@ function logResult(id){lastRes=id;
   if(t24F)entry.t24={f24:t24F,opp:t24O,hit:(id===t24F||id===t24O)};
   DB.results.unshift(entry);if(DB.results.length>1000000)DB.results.pop();
   if(t24F){const hit=(id===t24F||id===t24O);
-    DB.t24.unshift({f24:t24F,opp:t24O,res:id,hit,at:Date.now()});
+    if(DB.t24[0]&&DB.t24[0].pending){DB.t24[0].res=id;DB.t24[0].hit=hit;delete DB.t24[0].pending}
+    else DB.t24.unshift({f24:t24F,opp:t24O,res:id,hit,at:Date.now()});
     t24F=null;t24O=null;
     $('#playMsg').className='stageMsg';$('#playMsg').textContent='بانتظار الـ24...'}
   renderLog();saveDB()}
@@ -460,17 +466,23 @@ $('#backBtn').onclick=()=>{
 function renderLog(){
   const N=DB.results.length;
   $('#resN').textContent=N;
-  $('#hitN').textContent=DB.t24.filter(e=>e.hit).length;
-  $('#accN').textContent=DB.t24.length?Math.round(DB.t24.filter(e=>e.hit).length/DB.t24.length*100):0;
+  const done=DB.t24.filter(e=>e.hit!==null);
+  $('#hitN').textContent=done.filter(e=>e.hit).length;
+  $('#accN').textContent=done.length?Math.round(done.filter(e=>e.hit).length/done.length*100):0;
   // السجل الموحّد: تكرار فوق، (✔/✘ + زوج الـ24 لو فيه)، النتيجة كبيرة، رقم الجولة تحت
   // سجل الـ24 لحاله: ✔/✘ + الزوج (الفاكهة+المقابل) + وش جاء
-  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>`<div class="dcol ${e.hit?'hit':'miss'}"><div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div><div class="s24" style="display:flex;gap:1px">${FSVG(e.f24,13)}${e.opp?FSVG(e.opp,13):''}</div><div class="sr">${FSVG(e.res,24)}</div></div>`).join('')||'<span class="mini" style="padding:6px">—</span>';
+  $('#dualStrip').innerHTML=DB.t24.slice(0,300).map(e=>{
+    const pend=e.pending||e.res===null;
+    const mk=pend?'<div class="mk" style="color:var(--gold)">⏳</div>':`<div class="mk" style="color:${e.hit?'var(--green)':'var(--red)'}">${e.hit?'✔':'✘'}</div>`;
+    const res=e.res?FSVG(e.res,24):'<div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-weight:900">؟</div>';
+    return `<div class="dcol ${pend?'':(e.hit?'hit':'miss')}"${pend?' style="border-color:var(--gold)"':''}>${mk}<div class="s24" style="display:flex;gap:1px">${FSVG(e.f24,13)}${e.opp?FSVG(e.opp,13):''}</div><div class="sr">${res}</div></div>`;
+  }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // كل الضربات: تكرار الزوج فوق، الفاكهة بلونها، رقم الجولة تحت
   $('#logStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>{
     const roundNo=N-i;
     const pr=[r.id,opp(r.id)];let rep='—';
     for(let j=i+1;j<DB.results.length;j++){if(pr.includes(DB.results[j].id)){rep=j-i;break}}
-    return `<div class="dcol"><div class="rep">${rep}</div><div class="sr">${FSVG(r.id,24)}</div><div class="rnd">${roundNo}</div></div>`;
+    return `<div class="dcol"><div class="rep">${rep}</div><div class="sr">${FSVG(r.id,24)}</div><div class="rnd">${F[r.id].name}</div></div>`;
   }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // غياب الفواكه: الحالي + الأقصى
   $('#absGrid').innerHTML=FRUITS.map(f=>{
