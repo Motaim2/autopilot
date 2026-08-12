@@ -375,7 +375,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,t24F=null,t24O=null,resBuf=[],lastResVec=null,seq='wait24',jumpSeen=false,jumpAt=0,base=null,base2=null,inTrans=false,need24Vec=false;
+let curT=null,armed=true,resBuf=[],lastResVec=null,base=null,base2=null,inTrans=false,pendRounds=0;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -385,7 +385,7 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
 
   if(t!==null){
     if(curT!==null&&t>curT+5){armed=true;
-      if(seq==='waitres'&&!jumpSeen){jumpSeen=true;jumpAt=performance.now()}} // بدأت جولة = الشريط اكتمل أكيد
+      if(DB.t24[0]&&DB.t24[0].pending){pendRounds++;if(pendRounds>=2){delete DB.t24[0].pending;saveDB();renderLog()}}}
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -393,15 +393,14 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         const cv={};for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);cv[cell.id]=tplOf(cl.x,cl.y,cl.w,cl.h)}
         grabbed={type:'hand',cellVecs:cv};
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
-      }else if(playing){ // ① الـ24: نقفل أي دورة قديمة عالقة ونبدأ نظيف
-        if(seq!=='wait24'){if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB()}t24F=null;t24O=null;resBuf.length=0}
+      }else if(playing){ // سجل الـ24 مستقل: نسجل الزوج فوراً، وأول NEW بعده تُحسب له
+        if(DB.t24[0]&&DB.t24[0].pending)delete DB.t24[0].pending; // زوج قديم ما جته نتيجة
         const hc=findHandCell();
-        if(hc){t24F=GRID[hc.r][hc.c];t24O=opp(t24F);
-          DB.t24.unshift({f24:t24F,opp:t24O,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
-          need24Vec=true;jumpSeen=false;inTrans=false;base=null;base2=null;seq='waitres'; // ② نراقب فرّة الشريط
-          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].name+' + المقابل '+(t24O?F[t24O].name:'')+' — ننتظر النتيجة'}}
+        if(hc){const f=GRID[hc.r][hc.c],o=opp(f);
+          DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});pendRounds=0;saveDB();renderLog();
+          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')}}
     }
-    if(playing&&seq==='wait24'&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
+    if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t}
   }
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
@@ -412,33 +411,25 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
     if(playing){
-      if(need24Vec){base=vec;base2=slot2Vec();need24Vec=false} // بصمة الخانتين (NEW + اللي جنبها) قبل النتيجة
-      if(seq==='waitres'){ // ③ راصد فرّة الشريط: النتيجة الجديدة تدفع القديمة للخانة الثانية
+      if(playing){ // راصد كل الضربات — مستقل ودائم
         const v2=slot2Vec();
-        const d1=base?distV(vec,base):1e9;
+        if(base===null){base=vec;base2=v2;resBuf.length=0} // بصمة أولى
+        const d1=distV(vec,base);
         const d2=(base2&&v2)?distV(v2,base2):null;
-        if(!inTrans&&d1>600&&(d2===null||d2>600)){inTrans=true;resBuf.length=0} // الخانتان تغيّرتا معاً = فرّة حقيقية
+        if(!inTrans&&d1>600&&(d2===null||d2>600)){inTrans=true;resBuf.length=0} // فرّة الشريط = ضربة جديدة نزلت
         if(inTrans){
           const id=classifyResult(vec);
           if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
-            if(resBuf.length===4&&resBuf.every(x=>x===id))finalizeResult(id)} // النتيجة الجديدة — فوراً
-          else resBuf.length=0;
-        }else if(jumpSeen&&performance.now()-jumpAt>1500){ // احتياط: جولة جديدة بدأت وما مسكنا الفرّة
-          const id=classifyResult(vec);
-          if(id){resBuf.push(id);if(resBuf.length>4)resBuf.shift();
-            if(resBuf.length===4&&resBuf.every(x=>x===id))finalizeResult(id)}
+            if(resBuf.length===4&&resBuf.every(x=>x===id)){recordHit(id);base=vec;base2=v2;inTrans=false;resBuf.length=0}}
           else resBuf.length=0;
         }
       }
     }
   }
 }
-function finalizeResult(id){
-  if(DB.t24[0]&&DB.t24[0].pending){DB.t24[0].res=id;DB.t24[0].hit=(id===t24F||id===t24O);delete DB.t24[0].pending}
-  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop(); // ④ تحت في كل الضربات
-  t24F=null;t24O=null;jumpSeen=false;inTrans=false;base=null;base2=null;resBuf.length=0;
-  seq='wait24'; // ⑤ قفل — ننتظر 24 جديدة
-  $('#playMsg').className='stageMsg';$('#playMsg').textContent='✔ سُجّلت — بانتظار الـ24 التالية';
+function recordHit(id){
+  if(DB.t24[0]&&DB.t24[0].pending){const e=DB.t24[0];e.res=id;e.hit=(id===e.f24||id===e.opp);delete e.pending;pendRounds=0}
+  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop();
   renderLog();saveDB()}
 
 function drawBoxes(){
@@ -455,7 +446,7 @@ function drawBoxes(){
 
 /* ===== اللعب ===== */
 function enterPlay(){
-  playing=true;renderSteps();seq='wait24';t24F=null;t24O=null;resBuf.length=0;
+  playing=true;renderSteps();base=null;inTrans=false;resBuf.length=0;pendRounds=0;
   $('#playCamHolder').appendChild($('#camWrap'));$('#camWrap').classList.add('playBig');setTimeout(fitOvl,120);
   $('#camCard').classList.add('hide');$('#importCard').classList.add('hide');
   $('#playPhase').classList.remove('hide');
@@ -514,7 +505,7 @@ $('#impBtn').onclick=()=>$('#impFile').click();
 $('#impFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
   if(d.CFG){CFG=d.CFG;saveCFG()}if(d.DB){DB=d.DB;saveDB()}
   refreshStage();alert('تم الاستيراد — '+(CFG.stage>=5?'الإعداد كامل، جاهز للعب':'أكمل من المرحلة '+CFG.stage))}catch(e){alert('ملف غير صالح')}};r.readAsText(f)};
-$('#clrLog').onclick=()=>{if(confirm('مسح سجل اللعب؟ (الإعداد يبقى)')){DB.results=[];DB.t24=[];t24F=null;t24O=null;seq='wait24';resBuf.length=0;saveDB();renderLog()}};
+$('#clrLog').onclick=()=>{if(confirm('مسح سجل اللعب؟ (الإعداد يبقى)')){DB.results=[];DB.t24=[];base=null;inTrans=false;resBuf.length=0;pendRounds=0;saveDB();renderLog()}};
 
 /* إقلاع */
 refreshStage();
