@@ -371,7 +371,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,resBuf=[],lastResVec=null,st='idle',zeroAt=0,jumped=false;
+let curT=null,armed=true,resBuf=[],lastResVec=null,st='idle',t24At=0;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -380,10 +380,7 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
   const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
 
   if(t!==null){
-    if(curT!==null&&t>curT+5){armed=true;
-      if(st==='wait0'){st='read';zeroAt=performance.now();jumped=true}
-      else if(st==='read')jumped=true;} // الجولة الجديدة بدأت = النتيجة نهائية أكيد
-    if(t===0&&st==='wait0'){st='read';zeroAt=performance.now();jumped=false}
+    if(curT!==null&&t>curT+5)armed=true;
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -396,11 +393,11 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         const hc=findHandCell();
         if(hc){const f=GRID[hc.r][hc.c],o=opp(f);
           DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
-          st='wait0';jumped=false;resBuf.length=0; // ② ننتظر الصفر
-          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')+' — ننتظر الصفر'}}
+          t24At=performance.now();st='wait';resBuf.length=0; // ② نعدّ بالثواني: 24 ثانية للصفر
+          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')+' — النتيجة بعد 24 ثانية'}}
     }
     if(playing&&st==='idle'&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }else if(curT!==null&&curT<=3&&st==='wait0'){st='read';zeroAt=performance.now();jumped=false} // وصل الصفر والفاكهة غطته
+  }
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -410,14 +407,18 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
     if(playing){
-      if(playing&&st==='read'){ // ③ نقرأ النتيجة اللي جت بعد الصفر
-        if(jumped||performance.now()-zeroAt>2500){ // الشريط استقر أكيد
+      if(playing&&st==='wait'){ // ③ قاعدة الوقت: 24 ثانية للصفر + مهلة أمان
+        const el=performance.now()-t24At;
+        if(el<=25500){ // لسا الوقت ما حان — ممنوع نلمس الشريط
+          const s=Math.ceil((25500-el)/1000);
+          $('#playMsg').className='stageMsg hot';$('#playMsg').textContent='⏳ النتيجة بعد '+s+' ثانية';
+        }else{
           const id=classifyResult(vec);
           if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift();
             if(resBuf.length===5&&resBuf.every(x=>x===id))fillResult(id)}
           else resBuf.length=0;
         }
-        if(performance.now()-zeroAt>15000){ // ما قدرنا نقرأ — نقفل بـ؟
+        if(el>45000){ // ما ثبتت قراءة — نقفل بـ؟
           if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB();renderLog()}
           st='idle';resBuf.length=0;
         }
