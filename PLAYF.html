@@ -375,7 +375,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,lastResVec=null,resultPending=false,pendMiss=0;
+let curT=null,armed=true,t24F=null,t24O=null,lastRes=null,resBuf=[],curBet=null,lastResVec=null,resultPending=false,pendMiss=0,roundLogged=false,pendStart=0;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -387,9 +387,10 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
     if(curT!==null&&t>curT+5){ // جولة جديدة بدأت
       armed=true;
       if(resultPending){pendMiss++;if(pendMiss>=2){resultPending=false;pendMiss=0;t24F=null;t24O=null}}
-      else{resultPending=true;pendMiss=0} // احتياط لو فاتنا الصفر
+      else if(!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0} // احتياط لو فاتنا الصفر
+      roundLogged=false;
     }
-    if(t===0&&!resultPending){resultPending=true;pendMiss=0}
+    if(t===0&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0}
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -402,7 +403,7 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
           $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[t24F].name+' + المقابل '+(t24O?F[t24O].name:'')}}
     }
     if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }else if(curT!==null&&curT<=3&&!resultPending){resultPending=true;pendMiss=0} // العدّاد وصل الصفر والفاكهة غطته
+  }else if(curT!==null&&curT<=3&&!resultPending&&!roundLogged){resultPending=true;pendStart=performance.now();pendMiss=0} // العدّاد وصل الصفر والفاكهة غطته
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -411,10 +412,10 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         grabbed={type:'result',vec};
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
-    if(playing&&resultPending){ // نتيجة وحدة لكل جولة، بعد وصول العدّاد للصفر
+    if(playing&&resultPending&&performance.now()-pendStart>1200){ // ننتظر انتهاء دوران الصفر ثم نقرأ نتيجة وحدة
       const id=classifyResult(vec);
-      if(id){resBuf.push(id);if(resBuf.length>3)resBuf.shift();
-        if(resBuf.length===3&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;pendMiss=0;resBuf.length=0}}
+      if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift();
+        if(resBuf.length===5&&resBuf.every(x=>x===id)){logResult(id);resultPending=false;roundLogged=true;pendMiss=0;resBuf.length=0}}
       else resBuf.length=0;
     }
   }
