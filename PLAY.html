@@ -137,10 +137,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
           <div class="lbl" style="color:var(--blue)">🎯 سجل الـ24 <span class="cnt">✔<span id="hitN">0</span> · <span id="accN">0</span>٪</span></div>
           <div class="sScroll" id="dualStrip"></div>
         </div></div>
-        <div class="card"><div class="strip">
-          <div class="lbl">📊 كل الضربات <span class="cnt"><span id="resN">0</span> جولة</span></div>
-          <div class="sScroll" id="logStrip"></div>
-        </div></div>
         <div class="card">
           <div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:6px">⏳ غياب الفواكه <span style="font-size:9px;color:var(--dim);font-weight:400">كم جولة ما جت · أقصى غياب</span></div>
           <div class="absGrid" id="absGrid"></div>
@@ -375,7 +371,7 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,resBuf=[],lastResVec=null,pendingLog=false,logAt=0,pendRounds=0;
+let curT=null,armed=true,resBuf=[],lastResVec=null,st='idle',zeroAt=0,jumped=false;
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
@@ -385,8 +381,9 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
 
   if(t!==null){
     if(curT!==null&&t>curT+5){armed=true;
-      pendingLog=true;logAt=performance.now()+800; // جولة جديدة بدأت = نتيجة الجولة السابقة نهائية بالشريط
-      if(DB.t24[0]&&DB.t24[0].pending){pendRounds++;if(pendRounds>=3){delete DB.t24[0].pending;saveDB();renderLog()}}}
+      if(st==='wait0'){st='read';zeroAt=performance.now();jumped=true}
+      else if(st==='read')jumped=true;} // الجولة الجديدة بدأت = النتيجة نهائية أكيد
+    if(t===0&&st==='wait0'){st='read';zeroAt=performance.now();jumped=false}
     curT=t;
     if(armed&&t===24){armed=false;
       if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
@@ -394,15 +391,16 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         const cv={};for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);cv[cell.id]=tplOf(cl.x,cl.y,cl.w,cl.h)}
         grabbed={type:'hand',cellVecs:cv};
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
-      }else if(playing){ // سجل الـ24 مستقل: نسجل الزوج فوراً، وأول NEW بعده تُحسب له
-        if(DB.t24[0]&&DB.t24[0].pending)delete DB.t24[0].pending; // زوج قديم ما جته نتيجة
+      }else if(playing){ // ① الـ24: نسجل الزوج ونبدأ الدورة
+        if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending} // دورة قديمة ما اكتملت
         const hc=findHandCell();
         if(hc){const f=GRID[hc.r][hc.c],o=opp(f);
-          DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});pendRounds=0;saveDB();renderLog();
-          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')}}
+          DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
+          st='wait0';jumped=false;resBuf.length=0; // ② ننتظر الصفر
+          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')+' — ننتظر الصفر'}}
     }
-    if(playing&&armed&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t}
-  }
+    if(playing&&st==='idle'&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
+  }else if(curT!==null&&curT<=3&&st==='wait0'){st='read';zeroAt=performance.now();jumped=false} // وصل الصفر والفاكهة غطته
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
@@ -412,21 +410,26 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
         showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
     }
     if(playing){
-      if(playing){ // كل جولة = نتيجة وحدة، نقرأها بثبات بعد بداية الجولة التالية
-        const id=classifyResult(vec);
-        if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift()}else resBuf.length=0;
-        const stable=resBuf.length===5&&resBuf.every(x=>x===resBuf[0]);
-        if(pendingLog&&performance.now()>logAt){
-          if(stable){recordHit(resBuf[0]);pendingLog=false;resBuf.length=0}
-          else if(performance.now()>logAt+8000)pendingLog=false; // قراءة ما ثبتت — نتخطى بأمان
+      if(playing&&st==='read'){ // ③ نقرأ النتيجة اللي جت بعد الصفر
+        if(jumped||performance.now()-zeroAt>2500){ // الشريط استقر أكيد
+          const id=classifyResult(vec);
+          if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift();
+            if(resBuf.length===5&&resBuf.every(x=>x===id))fillResult(id)}
+          else resBuf.length=0;
+        }
+        if(performance.now()-zeroAt>15000){ // ما قدرنا نقرأ — نقفل بـ؟
+          if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB();renderLog()}
+          st='idle';resBuf.length=0;
         }
       }
     }
   }
 }
-function recordHit(id){
-  if(DB.t24[0]&&DB.t24[0].pending){const e=DB.t24[0];e.res=id;e.hit=(id===e.f24||id===e.opp);delete e.pending;pendRounds=0}
-  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop();
+function fillResult(id){ // ④ نربط النتيجة بزوج الـ24
+  if(DB.t24[0]&&DB.t24[0].pending){const e=DB.t24[0];e.res=id;e.hit=(id===e.f24||id===e.opp);delete e.pending}
+  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop(); // للغياب فقط
+  st='idle';resBuf.length=0;
+  $('#playMsg').className='stageMsg';$('#playMsg').textContent='✔ اكتملت — بانتظار الـ24';
   renderLog();saveDB()}
 
 function drawBoxes(){
@@ -443,7 +446,7 @@ function drawBoxes(){
 
 /* ===== اللعب ===== */
 function enterPlay(){
-  playing=true;renderSteps();pendingLog=false;resBuf.length=0;pendRounds=0;
+  playing=true;renderSteps();st='idle';resBuf.length=0;
   $('#playCamHolder').appendChild($('#camWrap'));$('#camWrap').classList.add('playBig');setTimeout(fitOvl,120);
   $('#camCard').classList.add('hide');$('#importCard').classList.add('hide');
   $('#playPhase').classList.remove('hide');
@@ -458,7 +461,6 @@ $('#backBtn').onclick=()=>{
 };
 function renderLog(){
   const N=DB.results.length;
-  $('#resN').textContent=N;
   const done=DB.t24.filter(e=>e.hit!==null);
   $('#hitN').textContent=done.filter(e=>e.hit).length;
   $('#accN').textContent=done.length?Math.round(done.filter(e=>e.hit).length/done.length*100):0;
@@ -471,19 +473,6 @@ function renderLog(){
     return `<div class="dcol ${pend?'':(e.hit?'hit':'miss')}"${pend?' style="border-color:var(--gold)"':''}>${mk}<div class="s24" style="display:flex;gap:1px">${FSVG(e.f24,13)}${e.opp?FSVG(e.opp,13):''}</div><div class="sr">${res}</div></div>`;
   }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // كل الضربات: تكرار الزوج فوق، الفاكهة بلونها، رقم الجولة تحت
-  // التكرار: الضربة من نفس زوج اللي قبلها مباشرة (نفسها أو مقابلها).
-  // عند التكرار: نقفل السلسلة بمربع ذهبي على الفاكهة الأولى، واللي بعدها تبدأ من 1
-  const num=new Array(N),boxed=new Array(N).fill(false);
-  for(let k=N-1;k>=0;k--){
-    if(k===N-1){num[k]=1;continue}
-    const cur=DB.results[k].id,prev=DB.results[k+1].id;
-    if(cur===prev||cur===opp(prev)){boxed[k+1]=true;num[k]=1}
-    else num[k]=num[k+1]+1;
-  }
-  $('#logStrip').innerHTML=DB.results.slice(0,300).map((r,i)=>{
-    const srBox=boxed[i]?' style="border:2px solid var(--gold);border-radius:7px;padding:1px"':'';
-    return `<div class="dcol"><div class="rep">${num[i]}</div><div class="sr"${srBox}>${FSVG(r.id,24)}</div><div class="rnd">${F[r.id].name}</div></div>`;
-  }).join('')||'<span class="mini" style="padding:6px">—</span>';
   // غياب الفواكه: الحالي + الأقصى
   $('#absGrid').innerHTML=FRUITS.map(f=>{
     let cur=null;for(let i=0;i<N;i++){if(DB.results[i].id===f.id){cur=i;break}}
@@ -502,7 +491,7 @@ $('#impBtn').onclick=()=>$('#impFile').click();
 $('#impFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
   if(d.CFG){CFG=d.CFG;saveCFG()}if(d.DB){DB=d.DB;saveDB()}
   refreshStage();alert('تم الاستيراد — '+(CFG.stage>=5?'الإعداد كامل، جاهز للعب':'أكمل من المرحلة '+CFG.stage))}catch(e){alert('ملف غير صالح')}};r.readAsText(f)};
-$('#clrLog').onclick=()=>{if(confirm('مسح سجل اللعب؟ (الإعداد يبقى)')){DB.results=[];DB.t24=[];pendingLog=false;resBuf.length=0;pendRounds=0;saveDB();renderLog()}};
+$('#clrLog').onclick=()=>{if(confirm('مسح سجل اللعب؟ (الإعداد يبقى)')){DB.results=[];DB.t24=[];st='idle';resBuf.length=0;saveDB();renderLog()}};
 
 /* إقلاع */
 refreshStage();
