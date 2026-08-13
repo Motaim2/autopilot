@@ -106,6 +106,7 @@ input[type=range]{accent-color:var(--gold)}
   <div class="row" style="margin-top:10px">
     <button class="btn primary" id="btnScreen">🖥️ مشاركة الشاشة</button>
     <button class="btn" id="btnCam">📷 الكاميرا</button>
+    <button class="btn" id="btnBridge">🔌 جسر ADB</button>
     <button class="btn" id="btnStart" disabled>▶️ بدء المراقبة</button>
     <button class="btn danger" id="btnStop" style="display:none">⏹️ إيقاف</button>
   </div>
@@ -127,6 +128,7 @@ input[type=range]{accent-color:var(--gold)}
 
   <div id="stage">
     <video id="video" autoplay muted playsinline></video>
+    <img id="feed" alt="" style="display:none">
     <canvas id="canvas"></canvas>
     <div id="stageHint">🍒<br>اختر مصدر الصورة أولًا<br><span style="font-size:11px">مشاركة الشاشة (كمبيوتر/LDPlayer) أو الكاميرا (وجّهها على الجوال)</span></div>
     <div id="liveBadge">● LIVE</div>
@@ -260,7 +262,43 @@ function saveSettings(){
 /* ================= عناصر ================= */
 const video=document.getElementById('video'), canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
 const work=document.createElement('canvas'), wctx=work.getContext('2d',{willReadFrequently:true});
+const feed=document.getElementById('feed');
 let stream=null, watching=false, loopTimer=null;
+let srcEl=video, active=false, bridgeURL=null, bridgeTimer=null;
+
+/* --------- جسر ADB: يسحب لقطة من سيرفر بايثون محلي --------- */
+async function setBridge(){
+  const def = localStorage.getItem('kw_bridge') || 'http://127.0.0.1:8777/frame.jpg';
+  const url = prompt('عنوان جسر ADB:', def);
+  if(!url) return;
+  localStorage.setItem('kw_bridge', url);
+  bridgeURL = url;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  clearInterval(bridgeTimer);
+  let firstOK=false;
+  const pull=()=>{
+    const im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=()=>{
+      feed.src=im.src;
+      if(!firstOK){
+        firstOK=true; active=true; srcEl=feed;
+        canvas.width=work.width=im.naturalWidth;
+        canvas.height=work.height=im.naturalHeight;
+        document.getElementById('stageHint').style.display='none';
+        document.getElementById('liveBadge').style.display='block';
+        document.getElementById('btnStart').disabled=false;
+        drawFrame();
+        toast('الجسر شغال ✅ '+im.naturalWidth+'×'+im.naturalHeight);
+      }
+    };
+    im.onerror=()=>{ if(!firstOK) toast('ما وصل للجسر — تأكد أن knz_bridge.py شغال'); };
+    im.src = bridgeURL + (bridgeURL.includes('?')?'&':'?') + 't=' + Date.now();
+  };
+  pull();
+  bridgeTimer=setInterval(pull, 250);
+}
+document.getElementById('btnBridge').onclick=setBridge;
 
 /* ================= المصدر ================= */
 async function setSource(kind){
@@ -269,7 +307,7 @@ async function setSource(kind){
     stream = kind==='screen'
       ? await navigator.mediaDevices.getDisplayMedia({video:{frameRate:15}})
       : await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}});
-    video.srcObject=stream;
+    video.srcObject=stream; srcEl=video; active=true; clearInterval(bridgeTimer);
     await new Promise(r=>video.onloadedmetadata=r);
     canvas.width=video.videoWidth; canvas.height=video.videoHeight;
     work.width=video.videoWidth; work.height=video.videoHeight;
@@ -286,7 +324,7 @@ document.getElementById('btnCam').onclick=()=>setSource('cam');
 /* ================= المعايرة بالرسم ================= */
 let calMode=null, dragStart=null, dragNow=null;
 document.querySelectorAll('[data-cal]').forEach(b=>b.onclick=()=>{
-  if(!stream){toast('شغّل المصدر أولًا');return;}
+  if(!active){toast('شغّل المصدر أولًا');return;}
   calMode=b.dataset.cal; toast('ارسم مستطيلًا فوق: '+({grid:'شبكة الفواكه كاملة',counter:'شاشة العداد الزرقاء',result:'أول خانة نتيجة (بجانب كلمة النتيجة)'}[calMode]));
 });
 function canvasPos(ev){
@@ -314,8 +352,8 @@ updateChips();
 
 /* ================= رسم الإطار + التراكب ================= */
 function drawFrame(){
-  if(!stream) return;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  if(!active) return;
+  try{ ctx.drawImage(srcEl,0,0,canvas.width,canvas.height);}catch(e){}
   const boxes=[['grid','#e8b64c','الشبكة'],['counter','#4ea3ff','العداد'],['result','#c77bff','النتيجة']];
   for(const [k,c,l] of boxes){ const b=calib[k]; if(!b)continue;
     ctx.strokeStyle=c; ctx.lineWidth=3; ctx.strokeRect(b.x,b.y,b.w,b.h);
@@ -340,7 +378,7 @@ function cellRect(i){ const g=calib.grid; return {x:g.x+(i%3)*g.w/3, y:g.y+Math.
 const SEG_MAP={ '1111110':0,'0110000':1,'1101101':2,'1111001':3,'0110011':4,'1011011':5,'1011111':6,'1110000':7,'1111111':8,'1111011':9 };
 function readCounter(){
   const b=calib.counter; if(!b) return null;
-  wctx.drawImage(video,0,0,work.width,work.height);
+  wctx.drawImage(srcEl,0,0,work.width,work.height);
   const d=wctx.getImageData(b.x,b.y,b.w,b.h).data;
   const W=b.w,H=b.h;
   const lit=(x,y)=>{ x=Math.round(x);y=Math.round(y); if(x<0||y<0||x>=W||y>=H)return 0;
@@ -430,8 +468,8 @@ function classifyResult(){
 // waiting24 → captured → awaitResult → (تسجيل) → waiting24
 let phase='waiting24', pending24=null, zeroAt=0, resSamples=[], lastCounterVal=null;
 function tick(){
-  if(!watching||!stream) return;
-  wctx.drawImage(video,0,0,work.width,work.height);
+  if(!watching||!active) return;
+  wctx.drawImage(srcEl,0,0,work.width,work.height);
   const c=readCounter();
   if(c!==null){ lastCounterVal=c; document.getElementById('vCounter').textContent=String(c).padStart(2,'0'); }
   lastHand=detectHand();
