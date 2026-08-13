@@ -375,82 +375,93 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,resBuf=[],ctrBuf=[],lastResVec=null,st='idle',t24At=0,baseId=null,baseBuf=[],jump24=false,dbgBox='';
+/* ═══════════ منطق الرصد — صياغة نظيفة ═══════════
+   دورة وحدة: 24 → زوج معلّق → النتيجة (صندوق العدّاد أو تغيّر NEW) → قفل */
+let curT=null, armed=true, st='idle', t24At=0;
+let baseBuf=[], baseId=null, jump24=false;
+let newBuf=[], ctrBuf=[], dbgBox='', lastResVec=null;
+
+function startCycle(f){ // بدء دورة 24 (تلقائي أو من زرك)
+  if(DB.t24[0]&&DB.t24[0].pending)delete DB.t24[0].pending; // دورة قديمة تنقفل بـ؟
+  const o=opp(f);
+  DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});
+  st='wait';t24At=performance.now();baseBuf=[];baseId=null;jump24=false;newBuf=[];ctrBuf=[];
+  saveDB();renderLog();
+  $('#playMsg').className='stageMsg hot';
+  $('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'');
+}
+function fillResult(id){ // النتيجة تكمل الزوج وتدخل الغياب
+  if(DB.t24[0]&&DB.t24[0].pending){const e=DB.t24[0];e.res=id;e.hit=(id===e.f24||id===e.opp);delete e.pending}
+  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop();
+  st='idle';baseBuf=[];baseId=null;newBuf=[];ctrBuf=[];
+  $('#playMsg').className='stageMsg';$('#playMsg').textContent='✔ اكتملت — بانتظار الـ24';
+  renderLog();saveDB();
+}
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
   if(!CFG.gridBox)return;
   const t=readTimer();lastTimerOk=(t!==null);
   const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
-  if(playing)$('#dbg').textContent='عدّاد: '+cT+' · حالة: '+(st==='wait'?'ننتظر النتيجة':'ننتظر 24')+(dbgBox?' · الصندوق: '+dbgBox:'');
 
+  /* ── ① صيد الـ24 ── */
   if(t!==null){
-    if(curT!==null&&t>curT+5){armed=true;if(st==='wait')jump24=true;}
+    if(curT!==null&&t>curT+5){armed=true;if(st==='wait')jump24=true} // جولة جديدة
     curT=t;
-    if(armed&&t===24){armed=false;
-      if(CFG.stage===3){ // مرحلة تأكيد اليد: لقطة كاملة + نحفظ خانات اللحظة
+    if(armed&&(t===24||t===23)){armed=false; // نتسامح بإطار: 24 أو 23
+      if(CFG.stage===3){ // مرحلة تدريب اليد
         work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
         const cv={};for(const cell of CELLS){const cl=cellRect(cell.r,cell.c);cv[cell.id]=tplOf(cl.x,cl.y,cl.w,cl.h)}
         grabbed={type:'hand',cellVecs:cv};
         showPop(CFG.gridBox,'🎯 الـ24! هذي الشبكة كاملة — اليد على أي فاكهة؟',true);
-      }else if(playing&&AUTO){ // ① الـ24: نسجل الزوج ونبدأ الدورة
-        if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending} // دورة قديمة ما اكتملت
+      }else if(playing&&AUTO){
         const hc=findHandCell();
-        if(hc){const f=GRID[hc.r][hc.c],o=opp(f);
-          DB.t24.unshift({f24:f,opp:o,res:null,hit:null,pending:true,at:Date.now()});saveDB();renderLog();
-          t24At=performance.now();st='wait';resBuf.length=0;baseId=null;baseBuf=[];jump24=false; // ② نحفظ اللي في NEW الحين
-          $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[f].name+' + المقابل '+(o?F[o].name:'')+' — ننتظر NEW يتغيّر'}}
-    }
-    if(playing&&st==='idle'&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
-  }
-  // ⚡ صيد النتيجة من صندوق العدّاد لحظة الصفر: الفاكهة تطلع لحالها واضحة — أسرع وأدق
-  if(playing&&st==='wait'&&t===null&&CFG.gridBox&&(performance.now()-t24At)>3000){
-    const vc=tplCell(1,1);let best=null,bd=1e18,sec=1e18;
-    for(const id in CFG.fruits){const d=distV(vc,CFG.fruits[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
-    if(best&&bd<450&&(sec-bd)/(sec+1)>0.08){ // فاكهة حقيقية ظهرت بالصندوق وتطابق مرجعنا
-      dbgBox=F[best].name;
-      ctrBuf.push(best);if(ctrBuf.length>3)ctrBuf.shift();
-      if(ctrBuf.length===3&&ctrBuf.every(x=>x===best))fillResult(best); // ثلاث لقطات = أجزاء من الثانية
-    }else{ctrBuf.length=0;dbgBox=''}
-  }else{ctrBuf.length=0;dbgBox=''}
-  // المرحلة ٤ + اللعب: النتيجة
-  if(CFG.newBox&&(CFG.stage===4||playing)){
-    const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
-    if(CFG.stage===4&&!grabbed){ // تعليم النتائج: لو تغيّرت النتيجة، اسأل
-      if(lastResVec===null||distV(vec,lastResVec)>800){lastResVec=vec;
-        grabbed={type:'result',vec};
-        showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
-    }
-    if(playing){
-      if(playing&&st==='wait'){ // ③ القاعدة: NEW لازم يتغيّر عن اللي كان وقت الـ24
-        const el=performance.now()-t24At;
-        const id=classifyResult(vec);
-        if(el<=1200){ // نثبت هوية اللي موجود حالياً (القديم — ممنوع تسجيله)
-          if(id)baseBuf.push(id);
-          $('#playMsg').className='stageMsg hot';$('#playMsg').textContent='🎯 حفظنا اللي في NEW — ننتظر يتغيّر';
-        }else{
-          if(baseId===null&&baseBuf.length){const cnt={};baseBuf.forEach(x=>cnt[x]=(cnt[x]||0)+1);baseId=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]}
-          if(id){resBuf.push(id);if(resBuf.length>5)resBuf.shift();
-            if(resBuf.length===5&&resBuf.every(x=>x===id)){
-              if(baseId!==null&&id!==baseId)fillResult(id);      // NEW تغيّر فعلاً = هذي نتيجة الـ24
-              else if(jump24||el>(CFG.readDelay||26000))fillResult(id); // تكرار مؤكد (بالجولة التالية أو بتوقيتك المتعلَّم)
-            }}
-          else resBuf.length=0;
-        }
-        if(el>90000){ // مهلة قصوى
-          if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB();renderLog()}
-          st='idle';resBuf.length=0;
-        }
+        if(hc)startCycle(GRID[hc.r][hc.c]);
       }
     }
   }
+
+  /* ── ② صيد النتيجة (فقط أثناء دورة مفتوحة) ── */
+  if(playing){
+    dbgBox='';
+    if(st==='wait'){
+      const el=performance.now()-t24At;
+      // مسار أ: الفاكهة تطلع لحالها في صندوق العدّاد عند الصفر — الأسرع
+      if(t===null&&el>3000){
+        const vc=tplCell(1,1);let best=null,bd=1e18,sec=1e18;
+        for(const id in CFG.fruits){const d=distV(vc,CFG.fruits[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
+        if(best&&bd<450&&(sec-bd)/(sec+1)>0.08){dbgBox=F[best].name;
+          ctrBuf.push(best);if(ctrBuf.length>3)ctrBuf.shift();
+          if(ctrBuf.length===3&&ctrBuf.every(x=>x===best)){fillResult(best);return}
+        }else ctrBuf.length=0;
+      }else ctrBuf.length=0;
+      // مسار ب (احتياط): NEW يتغيّر عن اللي كان لحظة الـ24
+      if(CFG.newBox){
+        const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
+        const id=classifyResult(vec);
+        if(el<=1200){if(id)baseBuf.push(id)} // نثبت هوية القديم
+        else{
+          if(baseId===null&&baseBuf.length){const c={};baseBuf.forEach(x=>c[x]=(c[x]||0)+1);baseId=Object.keys(c).sort((a,b)=>c[b]-c[a])[0]}
+          if(id){newBuf.push(id);if(newBuf.length>4)newBuf.shift();
+            if(newBuf.length===4&&newBuf.every(x=>x===id)&&(id!==baseId||jump24||el>(CFG.readDelay||26000)))fillResult(id)}
+          else newBuf.length=0;
+          if(el>90000&&st==='wait'){if(DB.t24[0]&&DB.t24[0].pending){delete DB.t24[0].pending;saveDB();renderLog()}st='idle'}
+        }
+      }
+    }
+    // السطر الحي: تشوف بالضبط وش يقرأ ووين واصل
+    $('#dbg').textContent='عدّاد '+cT+' · مسلّح '+(armed?'✓':'✗')+' · '+(st==='wait'?'⏳ ننتظر النتيجة':'👀 ننتظر 24')+(dbgBox?' · صندوق: '+dbgBox:'');
+    if(st==='idle'&&t!==null&&t>24){$('#playMsg').className='stageMsg';$('#playMsg').textContent='العدّاد '+t+' — بانتظار الـ24'}
+  }
+
+  /* ── المرحلة ٤: تعليم النتائج ── */
+  if(CFG.newBox&&CFG.stage===4&&!grabbed){
+    const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
+    if(lastResVec===null||distV(vec,lastResVec)>800){lastResVec=vec;
+      grabbed={type:'result',vec};
+      showPop(CFG.newBox,'نتيجة جديدة ظهرت — وش هي؟',false)}
+  }
 }
-function fillResult(id){ // ④ نربط النتيجة بزوج الـ24
-  if(DB.t24[0]&&DB.t24[0].pending){const e=DB.t24[0];e.res=id;e.hit=(id===e.f24||id===e.opp);delete e.pending}
-  DB.results.unshift({id,at:Date.now()});if(DB.results.length>1000000)DB.results.pop(); // للغياب فقط
-  st='idle';resBuf.length=0;ctrBuf.length=0;
-  $('#playMsg').className='stageMsg';$('#playMsg').textContent='✔ اكتملت — بانتظار الـ24';
-  renderLog();saveDB()}
 
 function drawBoxes(){
   if(CFG.gridBox){const B=CFG.gridBox,x=B.x*ovl.width,y=B.y*ovl.height,w=B.w*ovl.width,h=B.h*ovl.height;
@@ -527,13 +538,8 @@ $('#m24Btn').onclick=()=>openPick('24');
 $('#mResBtn').onclick=()=>openPick('res');
 $('#mPickCancel').onclick=()=>{$('#mPick').style.display='none';mMode=null};
 function doPick(id){$('#mPick').style.display='none';
-  if(mMode==='24'){ // نفس ما يسويه التلقائي بالضبط
-    if(DB.t24[0]&&DB.t24[0].pending)delete DB.t24[0].pending;
-    const o=opp(id);
-    DB.t24.unshift({f24:id,opp:o,res:null,hit:null,pending:true,at:Date.now()});
-    t24At=performance.now();st='wait';resBuf.length=0;baseId=null;baseBuf=[];jump24=false;
-    $('#playMsg').className='stageMsg hot';$('#playMsg').innerHTML='🎯 الـ24 على '+F[id].name+' + المقابل '+(o?F[o].name:'')+' — ننتظر NEW يتغيّر';
-    saveDB();renderLog();
+  if(mMode==='24'){ // نفس دورة التلقائي بالضبط
+    startCycle(id);
   }else{ // النتيجة: يتعلّم من ضغطتك (مرجع الصورة + التوقيت)
     if(CFG.newBox&&running){work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
       CFG.resultsDone[id]=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);saveCFG();}
