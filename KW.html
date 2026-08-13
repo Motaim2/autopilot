@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>عين المراقبة — FruitGame Watcher</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Baloo+Bhaijaan+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0a06; --panel:#171009; --panel2:#1f1610; --line:#3a2a16;
+  --gold:#e8b64c; --gold2:#f5d98a; --dim:#a08658; --text:#f3e9d6;
+  --ok:#4cd97b; --bad:#ff6161; --blue:#4ea3ff; --purple:#c77bff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;min-height:100vh}
+header{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#1c130a,#0d0a06)}
+header h1{font-family:'Baloo Bhaijaan 2';font-size:20px;color:var(--gold2);letter-spacing:.5px}
+header .sub{font-size:11px;color:var(--dim)}
+#statusDot{width:10px;height:10px;border-radius:50%;background:#666;box-shadow:0 0 8px #0000}
+#statusDot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.wrap{max-width:980px;margin:0 auto;padding:12px}
+
+/* أزرار */
+.btn{background:linear-gradient(180deg,#3a2a12,#241806);border:1px solid var(--line);color:var(--gold2);
+  padding:9px 14px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(180deg,#e8b64c,#b57f22);color:#241600;border-color:#f5d98a}
+.btn.danger{color:#ffb3b3;border-color:#5a2a2a}
+.btn.small{padding:5px 10px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* منطقة الفيديو */
+#stage{position:relative;margin:12px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#000}
+#video{display:none}
+#canvas{width:100%;display:block;touch-action:none}
+#stageHint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+  color:var(--dim);font-size:13px;text-align:center;padding:20px;pointer-events:none}
+#liveBadge{position:absolute;top:8px;right:8px;background:#000a;border:1px solid var(--line);border-radius:8px;
+  padding:4px 10px;font-size:11px;color:var(--gold2);display:none}
+
+/* لوحة الحالة الحية */
+#liveBar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.tile .lbl{font-size:10px;color:var(--dim);margin-bottom:4px}
+.tile .val{font-family:'Baloo Bhaijaan 2';font-size:22px;color:var(--gold2);line-height:1}
+.tile .val.small{font-size:15px}
+#tCounter .val{color:var(--blue)}
+
+/* معايرة */
+.calibBox{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.calibBox h3{font-size:13px;color:var(--gold);margin-bottom:8px}
+.calibBox p{font-size:12px;color:var(--dim);line-height:1.7;margin-bottom:8px}
+.calChip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);margin:2px;color:var(--dim)}
+.calChip.done{color:var(--ok);border-color:#1f4a2e}
+
+/* تبويبات */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-top:6px}
+.tab{white-space:nowrap;padding:8px 14px;border-radius:10px 10px 0 0;font-size:13px;cursor:pointer;color:var(--dim);
+  border:1px solid transparent;border-bottom:none}
+.tab.active{color:var(--gold2);background:var(--panel);border-color:var(--line)}
+.panel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:12px;min-height:200px}
+.panel.active{display:block}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{color:var(--gold);font-weight:600;padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;font-size:11px}
+td{padding:7px 6px;border-bottom:1px solid #241a10;color:var(--text)}
+tr:hover td{background:#ffffff08}
+.fr{font-size:18px;line-height:1}
+.okTag{color:var(--ok);font-weight:700}.badTag{color:var(--bad);font-weight:700}
+.emptyMsg{color:var(--dim);font-size:12px;text-align:center;padding:30px 10px}
+
+/* غياب الفواكه */
+.absGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
+.absCard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.absCard .fr{font-size:26px}
+.absCard .gap{font-family:'Baloo Bhaijaan 2';font-size:24px;color:var(--gold2)}
+.absCard .gap.hot{color:var(--bad)}
+.absCard .mini{font-size:10px;color:var(--dim)}
+.absCard .hist{font-size:10px;color:var(--dim);direction:ltr;margin-top:4px;word-break:break-all}
+
+/* إعدادات */
+.setRow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #241a10;font-size:13px}
+select,input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 8px;font-family:inherit;font-size:13px}
+input[type=range]{accent-color:var(--gold)}
+
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#241806;border:1px solid var(--gold);
+  color:var(--gold2);padding:10px 18px;border-radius:12px;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.statBig{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.statBig .tile{flex:1;min-width:100px}
+</style>
+</head>
+<body>
+
+<header>
+  <div id="statusDot"></div>
+  <div>
+    <h1>👁️ عين المراقبة</h1>
+    <div class="sub">مراقب FruitGame — التقاط عند 24 · نتيجة الجولة · سجلات كاملة</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="row" style="margin-top:10px">
+    <button class="btn primary" id="btnScreen">🖥️ مشاركة الشاشة</button>
+    <button class="btn" id="btnCam">📷 الكاميرا</button>
+    <button class="btn" id="btnStart" disabled>▶️ بدء المراقبة</button>
+    <button class="btn danger" id="btnStop" style="display:none">⏹️ إيقاف</button>
+  </div>
+
+  <div class="calibBox" id="calibBox">
+    <h3>🎯 المعايرة (مرة واحدة)</h3>
+    <p>بعد تشغيل المصدر، اضغط زر المنطقة ثم ارسم مستطيلًا فوق مكانها في الصورة بالسحب:</p>
+    <div class="row">
+      <button class="btn small" data-cal="grid">١· شبكة الفواكه 3×3</button>
+      <button class="btn small" data-cal="counter">٢· شاشة العداد</button>
+      <button class="btn small" data-cal="result">٣· خانة النتيجة الجديدة</button>
+    </div>
+    <div style="margin-top:8px">
+      <span class="calChip" id="chipGrid">شبكة ⬜</span>
+      <span class="calChip" id="chipCounter">عداد ⬜</span>
+      <span class="calChip" id="chipResult">نتيجة ⬜</span>
+    </div>
+  </div>
+
+  <div id="stage">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div id="stageHint">🍒<br>اختر مصدر الصورة أولًا<br><span style="font-size:11px">مشاركة الشاشة (كمبيوتر/LDPlayer) أو الكاميرا (وجّهها على الجوال)</span></div>
+    <div id="liveBadge">● LIVE</div>
+  </div>
+
+  <div id="liveBar">
+    <div class="tile" id="tCounter"><div class="lbl">العداد الآن</div><div class="val" id="vCounter">--</div></div>
+    <div class="tile"><div class="lbl">توقّع @24</div><div class="val small" id="v24">—</div></div>
+    <div class="tile"><div class="lbl">آخر نتيجة</div><div class="val small" id="vRes">—</div></div>
+    <div class="tile"><div class="lbl">الدقة</div><div class="val small" id="vAcc">0%</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-t="rounds">📋 الجولات</div>
+    <div class="tab" data-t="p24">🎯 قراءات 24</div>
+    <div class="tab" data-t="results">🏆 النتائج</div>
+    <div class="tab" data-t="absence">⏳ الغياب</div>
+    <div class="tab" data-t="stats">📊 إحصاء</div>
+    <div class="tab" data-t="settings">⚙️ إعدادات</div>
+  </div>
+
+  <div class="panel active" id="p-rounds">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--dim)">كل جولة: توقّع 24 ← النتيجة ← صح/غلط</span>
+      <span><button class="btn small" onclick="exportCSV('rounds')">⬇️ CSV</button>
+      <button class="btn small danger" onclick="clearLog('rounds')">🗑️</button></span>
+    </div>
+    <div style="overflow-x:auto"><table><thead><tr>
+      <th>#</th><th>الوقت</th><th>@24</th><th>المقابل</th><th>النتيجة</th><th>الحكم</th>
+    </tr></thead><tbody id="tbRounds"></tbody></table></div>
+    <div class="emptyMsg" id="emRounds">لا توجد جولات مسجلة بعد</div>
+  </div>
+
+  <div class="panel" id="p-p24">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--dim)">كل قراءة التُقطت عند العداد 24 (اليد + الخلية)</span>
+      <span><button class="btn small" onclick="exportCSV('p24')">⬇️ CSV</button>
+      <button class="btn small danger" onclick="clearLog('p24')">🗑️</button></span>
+    </div>
+    <table><thead><tr><th>#</th><th>الوقت</th><th>الفاكهة</th><th>الخلية</th><th>المقابل</th></tr></thead><tbody id="tbP24"></tbody></table>
+    <div class="emptyMsg" id="emP24">لا توجد قراءات بعد</div>
+  </div>
+
+  <div class="panel" id="p-results">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--dim)">الفواكه الفائزة بترتيب ظهورها (الأحدث أولًا)</span>
+      <span><button class="btn small" onclick="exportCSV('results')">⬇️ CSV</button>
+      <button class="btn small danger" onclick="clearLog('results')">🗑️</button></span>
+    </div>
+    <div id="resStrip" style="font-size:26px;letter-spacing:4px;direction:rtl;line-height:1.8;word-break:break-all"></div>
+    <table style="margin-top:8px"><thead><tr><th>#</th><th>الوقت</th><th>الفاكهة</th><th>الثقة</th></tr></thead><tbody id="tbRes"></tbody></table>
+    <div class="emptyMsg" id="emRes">لا توجد نتائج بعد</div>
+  </div>
+
+  <div class="panel" id="p-absence">
+    <p style="font-size:12px;color:var(--dim);margin-bottom:10px">كم جولة مرّت من آخر ظهور لكل فاكهة + تاريخ فجوات الغياب</p>
+    <div class="absGrid" id="absGrid"></div>
+  </div>
+
+  <div class="panel" id="p-stats">
+    <div class="statBig">
+      <div class="tile"><div class="lbl">إجمالي الجولات</div><div class="val" id="sTotal">0</div></div>
+      <div class="tile"><div class="lbl">صح</div><div class="val" id="sHit" style="color:var(--ok)">0</div></div>
+      <div class="tile"><div class="lbl">غلط</div><div class="val" id="sMiss" style="color:var(--bad)">0</div></div>
+      <div class="tile"><div class="lbl">نسبة الدقة</div><div class="val" id="sAcc">0%</div></div>
+    </div>
+    <h3 style="font-size:13px;color:var(--gold);margin:8px 0">تكرار الفواكه في النتائج</h3>
+    <div id="freqBars"></div>
+  </div>
+
+  <div class="panel" id="p-settings">
+    <h3 style="font-size:13px;color:var(--gold);margin-bottom:6px">جدول المقابل (X)</h3>
+    <div id="multRows"></div>
+    <h3 style="font-size:13px;color:var(--gold);margin:14px 0 6px">ترتيب شبكة الفواكه (يسار→يمين، فوق→تحت)</h3>
+    <div id="gridRows" class="row"></div>
+    <h3 style="font-size:13px;color:var(--gold);margin:14px 0 6px">الحساسية</h3>
+    <div class="setRow"><span>حساسية كشف اليد <span id="handSensVal">18</span>%</span>
+      <input type="range" id="handSens" min="5" max="50" value="18"></div>
+    <div class="setRow"><span>تنبيه صوتي عند 24</span><input type="checkbox" id="beep24" checked></div>
+    <div class="setRow"><span>معدّل الفحص (إطار/ث)</span>
+      <input type="number" id="fps" min="2" max="15" value="6" style="width:70px"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn small" onclick="saveSettings();toast('تم الحفظ ✅')">💾 حفظ الإعدادات</button>
+      <button class="btn small danger" onclick="if(confirm('مسح كل البيانات والمعايرة؟')){localStorage.clear();location.reload()}">🗑️ مسح الكل</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= البيانات الأساسية ================= */
+const FRUITS = {
+  apple:      {ar:'تفاح',    e:'🍎', mult:5,  sig:[.81,.06,.04,.05,0,0,0,0,0,0,0,.04]},
+  watermelon: {ar:'بطيخ',    e:'🍉', mult:45, sig:[.68,0,.09,.23,0,0,0,0,0,0,0,0]},
+  cherry:     {ar:'كرز',     e:'🍒', mult:25, sig:[.02,.02,.01,.15,0,0,0,0,0,0,0,.80]},
+  banana:     {ar:'موز',     e:'🍌', mult:5,  sig:[0,1,0,0,0,0,0,0,0,0,0,0]},
+  grapes:     {ar:'عنب',     e:'🍇', mult:15, sig:[.01,0,.02,.25,0,0,0,0,0,.72,0,0]},
+  orange:     {ar:'برتقال',  e:'🍊', mult:5,  sig:[.68,.28,.02,.03,0,0,0,0,0,0,0,0]},
+  mango:      {ar:'مانجو',   e:'🥭', mult:5,  sig:[.38,.39,.19,.04,0,0,0,0,0,0,0,0]},
+  pineapple:  {ar:'أناناس',  e:'🍍', mult:10, sig:[.33,.23,.16,.27,0,0,0,0,0,0,0,0]}
+};
+const FKEYS = Object.keys(FRUITS);
+// ترتيب الشبكة الافتراضي (فهرس 4 = العداد)
+let gridMap = ['apple','watermelon','cherry','banana',null,'grapes','orange','mango','pineapple'];
+
+/* ================= التخزين ================= */
+const DB = {
+  rounds: JSON.parse(localStorage.getItem('kw_rounds')||'[]'),
+  p24:    JSON.parse(localStorage.getItem('kw_p24')||'[]'),
+  results:JSON.parse(localStorage.getItem('kw_results')||'[]')
+};
+function saveDB(){ for(const k in DB) localStorage.setItem('kw_'+k, JSON.stringify(DB[k])); }
+
+let calib = JSON.parse(localStorage.getItem('kw_calib')||'null') || {grid:null,counter:null,result:null};
+function saveCalib(){ localStorage.setItem('kw_calib', JSON.stringify(calib)); updateChips(); }
+
+let settings = JSON.parse(localStorage.getItem('kw_set')||'null') || {handSens:18,beep24:true,fps:6,mults:{},grid:gridMap};
+if(settings.grid) gridMap = settings.grid;
+for(const k of FKEYS) if(settings.mults[k]) FRUITS[k].mult = settings.mults[k];
+function saveSettings(){
+  settings.handSens=+handSens.value; settings.beep24=beep24.checked; settings.fps=+fps.value;
+  settings.grid=gridMap; settings.mults={};
+  for(const k of FKEYS){ const el=document.getElementById('m_'+k); if(el){FRUITS[k].mult=+el.value; settings.mults[k]=+el.value;} }
+  document.querySelectorAll('[data-gcell]').forEach(s=>{ gridMap[+s.dataset.gcell]=s.value; });
+  settings.grid=gridMap;
+  localStorage.setItem('kw_set', JSON.stringify(settings));
+}
+
+/* ================= عناصر ================= */
+const video=document.getElementById('video'), canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+const work=document.createElement('canvas'), wctx=work.getContext('2d',{willReadFrequently:true});
+let stream=null, watching=false, loopTimer=null;
+
+/* ================= المصدر ================= */
+async function setSource(kind){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream = kind==='screen'
+      ? await navigator.mediaDevices.getDisplayMedia({video:{frameRate:15}})
+      : await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}});
+    video.srcObject=stream;
+    await new Promise(r=>video.onloadedmetadata=r);
+    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+    work.width=video.videoWidth; work.height=video.videoHeight;
+    document.getElementById('stageHint').style.display='none';
+    document.getElementById('liveBadge').style.display='block';
+    document.getElementById('btnStart').disabled=false;
+    drawFrame();
+    toast(kind==='screen'?'تم التقاط الشاشة ✅ الآن عاير المناطق الثلاث':'الكاميرا شغالة ✅ ثبّت الجوال وعاير');
+  }catch(e){ toast('تعذّر فتح المصدر: '+e.message); }
+}
+document.getElementById('btnScreen').onclick=()=>setSource('screen');
+document.getElementById('btnCam').onclick=()=>setSource('cam');
+
+/* ================= المعايرة بالرسم ================= */
+let calMode=null, dragStart=null, dragNow=null;
+document.querySelectorAll('[data-cal]').forEach(b=>b.onclick=()=>{
+  if(!stream){toast('شغّل المصدر أولًا');return;}
+  calMode=b.dataset.cal; toast('ارسم مستطيلًا فوق: '+({grid:'شبكة الفواكه كاملة',counter:'شاشة العداد الزرقاء',result:'أول خانة نتيجة (بجانب كلمة النتيجة)'}[calMode]));
+});
+function canvasPos(ev){
+  const r=canvas.getBoundingClientRect();
+  const p=ev.touches?ev.touches[0]:ev;
+  return {x:(p.clientX-r.left)/r.width*canvas.width, y:(p.clientY-r.top)/r.height*canvas.height};
+}
+function dStart(e){ if(!calMode)return; e.preventDefault(); dragStart=canvasPos(e); dragNow=dragStart; }
+function dMove(e){ if(!calMode||!dragStart)return; e.preventDefault(); dragNow=canvasPos(e); }
+function dEnd(e){
+  if(!calMode||!dragStart)return; e.preventDefault();
+  const x=Math.min(dragStart.x,dragNow.x), y=Math.min(dragStart.y,dragNow.y);
+  const w=Math.abs(dragNow.x-dragStart.x), h=Math.abs(dragNow.y-dragStart.y);
+  if(w>10&&h>10){ calib[calMode]={x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)}; saveCalib(); toast('تمت معايرة المنطقة ✅'); }
+  calMode=null; dragStart=null; dragNow=null;
+}
+canvas.addEventListener('mousedown',dStart); canvas.addEventListener('mousemove',dMove); canvas.addEventListener('mouseup',dEnd);
+canvas.addEventListener('touchstart',dStart,{passive:false}); canvas.addEventListener('touchmove',dMove,{passive:false}); canvas.addEventListener('touchend',dEnd,{passive:false});
+function updateChips(){
+  chipGrid.className='calChip'+(calib.grid?' done':''); chipGrid.textContent='شبكة '+(calib.grid?'✅':'⬜');
+  chipCounter.className='calChip'+(calib.counter?' done':''); chipCounter.textContent='عداد '+(calib.counter?'✅':'⬜');
+  chipResult.className='calChip'+(calib.result?' done':''); chipResult.textContent='نتيجة '+(calib.result?'✅':'⬜');
+}
+updateChips();
+
+/* ================= رسم الإطار + التراكب ================= */
+function drawFrame(){
+  if(!stream) return;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const boxes=[['grid','#e8b64c','الشبكة'],['counter','#4ea3ff','العداد'],['result','#c77bff','النتيجة']];
+  for(const [k,c,l] of boxes){ const b=calib[k]; if(!b)continue;
+    ctx.strokeStyle=c; ctx.lineWidth=3; ctx.strokeRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle=c; ctx.font='bold 16px IBM Plex Sans Arabic'; ctx.fillText(l,b.x+6,b.y+20);
+  }
+  if(calib.grid){ // خطوط الخلايا + خلية اليد
+    const g=calib.grid;
+    ctx.strokeStyle='#e8b64c55'; ctx.lineWidth=1;
+    for(let i=1;i<3;i++){ ctx.beginPath();ctx.moveTo(g.x+g.w*i/3,g.y);ctx.lineTo(g.x+g.w*i/3,g.y+g.h);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(g.x,g.y+g.h*i/3);ctx.lineTo(g.x+g.w,g.y+g.h*i/3);ctx.stroke(); }
+    if(lastHand>=0){ const c=cellRect(lastHand);
+      ctx.strokeStyle='#4cd97b'; ctx.lineWidth=4; ctx.strokeRect(c.x,c.y,c.w,c.h); }
+  }
+  if(dragStart&&dragNow){ ctx.strokeStyle='#fff'; ctx.setLineDash([6,4]); ctx.lineWidth=2;
+    ctx.strokeRect(Math.min(dragStart.x,dragNow.x),Math.min(dragStart.y,dragNow.y),Math.abs(dragNow.x-dragStart.x),Math.abs(dragNow.y-dragStart.y));
+    ctx.setLineDash([]); }
+  requestAnimationFrame(drawFrame);
+}
+function cellRect(i){ const g=calib.grid; return {x:g.x+(i%3)*g.w/3, y:g.y+Math.floor(i/3)*g.h/3, w:g.w/3, h:g.h/3}; }
+
+/* ================= قراءة العداد (سبعة قطع) ================= */
+const SEG_MAP={ '1111110':0,'0110000':1,'1101101':2,'1111001':3,'0110011':4,'1011011':5,'1011111':6,'1110000':7,'1111111':8,'1111011':9 };
+function readCounter(){
+  const b=calib.counter; if(!b) return null;
+  wctx.drawImage(video,0,0,work.width,work.height);
+  const d=wctx.getImageData(b.x,b.y,b.w,b.h).data;
+  const W=b.w,H=b.h;
+  const lit=(x,y)=>{ x=Math.round(x);y=Math.round(y); if(x<0||y<0||x>=W||y>=H)return 0;
+    const i=(y*W+x)*4, r=d[i],g=d[i+1],bl=d[i+2];
+    return (r+g>260 && bl<0.75*Math.max(r,g)) ? 1:0; };
+  const litArea=(x0,y0,x1,y1)=>{ let s=0,n=0;
+    for(let y=y0;y<=y1;y+=Math.max(1,(y1-y0)/4)) for(let x=x0;x<=x1;x+=Math.max(1,(x1-x0)/4)){s+=lit(x,y);n++;}
+    return n?s/n:0; };
+  function readDigit(x0,x1){
+    const w=x1-x0, h=H, m=w*0.18;
+    const segs=[
+      litArea(x0+m, h*0.06, x1-m, h*0.16),        // a أعلى
+      litArea(x1-m*1.2, h*0.18, x1-2, h*0.44),    // b يمين-أعلى
+      litArea(x1-m*1.2, h*0.56, x1-2, h*0.82),    // c يمين-أسفل
+      litArea(x0+m, h*0.84, x1-m, h*0.94),        // d أسفل
+      litArea(x0+2, h*0.56, x0+m*1.2, h*0.82),    // e يسار-أسفل
+      litArea(x0+2, h*0.18, x0+m*1.2, h*0.44),    // f يسار-أعلى
+      litArea(x0+m, h*0.44, x1-m, h*0.56)         // g وسط
+    ];
+    const key=segs.map(v=>v>0.35?1:0).join('');
+    return key in SEG_MAP ? SEG_MAP[key] : null;
+  }
+  const d1=readDigit(W*0.06, W*0.48), d2=readDigit(W*0.52, W*0.94);
+  if(d1===null&&d2===null) return null;
+  if(d1===null) return d2;
+  if(d2===null) return d1;
+  return d1*10+d2;
+}
+
+/* ================= كشف اليد 👆 ================= */
+let lastHand=-1;
+function detectHand(){
+  const g=calib.grid; if(!g) return -1;
+  let best=-1, bestScore=0;
+  for(let i=0;i<9;i++){
+    if(i===4) continue;
+    const c=cellRect(i);
+    // اليد تظهر بالربع السفلي-الأيمن من الخلية
+    const rx=Math.round(c.x+c.w*0.45), ry=Math.round(c.y+c.h*0.45);
+    const rw=Math.round(c.w*0.55), rh=Math.round(c.h*0.55);
+    const d=wctx.getImageData(rx,ry,rw,rh).data;
+    let white=0, tot=0;
+    for(let p=0;p<d.length;p+=16){
+      const r=d[p],gg=d[p+1],b=d[p+2];
+      const mx=Math.max(r,gg,b), mn=Math.min(r,gg,b);
+      if(mx>215 && (mx-mn)<45) white++;
+      tot++;
+    }
+    const score=white/tot;
+    if(score>bestScore){bestScore=score;best=i;}
+  }
+  return bestScore*100 >= settings.handSens ? best : -1;
+}
+
+/* ================= تصنيف فاكهة النتيجة ================= */
+function classifyResult(){
+  const b=calib.result; if(!b) return null;
+  const d=wctx.getImageData(b.x,b.y,b.w,b.h).data;
+  const hist=new Array(12).fill(0); let n=0;
+  for(let p=0;p<d.length;p+=8){
+    const r=d[p]/255,g=d[p+1]/255,bl=d[p+2]/255;
+    const mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);
+    const v=mx, s=mx>0?(mx-mn)/mx:0;
+    if(s<0.3||v<0.25) continue; // تجاهل الخلفية الداكنة والذهبية الباهتة
+    let h;
+    if(mx===mn) h=0;
+    else if(mx===r) h=(((g-bl)/(mx-mn))%6)/6;
+    else if(mx===g) h=(((bl-r)/(mx-mn))+2)/6;
+    else h=(((r-g)/(mx-mn))+4)/6;
+    if(h<0)h+=1;
+    hist[Math.min(11,Math.floor(h*12))]++; n++;
+  }
+  if(n<20) return null;
+  for(let i=0;i<12;i++) hist[i]/=n;
+  let best=null,bestSim=-1;
+  for(const k of FKEYS){
+    const s=FRUITS[k].sig;
+    let dot=0,a=0,bb=0;
+    for(let i=0;i<12;i++){dot+=hist[i]*s[i];a+=hist[i]**2;bb+=s[i]**2;}
+    const sim=dot/(Math.sqrt(a*bb)+1e-9);
+    if(sim>bestSim){bestSim=sim;best=k;}
+  }
+  return bestSim>0.55 ? {fruit:best,conf:bestSim} : null;
+}
+
+/* ================= آلة الحالات ================= */
+// waiting24 → captured → awaitResult → (تسجيل) → waiting24
+let phase='waiting24', pending24=null, zeroAt=0, resSamples=[], lastCounterVal=null;
+function tick(){
+  if(!watching||!stream) return;
+  wctx.drawImage(video,0,0,work.width,work.height);
+  const c=readCounter();
+  if(c!==null){ lastCounterVal=c; document.getElementById('vCounter').textContent=String(c).padStart(2,'0'); }
+  lastHand=detectHand();
+
+  if(phase==='waiting24'){
+    if(c!==null && c<=24 && c>=22 && lastHand>=0 && !pending24){
+      const fk=gridMap[lastHand];
+      if(fk){
+        pending24={time:Date.now(), fruit:fk, cell:lastHand, mult:FRUITS[fk].mult, atCounter:c};
+        DB.p24.push(pending24); saveDB(); renderP24();
+        document.getElementById('v24').textContent=FRUITS[fk].e+' ×'+FRUITS[fk].mult;
+        if(settings.beep24) beep();
+        toast('التقاط @'+c+': '+FRUITS[fk].e+' '+FRUITS[fk].ar+' ×'+FRUITS[fk].mult);
+        phase='captured';
+      }
+    }
+    // لو فاتنا 24 ووصلنا للصفر بدون التقاط، ننتقل لانتظار النتيجة على أي حال
+    if(c===0){ zeroAt=Date.now(); resSamples=[]; phase='awaitResult'; }
+  }
+  else if(phase==='captured'){
+    if(c===0 || (c!==null && c<=1)){ zeroAt=Date.now(); resSamples=[]; phase='awaitResult'; }
+    if(c===null && Date.now()-((pending24&&pending24.time)||0)>40000){ phase='awaitResult'; zeroAt=Date.now(); resSamples=[]; }
+  }
+  else if(phase==='awaitResult'){
+    const dt=Date.now()-zeroAt;
+    if(dt>4500){ // بعد انتهاء وميض الفواكه
+      const r=classifyResult();
+      if(r) resSamples.push(r.fruit+'|'+r.conf.toFixed(2));
+      if(resSamples.length>=6 || dt>12000){
+        finalizeRound();
+      }
+    }
+  }
+  loopTimer=setTimeout(tick, 1000/Math.max(2,settings.fps));
+}
+function finalizeRound(){
+  let result=null, conf=0;
+  if(resSamples.length){
+    const cnt={};
+    for(const s of resSamples){ const [f,c]=s.split('|'); cnt[f]=(cnt[f]||0)+1; conf=Math.max(conf,+c); }
+    result=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];
+  }
+  const rec={
+    n: DB.rounds.length+1, time:Date.now(),
+    p24: pending24 ? pending24.fruit : null,
+    mult: pending24 ? pending24.mult : null,
+    result, conf:+conf.toFixed(2),
+    correct: (pending24&&result) ? pending24.fruit===result : null
+  };
+  DB.rounds.push(rec);
+  if(result) DB.results.push({n:DB.results.length+1,time:Date.now(),fruit:result,conf:rec.conf});
+  saveDB();
+  document.getElementById('vRes').textContent = result?FRUITS[result].e:'؟';
+  if(result) toast('النتيجة: '+FRUITS[result].e+' '+FRUITS[result].ar+(rec.correct!==null?(rec.correct?' — صح ✅':' — غلط ❌'):''));
+  renderAll();
+  pending24=null; resSamples=[]; phase='waiting24';
+  document.getElementById('v24').textContent='—';
+}
+
+/* ================= تشغيل/إيقاف ================= */
+document.getElementById('btnStart').onclick=()=>{
+  if(!calib.grid||!calib.counter||!calib.result){toast('أكمل المعايرة الثلاثية أولًا 🎯');return;}
+  watching=true; phase='waiting24'; pending24=null;
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('btnStart').style.display='none';
+  document.getElementById('btnStop').style.display='inline-block';
+  tick(); toast('المراقبة شغالة 👁️');
+};
+document.getElementById('btnStop').onclick=()=>{
+  watching=false; clearTimeout(loopTimer);
+  document.getElementById('statusDot').classList.remove('on');
+  document.getElementById('btnStart').style.display='inline-block';
+  document.getElementById('btnStop').style.display='none';
+};
+
+/* ================= العرض ================= */
+const fmt=t=>new Date(t).toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+function renderRounds(){
+  const tb=document.getElementById('tbRounds'); tb.innerHTML='';
+  [...DB.rounds].reverse().forEach(r=>{
+    const p=r.p24?FRUITS[r.p24]:null, res=r.result?FRUITS[r.result]:null;
+    tb.innerHTML+=`<tr><td>${r.n}</td><td>${fmt(r.time)}</td>
+      <td class="fr">${p?p.e:'—'}</td><td>${r.mult?'×'+r.mult:'—'}</td>
+      <td class="fr">${res?res.e:'؟'}</td>
+      <td>${r.correct===null?'—':(r.correct?'<span class="okTag">صح ✅</span>':'<span class="badTag">غلط ❌</span>')}</td></tr>`;
+  });
+  document.getElementById('emRounds').style.display=DB.rounds.length?'none':'block';
+  const done=DB.rounds.filter(r=>r.correct!==null);
+  const hit=done.filter(r=>r.correct).length;
+  document.getElementById('vAcc').textContent=done.length?Math.round(hit/done.length*100)+'%':'0%';
+}
+function renderP24(){
+  const tb=document.getElementById('tbP24'); tb.innerHTML='';
+  [...DB.p24].reverse().forEach((r,i)=>{
+    tb.innerHTML+=`<tr><td>${DB.p24.length-i}</td><td>${fmt(r.time)}</td>
+      <td class="fr">${FRUITS[r.fruit].e} ${FRUITS[r.fruit].ar}</td><td>${r.cell+1}</td><td>×${r.mult}</td></tr>`;
+  });
+  document.getElementById('emP24').style.display=DB.p24.length?'none':'block';
+}
+function renderResults(){
+  const tb=document.getElementById('tbRes'); tb.innerHTML='';
+  document.getElementById('resStrip').textContent=[...DB.results].reverse().map(r=>FRUITS[r.fruit].e).join(' ');
+  [...DB.results].reverse().forEach(r=>{
+    tb.innerHTML+=`<tr><td>${r.n}</td><td>${fmt(r.time)}</td>
+      <td class="fr">${FRUITS[r.fruit].e} ${FRUITS[r.fruit].ar}</td><td>${Math.round(r.conf*100)}%</td></tr>`;
+  });
+  document.getElementById('emRes').style.display=DB.results.length?'none':'block';
+}
+function renderAbsence(){
+  const g=document.getElementById('absGrid'); g.innerHTML='';
+  const total=DB.results.length;
+  for(const k of FKEYS){
+    const idxs=DB.results.map((r,i)=>r.fruit===k?i:-1).filter(i=>i>=0);
+    const gap = idxs.length ? total-1-idxs[idxs.length-1] : total;
+    // فجوات الغياب التاريخية
+    const gaps=[]; let prev=-1;
+    for(const i of idxs){ gaps.push(i-prev-1); prev=i; }
+    const histStr=gaps.slice(-8).join(',')||'—';
+    g.innerHTML+=`<div class="absCard">
+      <div class="fr">${FRUITS[k].e}</div>
+      <div class="gap ${gap>=15?'hot':''}">${gap}</div>
+      <div class="mini">جولة بدون ظهور</div>
+      <div class="mini">ظهر ${idxs.length} مرة</div>
+      <div class="hist">فجوات: ${histStr}</div>
+    </div>`;
+  }
+}
+function renderStats(){
+  const done=DB.rounds.filter(r=>r.correct!==null), hit=done.filter(r=>r.correct).length;
+  sTotal.textContent=DB.rounds.length; sHit.textContent=hit; sMiss.textContent=done.length-hit;
+  sAcc.textContent=done.length?Math.round(hit/done.length*100)+'%':'0%';
+  const fb=document.getElementById('freqBars'); fb.innerHTML='';
+  const total=DB.results.length||1;
+  for(const k of FKEYS){
+    const c=DB.results.filter(r=>r.fruit===k).length, pct=Math.round(c/total*100);
+    fb.innerHTML+=`<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px">
+      <span style="width:26px" class="fr">${FRUITS[k].e}</span>
+      <div style="flex:1;background:#241a10;border-radius:6px;height:16px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#b57f22,#e8b64c)"></div></div>
+      <span style="width:70px;color:var(--dim);font-size:11px">${c} (${pct}%)</span></div>`;
+  }
+}
+function renderSettings(){
+  const mr=document.getElementById('multRows'); mr.innerHTML='';
+  for(const k of FKEYS){
+    mr.innerHTML+=`<div class="setRow"><span class="fr">${FRUITS[k].e} ${FRUITS[k].ar}</span>
+      <input type="number" id="m_${k}" value="${FRUITS[k].mult}" min="1" max="999" style="width:70px"></div>`;
+  }
+  const gr=document.getElementById('gridRows'); gr.innerHTML='';
+  for(let i=0;i<9;i++){
+    if(i===4){ gr.innerHTML+=`<span style="font-size:11px;color:var(--dim);padding:6px">[عداد]</span>`; continue; }
+    let opts=FKEYS.map(k=>`<option value="${k}" ${gridMap[i]===k?'selected':''}>${FRUITS[k].e}</option>`).join('');
+    gr.innerHTML+=`<select data-gcell="${i}">${opts}</select>`;
+  }
+  handSens.value=settings.handSens; handSensVal.textContent=settings.handSens;
+  handSens.oninput=()=>{handSensVal.textContent=handSens.value;settings.handSens=+handSens.value;};
+  beep24.checked=settings.beep24; fps.value=settings.fps;
+}
+function renderAll(){ renderRounds(); renderP24(); renderResults(); renderAbsence(); renderStats(); }
+
+/* ================= أدوات ================= */
+function exportCSV(which){
+  let rows=[];
+  if(which==='rounds'){ rows=[['#','الوقت','توقع24','المقابل','النتيجة','الحكم']];
+    DB.rounds.forEach(r=>rows.push([r.n,fmt(r.time),r.p24?FRUITS[r.p24].ar:'',r.mult||'',r.result?FRUITS[r.result].ar:'',r.correct===null?'':(r.correct?'صح':'غلط')])); }
+  if(which==='p24'){ rows=[['#','الوقت','الفاكهة','الخلية','المقابل']];
+    DB.p24.forEach((r,i)=>rows.push([i+1,fmt(r.time),FRUITS[r.fruit].ar,r.cell+1,r.mult])); }
+  if(which==='results'){ rows=[['#','الوقت','الفاكهة','الثقة']];
+    DB.results.forEach(r=>rows.push([r.n,fmt(r.time),FRUITS[r.fruit].ar,Math.round(r.conf*100)+'%'])); }
+  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='knz_'+which+'_'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.csv';
+  a.click();
+}
+function clearLog(which){
+  if(!confirm('مسح هذا السجل؟'))return;
+  DB[which]=[]; if(which==='results') DB.rounds=DB.rounds; saveDB(); renderAll();
+}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),3200); }
+let actx=null;
+function beep(){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(),g=actx.createGain(); o.frequency.value=880; o.connect(g); g.connect(actx.destination);
+  g.gain.setValueAtTime(.25,actx.currentTime); g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.35);
+  o.start(); o.stop(actx.currentTime+.35);}catch(e){} }
+
+/* ================= التبويبات ================= */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); document.getElementById('p-'+t.dataset.t).classList.add('active');
+});
+
+renderSettings(); renderAll();
+</script>
+</body>
+</html>
