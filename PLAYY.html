@@ -130,6 +130,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Rubik',sans-serif;min-he
             <div class="bx"><div class="l">العدّاد</div><div class="v" id="cVal2">--</div></div>
           </div>
           <div class="stageMsg" id="playMsg">بانتظار الـ24...</div>
+          <div class="mini" id="dbg" style="text-align:center;margin-top:4px"></div>
           <div class="row" style="margin-top:8px">
             <button class="btn small blue" id="m24Btn">🎯 اختر الـ24</button>
             <button class="btn small gold" id="mResBtn">🆕 اختر النتيجة</button>
@@ -234,6 +235,8 @@ function tplOf(x,y,w,h){const W=work.width,H=work.height;const t=document.create
   const mx=w*W*.12,my=h*H*.12;g.drawImage(work,x*W+mx,y*H+my,w*W-2*mx,h*H-2*my,0,0,VN,VN);
   const d=g.getImageData(0,0,VN,VN).data,v=[];let mr=0,mg=0,mb=0;for(let i=0;i<d.length;i+=4){mr+=d[i];mg+=d[i+1];mb+=d[i+2]}const n=d.length/4;mr/=n;mg/=n;mb/=n;
   for(let i=0;i<d.length;i+=4)v.push(Math.round(d[i]-mr),Math.round(d[i+1]-mg),Math.round(d[i+2]-mb));return v}
+function tplCell(r,c){const cl=cellRect(r,c);return tplOf(cl.x,cl.y,cl.w,cl.h)}
+function tplCell(r,c){const cl=cellRect(r,c);return tplOf(cl.x,cl.y,cl.w,cl.h)}
 function distV(a,b){let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d}return s/a.length}
 function classifyResult(vec){const keys=Object.keys(CFG.resultsDone);if(!keys.length)return null;
   let best=null,bd=1e18,sec=1e18;
@@ -372,13 +375,14 @@ function answerPop(id){
 $('#popSkip').onclick=()=>{grabbed=null;$('#pop').style.display='none';if(fq.length&&fqi<fq.length){fqi++;nextFruit()}};
 
 /* ===== اللوب ===== */
-let curT=null,armed=true,resBuf=[],ctrBuf=[],lastResVec=null,st='idle',t24At=0,baseId=null,baseBuf=[],jump24=false;
+let curT=null,armed=true,resBuf=[],ctrBuf=[],lastResVec=null,st='idle',t24At=0,baseId=null,baseBuf=[],jump24=false,dbgBox='';
 function loop(){if(!running)return;requestAnimationFrame(loop);
   if(video.videoWidth===0)return;work.width=video.videoWidth;work.height=video.videoHeight;wctx.drawImage(video,0,0);
   octx.clearRect(0,0,ovl.width,ovl.height);drawBoxes();
   if(!CFG.gridBox)return;
   const t=readTimer();lastTimerOk=(t!==null);
   const cT=t===null?'--':(t<10?'0'+t:t);$('#cVal').textContent=cT;$('#cVal2').textContent=cT;
+  if(playing)$('#dbg').textContent='عدّاد: '+cT+' · حالة: '+(st==='wait'?'ننتظر النتيجة':'ننتظر 24')+(dbgBox?' · الصندوق: '+dbgBox:'');
 
   if(t!==null){
     if(curT!==null&&t>curT+5){armed=true;if(st==='wait')jump24=true;}
@@ -404,10 +408,11 @@ function loop(){if(!running)return;requestAnimationFrame(loop);
     const vc=tplCell(1,1);let best=null,bd=1e18,sec=1e18;
     for(const id in CFG.fruits){const d=distV(vc,CFG.fruits[id]);if(d<bd){sec=bd;bd=d;best=id}else if(d<sec)sec=d}
     if(best&&bd<450&&(sec-bd)/(sec+1)>0.08){ // فاكهة حقيقية ظهرت بالصندوق وتطابق مرجعنا
+      dbgBox=F[best].name;
       ctrBuf.push(best);if(ctrBuf.length>3)ctrBuf.shift();
       if(ctrBuf.length===3&&ctrBuf.every(x=>x===best))fillResult(best); // ثلاث لقطات = أجزاء من الثانية
-    }else ctrBuf.length=0;
-  }else ctrBuf.length=0;
+    }else{ctrBuf.length=0;dbgBox=''}
+  }else{ctrBuf.length=0;dbgBox=''}
   // المرحلة ٤ + اللعب: النتيجة
   if(CFG.newBox&&(CFG.stage===4||playing)){
     const vec=tplOf(CFG.newBox.x,CFG.newBox.y,CFG.newBox.w,CFG.newBox.h);
