@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صياد الوميض — محلل دوران Fruit Game</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Baloo+Bhaijaan+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1017; --panel:#151a24; --panel2:#1b2230; --line:#2a3347;
+  --gold:#e8b64c; --gold-dim:#8a6d2e; --txt:#e8ecf4; --mut:#8b96ab;
+  --green:#4cd97b; --red:#ff6b6b; --blue:#5aa7ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:"IBM Plex Sans Arabic",sans-serif;min-height:100vh;padding:16px}
+h1{font-family:"Baloo Bhaijaan 2",cursive;font-size:1.6rem;color:var(--gold);letter-spacing:.5px}
+h1 small{font-family:"IBM Plex Sans Arabic";font-size:.8rem;color:var(--mut);font-weight:400;display:block;margin-top:2px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:14px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font-family:inherit;font-weight:700;font-size:.9rem;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;transition:.15s}
+.b-gold{background:var(--gold);color:#1a1508}
+.b-gold:hover{background:#f4c95e}
+.b-ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+.b-ghost:hover{border-color:var(--gold-dim)}
+.b-red{background:#3a1f24;color:var(--red);border:1px solid #5a2c33}
+button:disabled{opacity:.4;cursor:not-allowed}
+.grid2{display:grid;grid-template-columns:1fr 340px;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font-size:.95rem;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel h2::after{content:"";flex:1;height:1px;background:var(--line)}
+#stage{position:relative;background:#000;border-radius:10px;overflow:hidden;min-height:260px}
+#vid{width:100%;display:block}
+#overlay{position:absolute;inset:0;cursor:move}
+.hint{color:var(--mut);font-size:.82rem;line-height:1.7;margin-top:8px}
+.live{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.cell{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 4px;text-align:center;font-size:1.4rem;position:relative;transition:.08s}
+.cell span{display:block;font-size:.65rem;color:var(--mut);margin-top:2px}
+.cell.hot{background:#3a2f12;border-color:var(--gold);box-shadow:0 0 14px #e8b64c66}
+.cell.center{font-family:"Baloo Bhaijaan 2";font-size:1rem;color:var(--blue)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem}
+.stat{background:var(--panel2);border-radius:10px;padding:8px 10px}
+.stat b{color:var(--gold);font-size:1.05rem;display:block}
+.stat i{font-style:normal;color:var(--mut);font-size:.72rem}
+#seq{font-size:1.3rem;letter-spacing:2px;background:var(--panel2);border-radius:10px;padding:8px;min-height:44px;word-break:break-all;direction:ltr;text-align:left}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:500;font-size:.75rem}
+td.f{font-size:1.2rem}
+.bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+#log{max-height:220px;overflow-y:auto}
+.badge{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:.75rem;color:var(--mut)}
+.stop-flash{animation:pop .5s}
+@keyframes pop{0%{transform:scale(1.2);box-shadow:0 0 30px var(--gold)}100%{transform:scale(1)}}
+#verdict{margin-top:10px;padding:10px;border-radius:10px;background:var(--panel2);font-size:.85rem;line-height:1.8;border-right:3px solid var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🎰 صياد الوميض<small>محلل دوران Fruit Game — التقاط مباشر من نافذة LDPlayer</small></h1>
+    <div class="btns">
+      <button class="b-gold" id="btnCap">🖥️ التقاط نافذة LDPlayer</button>
+      <button class="b-ghost" id="btnAn" disabled>▶️ بدء التحليل</button>
+      <button class="b-ghost" id="btnCsv" disabled>⬇️ تصدير CSV</button>
+      <button class="b-red" id="btnClr">مسح السجل</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>المعاينة والمعايرة</h2>
+      <div id="stage">
+        <video id="vid" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <p class="hint">
+        ① اضغط "التقاط نافذة LDPlayer" واختر نافذة المحاكي.
+        ② اسحب الإطار الذهبي وضعه فوق شبكة الفواكه 3×3 بالضبط (اسحب من الوسط للتحريك، ومن الزاوية السفلية اليسرى للتحجيم).
+        ③ اضغط "بدء التحليل" — الأداة تقيس إضاءة كل مربع 60 مرة بالثانية، وتحدد المربع المضيء، وتسجل التوقف تلقائيًا.
+      </p>
+      <div id="verdict">
+        <b style="color:var(--gold)">ملاحظة من تحليل الفيديو المسبق:</b>
+        الدوران ثابت مع عقارب الساعة (🍎→🍉→🍒→🍇→🍍→🥭→🍊→🍌) وبسرعة شبه ثابتة — النتيجة تُحدَّد من السيرفر، والوميض قبل التوقف مجرد أنيميشن. هذه الأداة تخليك تتحقق بنفسك وتوثّق كل جولة.
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>البث الحي</h2>
+      <div class="live" id="live"></div>
+      <div class="stats">
+        <div class="stat"><b id="stDir">—</b><i>اتجاه الدوران</i></div>
+        <div class="stat"><b id="stSpd">—</b><i>خطوة / ثانية</i></div>
+        <div class="stat"><b id="stRounds">0</b><i>جولات مسجلة</i></div>
+        <div class="stat"><b id="stFixed">—</b><i>هل المسار ثابت؟</i></div>
+      </div>
+      <h2 style="margin-top:12px">آخر تسلسل</h2>
+      <div id="seq">—</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>سجل التوقفات (النتائج)</h2>
+      <div id="log"><table id="logT">
+        <thead><tr><th>#</th><th>الوقت</th><th>النتيجة</th><th>عدد الخطوات قبل التوقف</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <h2>تكرار كل فاكهة</h2>
+      <table id="freqT">
+        <thead><tr><th>فاكهة</th><th>مرات</th><th>النسبة</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const FRUITS=[
+ {e:"🍎",n:"تفاح",r:0,c:0},{e:"🍉",n:"بطيخ",r:0,c:1},{e:"🍒",n:"كرز",r:0,c:2},
+ {e:"🍇",n:"عنب",r:1,c:2},{e:"🍍",n:"أناناس",r:2,c:2},{e:"🥭",n:"مانجو",r:2,c:1},
+ {e:"🍊",n:"برتقال",r:2,c:0},{e:"🍌",n:"موز",r:1,c:0}
+];
+// ترتيب المحيط أعلاه = اتجاه عقارب الساعة، الفهرس = موقع بالمحيط
+const vid=document.getElementById('vid'), ov=document.getElementById('overlay'), octx=ov.getContext('2d');
+const proc=document.createElement('canvas'), pctx=proc.getContext('2d',{willReadFrequently:true});
+let stream=null, analyzing=false;
+let box={x:60,y:60,w:220,h:220}; // إطار الشبكة على المعاينة (بإحداثيات الفيديو)
+let rounds=[], seqLive=[], lastHot=-1, lastChange=0, stepTimes=[], dirVotes=[];
+const HIST=90; // نافذة z-score
+let hist=Array.from({length:8},()=>[]);
+
+// خلايا العرض الحي
+const live=document.getElementById('live');
+const cellEls=[];
+const grid=[[0,1,2],[7,-1,3],[6,5,4]]; // فهارس FRUITS حسب الشبكة
+for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+  const d=document.createElement('div');
+  if(r===1&&c===1){d.className='cell center';d.textContent='المؤقّت';}
+  else{const f=FRUITS[grid[r][c]];d.className='cell';d.innerHTML=f.e+'<span>'+f.n+'</span>';cellEls[grid[r][c]]=d;}
+  live.appendChild(d);
+}
+
+document.getElementById('btnCap').onclick=async()=>{
+  try{
+    stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:60},audio:false});
+    vid.srcObject=stream;
+    vid.onloadedmetadata=()=>{
+      ov.width=vid.videoWidth; ov.height=vid.videoHeight;
+      proc.width=vid.videoWidth; proc.height=vid.videoHeight;
+      box={x:vid.videoWidth*0.25,y:vid.videoHeight*0.25,w:vid.videoWidth*0.4,h:vid.videoWidth*0.4};
+      drawOverlay();
+      document.getElementById('btnAn').disabled=false;
+    };
+  }catch(e){alert('لم يتم اختيار نافذة: '+e.message);}
+};
+
+// معايرة الإطار بالسحب
+let drag=null;
+function evPos(e){
+  const r=ov.getBoundingClientRect();
+  const p=e.touches?e.touches[0]:e;
+  return {x:(p.clientX-r.left)*ov.width/r.width, y:(p.clientY-r.top)*ov.height/r.height};
+}
+function down(e){
+  const p=evPos(e);
+  const corner=Math.hypot(p.x-(box.x+box.w),p.y-(box.y+box.h))<25;
+  if(corner)drag={mode:'size'};
+  else if(p.x>box.x&&p.x<box.x+box.w&&p.y>box.y&&p.y<box.y+box.h)drag={mode:'move',dx:p.x-box.x,dy:p.y-box.y};
+  e.preventDefault();
+}
+function move(e){
+  if(!drag)return;
+  const p=evPos(e);
+  if(drag.mode==='move'){box.x=p.x-drag.dx;box.y=p.y-drag.dy;}
+  else{box.w=Math.max(60,p.x-box.x);box.h=Math.max(60,p.y-box.y);}
+  drawOverlay(); e.preventDefault();
+}
+ov.addEventListener('mousedown',down);ov.addEventListener('mousemove',move);
+window.addEventListener('mouseup',()=>drag=null);
+ov.addEventListener('touchstart',down,{passive:false});
+ov.addEventListener('touchmove',move,{passive:false});
+ov.addEventListener('touchend',()=>drag=null);
+
+function cellRect(f){
+  const cw=box.w/3, ch=box.h/3;
+  return {x:box.x+f.c*cw, y:box.y+f.r*ch, w:cw, h:ch};
+}
+function drawOverlay(hot=-1){
+  octx.clearRect(0,0,ov.width,ov.height);
+  octx.strokeStyle='#e8b64c'; octx.lineWidth=2;
+  octx.strokeRect(box.x,box.y,box.w,box.h);
+  for(let i=1;i<3;i++){
+    octx.beginPath();octx.moveTo(box.x+box.w*i/3,box.y);octx.lineTo(box.x+box.w*i/3,box.y+box.h);octx.stroke();
+    octx.beginPath();octx.moveTo(box.x,box.y+box.h*i/3);octx.lineTo(box.x+box.w,box.y+box.h*i/3);octx.stroke();
+  }
+  octx.fillStyle='#e8b64c';octx.beginPath();octx.arc(box.x+box.w,box.y+box.h,10,0,7);octx.fill();
+  if(hot>=0){
+    const r=cellRect(FRUITS[hot]);
+    octx.strokeStyle='#4cd97b';octx.lineWidth=4;
+    octx.strokeRect(r.x+3,r.y+3,r.w-6,r.h-6);
+  }
+}
+
+document.getElementById('btnAn').onclick=function(){
+  analyzing=!analyzing;
+  this.textContent=analyzing?'⏸️ إيقاف التحليل':'▶️ بدء التحليل';
+  if(analyzing){hist=Array.from({length:8},()=>[]);seqLive=[];lastHot=-1;loop();}
+};
+
+function loop(){
+  if(!analyzing)return;
+  if('requestVideoFrameCallback' in vid)vid.requestVideoFrameCallback(analyze);
+  else requestAnimationFrame(()=>analyze(performance.now()));
+}
+function analyze(now){
+  pctx.drawImage(vid,0,0,proc.width,proc.height);
+  const vals=FRUITS.map(f=>{
+    const r=cellRect(f);
+    // عينة من مركز الخلية (ثلث المساحة) لتجنب الحواف
+    const sx=r.x+r.w/3, sy=r.y+r.h/3, sw=r.w/3, sh=r.h/3;
+    const d=pctx.getImageData(sx|0,sy|0,Math.max(2,sw|0),Math.max(2,sh|0)).data;
+    let s=0;for(let i=0;i<d.length;i+=16)s+=d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11;
+    return s/(d.length/16);
+  });
+  // z-score متحرك لكل خلية
+  let best=-1,bz=0;
+  vals.forEach((v,i)=>{
+    const h=hist[i]; h.push(v); if(h.length>HIST)h.shift();
+    if(h.length<15)return;
+    const m=h.reduce((a,b)=>a+b)/h.length;
+    const sd=Math.sqrt(h.reduce((a,b)=>a+(b-m)**2,0)/h.length)+1e-6;
+    const z=(v-m)/sd;
+    if(z>bz){bz=z;best=i;}
+  });
+  const ts=performance.now();
+  if(best>=0&&bz>1.2){
+    cellEls.forEach((el,i)=>el.classList.toggle('hot',i===best));
+    drawOverlay(best);
+    if(best!==lastHot){
+      if(lastHot>=0){
+        const d=((best-lastHot)%8+8)%8;
+        if(d===1||d===2)dirVotes.push(1); else if(d===6||d===7)dirVotes.push(-1);
+        stepTimes.push(ts); if(stepTimes.length>30)stepTimes.shift();
+      }
+      seqLive.push(best); if(seqLive.length>40)seqLive.shift();
+      document.getElementById('seq').textContent=seqLive.map(i=>FRUITS[i].e).join('');
+      lastHot=best; lastChange=ts;
+      updateStats();
+    } else if(ts-lastChange>1200 && seqLive.length>5){
+      // نفس الخلية مضيئة > 1.2 ثانية بعد دوران = توقّف
+      recordStop(best);
+      seqLive=[]; lastChange=ts+99999; // منع التسجيل المتكرر لنفس التوقف
+    }
+  }
+  loop();
+}
+function updateStats(){
+  const cw=dirVotes.filter(v=>v>0).length, ccw=dirVotes.length-cw;
+  document.getElementById('stDir').textContent=dirVotes.length<5?'—':(cw>ccw?'مع عقارب الساعة ↻':'عكس العقارب ↺');
+  if(stepTimes.length>5){
+    const sps=1000*(stepTimes.length-1)/(stepTimes[stepTimes.length-1]-stepTimes[0]);
+    document.getElementById('stSpd').textContent=sps.toFixed(1);
+  }
+  const pct=dirVotes.length?Math.round(100*Math.max(cw,ccw)/dirVotes.length):0;
+  document.getElementById('stFixed').textContent=dirVotes.length<10?'—':(pct>=90?'نعم ثابت ('+pct+'%)':'متذبذب ('+pct+'%)');
+}
+function recordStop(i){
+  const f=FRUITS[i];
+  rounds.push({t:new Date(),fruit:i,steps:seqLive.length});
+  document.getElementById('stRounds').textContent=rounds.length;
+  document.getElementById('btnCsv').disabled=false;
+  cellEls[i].classList.add('stop-flash');
+  setTimeout(()=>cellEls[i].classList.remove('stop-flash'),600);
+  const tb=document.querySelector('#logT tbody');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${rounds.length}</td><td>${rounds[rounds.length-1].t.toLocaleTimeString('ar-SA')}</td><td class="f">${f.e} ${f.n}</td><td>${seqLive.length}</td>`;
+  tb.prepend(tr);
+  renderFreq();
+  // السماح بجولة جديدة بعد ثانيتين
+  setTimeout(()=>{lastChange=performance.now();lastHot=-1;},2000);
+}
+function renderFreq(){
+  const cnt=Array(8).fill(0); rounds.forEach(r=>cnt[r.fruit]++);
+  const tot=rounds.length||1, mx=Math.max(...cnt,1);
+  const tb=document.querySelector('#freqT tbody'); tb.innerHTML='';
+  FRUITS.map((f,i)=>({f,i,c:cnt[i]})).sort((a,b)=>b.c-a.c).forEach(({f,c})=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="f">${f.e}</td><td>${c}</td><td>${Math.round(100*c/tot)}%</td>
+      <td style="width:40%"><div class="bar"><i style="width:${100*c/mx}%"></i></div></td>`;
+    tb.appendChild(tr);
+  });
+}
+document.getElementById('btnCsv').onclick=()=>{
+  let csv='round,time,fruit,steps\n';
+  rounds.forEach((r,i)=>csv+=`${i+1},${r.t.toISOString()},${FRUITS[r.fruit].n},${r.steps}\n`);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));
+  a.download='fruit_game_rounds.csv'; a.click();
+};
+document.getElementById('btnClr').onclick=()=>{
+  rounds=[];dirVotes=[];stepTimes=[];
+  document.querySelector('#logT tbody').innerHTML='';
+  document.querySelector('#freqT tbody').innerHTML='';
+  document.getElementById('stRounds').textContent='0';
+  document.getElementById('seq').textContent='—';
+};
+</script>
+</body>
+</html>
