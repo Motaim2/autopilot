@@ -28,7 +28,9 @@
   .appbar h1{font-size:16px;margin:0;color:var(--pg-ink);font-weight:800}
   .appbar p{margin:1px 0 0;font-size:11px;color:var(--pg-muted)}
 
-  .tabbar{position:fixed;bottom:0;right:0;left:0;max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);gap:5px;background:#fff;border-top:1px solid rgba(23,32,43,.07);z-index:40;padding:7px 7px calc(7px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(23,32,43,.08)}
+  .tabbar{position:fixed;bottom:0;right:0;left:0;max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr);gap:5px;background:#fff;border-top:1px solid rgba(23,32,43,.07);z-index:40;padding:7px 7px calc(7px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(23,32,43,.08);transition:transform .25s ease;overflow:visible}
+.tabbar.hid{transform:translateY(100%)}
+.tbhandle{position:absolute;top:-19px;left:50%;transform:translateX(-50%);width:60px;height:20px;background:#fff;border:1px solid rgba(23,32,43,.1);border-bottom:none;border-radius:11px 11px 0 0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#7c8aa0;box-shadow:0 -5px 12px rgba(23,32,43,.07);cursor:pointer}
   .tabbar .tb{text-align:center;padding:7px 1px 8px;color:#2d3743;font-size:8.5px;font-weight:800;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;-webkit-user-select:none;border-radius:12px;border:1.5px solid rgba(23,32,43,.08);box-shadow:0 2px 0 rgba(23,32,43,.14);transition:transform .08s,box-shadow .08s}
 .tb:active{transform:translateY(2px) scale(.96);box-shadow:0 0 0 rgba(23,32,43,.14)}
 .tb.drag{opacity:.45;transform:scale(1.14);transition:transform .1s}
@@ -946,6 +948,7 @@
 
 <!-- شريط التبويبات -->
 <div class="tabbar">
+  <div class="tbhandle" id="tb_handle" onclick="tabBarTog()">&#9660;</div>
   <div class="tb" data-p="pane11" onclick="switchTab('pane11',this)" style="background:#FFE3B3"><span class="i">&#129517;</span>خطة</div>
   <div class="tb" data-p="pane10" onclick="switchTab('pane10',this)" style="background:#C9E7FF"><span class="i">&#128193;</span>ملفات</div>
   <div class="tb" data-p="pane13" onclick="switchTab('pane13',this)" style="background:#E4D9FF"><span class="i">&#127916;</span>سيناريو</div>
@@ -1540,8 +1543,15 @@ function sumArr(a){ var t=0; for(var i=0;i<a.length;i++){ t+=a[i]; } return t; }
 function logAct(icon,txt){ if(!S.log)S.log=[]; S.log.unshift({t:icon,x:txt}); if(S.log.length>200)S.log.pop(); }
 
 /* ===== التبويبات ===== */
+function tabBarTog(){ var bar=document.querySelector(".tabbar"); if(!bar)return;
+  var hid=!(S.tabHide||0);
+  S.tabHide=hid?1:0; save();
+  if(hid)bar.classList.add("hid"); else bar.classList.remove("hid");
+  var hd=$("tb_handle"); if(hd)hd.textContent=hid?"\u25B2":"\u25BC";
+}
 function tabDragInit(){
   var bar=document.querySelector(".tabbar"); if(!bar||bar._dragInit)return; bar._dragInit=1;
+  if(S.tabHide){ bar.classList.add("hid"); var hd0=$("tb_handle"); if(hd0)hd0.textContent="\u25B2"; }
   if(S.tabOrder&&S.tabOrder.length){
     for(var i=0;i<S.tabOrder.length;i++){
       var el0=bar.querySelector('.tb[data-p="'+S.tabOrder[i]+'"]');
