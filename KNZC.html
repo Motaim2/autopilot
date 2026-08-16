@@ -927,13 +927,28 @@
     <div class="s" id="sn_sub"></div>
   </div>
   <div class="stage stg-log">
-    <h2>&#127899; التحكم — كل شي من هنا</h2>
+    <h2 onclick="snCtlTog()" style="cursor:pointer">&#127899; التحكم <span style="font-size:9.5px;color:var(--muted)">— اضغط للطي</span> <span id="sn_ctlArw" style="float:left;font-size:10px;opacity:.6">&#9660;</span></h2>
+    <div id="sn_ctlWrap">
     <div class="inrow" style="margin-top:7px"><input id="sn_new" type="text" placeholder="اسم مجموعة جديدة"><button class="btn gold sm" onclick="snAdd()">+ مجموعة</button></div>
     <div class="chips" id="sn_gsel" style="margin-top:7px"></div>
     <div id="sn_ctl"></div>
+    </div>
   </div>
   <input type="file" id="sn_xl" accept=".xlsx,.xls,.csv" style="display:none" onchange="snXlImport(this)">
   <div id="sn_list"></div>
+</div>
+<div class="pane" id="pane16">
+  <div class="hero">
+    <div class="l">رصيد الشحن</div>
+    <div class="big2" id="sh_tot">0</div>
+    <div class="s" id="sh_sub"></div>
+  </div>
+  <div class="stage stg-ship">
+    <h2>&#128230; ملف الشحن (XL)</h2>
+    <input type="file" id="sh_file" accept=".xlsx,.xls,.csv" onchange="shImport(this)" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div class="note" style="margin-top:5px">الأعمدة: آيدي · الاسم/الكنية · الكونز · التاريخ والوقت — كل صف شحنة، والرفع الجديد يحدّث ويحفظ تصنيفاتك</div>
+  </div>
+  <div id="sh_list"></div>
 </div>
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
@@ -961,6 +976,7 @@
   <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)" style="background:#F9D5D3"><span class="i">&#127919;</span>تارقت</div>
   <div class="tb" data-p="pane5" onclick="switchTab('pane5',this)" style="background:#DCF5C2"><span class="i">&#128176;</span>الرواتب</div>
   <div class="tb" data-p="pane15" onclick="switchTab('pane15',this)" style="background:#D6EFE0"><span class="i">&#128181;</span>مجاميع</div>
+  <div class="tb" data-p="pane16" onclick="switchTab('pane16',this)" style="background:#FFDCC2"><span class="i">&#128230;</span>رصيد الشحن</div>
   <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)" style="background:#E0E7FF"><span class="i">&#10067;</span>نسبة</div>
   <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)" style="background:#FCE1F0"><span class="i">&#128101;</span>أشخاص</div>
   <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)" style="background:#FFF0C2"><span class="i">&#128276;</span>تنبيهات</div>
@@ -2891,9 +2907,11 @@ function flSendToSn(useNew){
     if(!FL.selIds[q9.id])continue;
     var ex=null;
     for(var e9=0;e9<g.ents.length;e9++){ if(g.ents[e9].id===q9.id)ex=g.ents[e9]; }
-    if(!ex){ ex={id:q9.id,kn:"",jz:0,al:0,wk:0,mic:0}; g.ents.push(ex); }
+    if(!ex){ ex={id:q9.id,kn:"",jz:0,al:0,wkp:0,mic:0}; g.ents.push(ex); }
     ex.kn=q9.kn||q9.name||ex.kn;
-    ex.jz=q9.jzSal||0; ex.al=q9.almS||0; ex.wk=q9.wkEff||0;
+    ex.jz=q9.jzSal||0; ex.al=q9.almS||0;
+    var bs9=(ex.jz+ex.al);
+    ex.wkp=bs9>0?Math.round((q9.wkEff||0)/bs9*1000)/10:0;
     n++; }
   if(!n){ alert("حدد صفوف أول."); return; }
   g.open=true;
@@ -2924,14 +2942,117 @@ function flSalEdit(id,el){ if(!FL.salOv)FL.salOv={}; var v=num(el.id); FL.salOv[
 function flHide(id){ if(!FL.hidden)FL.hidden={}; FL.hidden[id]=!FL.hidden[id]; flRenderResults(); }
 function flSalOf(id){ if(FL.salOv&&FL.salOv[id]!==undefined)return FL.salOv[id]; if(FL.res.salMap&&FL.res.salMap[id]!==undefined)return FL.res.salMap[id]; return FL.res.sal; }
 var NI_SEL={};
+function shInit(){ if(!S.sh)S.sh={ppl:[]}; if(!S.sh.ppl)S.sh.ppl=[]; return S.sh; }
+function shDate(v){
+  if(typeof v==="number"&&v>20000&&v<80000){
+    var d=new Date(Math.round((v-25569)*86400*1000));
+    var p2=function(x){return (x<10?"0":"")+x;};
+    return d.getUTCFullYear()+"/"+p2(d.getUTCMonth()+1)+"/"+p2(d.getUTCDate())+" "+p2(d.getUTCHours())+":"+p2(d.getUTCMinutes());
+  }
+  return String(v).trim();
+}
+function shImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
+  if(typeof XLSX==="undefined"){ alert("قراءة XL تحتاج إنترنت."); return; }
+  var rd=new FileReader();
+  rd.onload=function(ev){ try{
+    var wb=XLSX.read(ev.target.result,{type:"array"});
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""}).filter(function(r){return r.join("").trim()!=="";});
+    if(rows.length<2){ alert("الملف فاضي."); return; }
+    var hd=rows[0].map(function(x){return String(x);});
+    function fc(re){ for(var i=0;i<hd.length;i++){ if(re.test(hd[i]))return i; } return -1; }
+    var cId=fc(/آيدي|ايدي|معرف|id/i), cNm=fc(/اسم|كنية|كنيه|name|لقب/i),
+        cKz=fc(/كونز|شحن|مبلغ|عدد|konz|coin/i), cDt=fc(/تاريخ|وقت|date|time/i);
+    if(cKz<0){ alert("ما لقيت عمود الكونز/الشحن."); return; }
+    var old=shInit().ppl, oldT={};
+    for(var o9=0;o9<old.length;o9++){ var op=old[o9]; var m9={};
+      for(var s9=0;s9<op.ships.length;s9++){ var k9=op.ships[s9].d+"|"+op.ships[s9].v;
+        (m9[k9]=m9[k9]||[]).push(op.ships[s9].t); }
+      oldT[op.id||op.name]=m9; }
+    var ppl=[], idx={};
+    for(var r=1;r<rows.length;r++){ var rw=rows[r];
+      var v=+String(rw[cKz]).replace(/[\u060C,\s]/g,"")||0; if(!v)continue;
+      var pid=cId>=0?String(rw[cId]).trim():"";
+      var nm=cNm>=0?String(rw[cNm]).trim():"";
+      var key=pid||nm||"?";
+      var pp=idx[key];
+      if(!pp){ pp={id:pid,name:nm||pid||"بدون اسم",open:false,dopen:false,ships:[]}; idx[key]=pp; ppl.push(pp); }
+      if(!pp.name&&nm)pp.name=nm;
+      var dt=cDt>=0?shDate(rw[cDt]):"";
+      var t=0, om=oldT[key];
+      if(om&&om[dt+"|"+v]&&om[dt+"|"+v].length)t=om[dt+"|"+v].shift()||0;
+      pp.ships.push({d:dt,v:v,t:t});
+    }
+    S.sh.ppl=ppl;
+    save(); render();
+    alert("\u2713 انرفع الملف: "+ppl.length+" شخص.");
+  }catch(e){ alert("تعذرت قراءة الملف."); }
+  inp.value=""; };
+  rd.readAsArrayBuffer(f); }
+function shSums(pp){ var a={tot:0,tq:0,lb:0,un:0};
+  for(var i=0;i<pp.ships.length;i++){ var sp=pp.ships[i]; a.tot+=sp.v;
+    if(sp.t===1)a.tq+=sp.v; else if(sp.t===2)a.lb+=sp.v; else a.un+=sp.v; }
+  return a; }
+function shTog(i){ var H=shInit(); H.ppl[i].open=!H.ppl[i].open; save(); render(); }
+function shDTog(i){ var H=shInit(); H.ppl[i].dopen=!H.ppl[i].dopen; save(); render(); }
+function shCycle(i,j){ var H=shInit(); var sp=H.ppl[i].ships[j];
+  sp.t=((sp.t||0)+1)%3;
+  save(); render(); }
+function renderSh(){ var el=$("sh_list"); if(!el)return;
+  var H=shInit(); var c=cfg();
+  var h=''; var tot=0, nships=0;
+  for(var i=0;i<H.ppl.length;i++){ var pp=H.ppl[i]; var col=SN_COLS[i%SN_COLS.length];
+    var a=shSums(pp); tot+=a.tot; nships+=pp.ships.length;
+    h+='<div style="background:'+col+';border-radius:14px;margin:0 10px 9px;box-shadow:0 2.5px 0 rgba(23,32,43,.18);color:#22303e;overflow:hidden">';
+    h+='<div onclick="shTog('+i+')" style="display:flex;align-items:center;gap:7px;padding:12px 13px;cursor:pointer">'
+      +'<span style="font-size:14.5px;font-weight:900;font-variant-numeric:tabular-nums">'+fmt(a.tot)+'</span>'
+      +'<span style="font-size:11px;font-weight:900;color:#1f7a4d">$'+fmt(Math.round(a.tot/c.rateBuy))+'</span>'
+      +'<span style="flex:1"></span>'
+      +'<span style="font-size:13px;font-weight:900">'+pp.name+'</span>'
+      +'<span style="font-size:11px;opacity:.6;transform:rotate('+(pp.open?'180':'0')+'deg)">\u25BC</span>'
+      +'</div>';
+    if(pp.open){
+      h+='<div style="background:rgba(255,255,255,.5);padding:8px 9px 10px">';
+      h+='<div onclick="shDTog('+i+')" style="cursor:pointer;background:rgba(255,255,255,.6);border-radius:10px;padding:7px 6px">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr'+(a.un?' 1fr':'')+';gap:3px">'
+        +'<div style="font-size:8px;font-weight:800;opacity:.5;text-align:center">شحن تقفيل</div>'
+        +'<div style="font-size:8px;font-weight:800;opacity:.5;text-align:center">شحن لعب</div>'
+        +(a.un?'<div style="font-size:8px;font-weight:800;opacity:.5;text-align:center">غير مصنف</div>':'')
+        +'<div style="font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center">'+fmt(a.tq)+'</div>'
+        +'<div style="font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center">'+fmt(a.lb)+'</div>'
+        +(a.un?'<div style="font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center;opacity:.6">'+fmt(a.un)+'</div>':'')
+        +'</div>'
+        +'<div style="text-align:center;font-size:8px;opacity:.45;margin-top:3px">تفصيل الشحنات ('+pp.ships.length+') '+(pp.dopen?'\u25B2':'\u25BC')+'</div>'
+        +'</div>';
+      if(pp.dopen){
+        for(var j=0;j<pp.ships.length;j++){ var sp=pp.ships[j];
+          var tCol=sp.t===1?"#2f9e63":(sp.t===2?"#2f6fb3":"#8a8f98");
+          var tNm=sp.t===1?"تقفيل":(sp.t===2?"لعب":"صنّفها");
+          h+='<div onclick="shCycle('+i+','+j+')" style="display:flex;align-items:center;gap:7px;padding:7px 8px;margin-top:4px;background:rgba(255,255,255,.72);border-radius:9px;cursor:pointer">'
+            +'<span style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums">'+fmt(sp.v)+'</span>'
+            +'<span style="flex:1"></span>'
+            +'<span style="font-size:9.5px;font-weight:700;opacity:.6;direction:ltr">'+(sp.d||"\u2014")+'</span>'
+            +'<span style="font-size:9px;font-weight:900;color:#fff;background:'+tCol+';border-radius:7px;padding:3px 9px">'+tNm+'</span>'
+            +'</div>'; }
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h||'<div class="empty" style="padding:14px">ارفع ملف الشحن من فوق</div>';
+  if($("sh_tot"))$("sh_tot").textContent=fmt(tot);
+  if($("sh_sub"))$("sh_sub").textContent="$"+fmt(Math.round(tot/c.rateBuy))+" \u00B7 "+H.ppl.length+" شخص \u00B7 "+nships+" شحنة";
+}
 var SN_COLS=["#FFE3B3","#C9E7FF","#E4D9FF","#FFD6E4","#CFF3DD","#FFF3B0","#FFE0C7","#D6EFE0","#F9D5D3","#E0E7FF"];
 var SN_SEL=0, SN_EDIT=null;
-var SN_FLDS=[["id","آيدي"],["kn","الكنية"],["jz","الجاذبية"],["al","الألماس"],["wk","الوكيل"],["mic","مايك"]];
+var SN_FLDS=[["id","آيدي"],["kn","الكنية"],["jz","الجاذبية"],["al","الألماس"],["wkp","الوكيل %"],["mic","مايك"]];
 function snInit(){ if(!S.sn)S.sn={grps:[]}; if(!S.sn.grps)S.sn.grps=[];
   for(var g=0;g<S.sn.grps.length;g++){ var es=S.sn.grps[g].ents;
-    for(var j=0;j<es.length;j++){ if(es[j].kn===undefined){ es[j]={id:"",kn:es[j].n||"",jz:+es[j].v||0,al:0,wk:0,mic:0}; } } }
+    for(var j=0;j<es.length;j++){ if(es[j].kn===undefined){ es[j]={id:"",kn:es[j].n||"",jz:+es[j].v||0,al:0,wkp:0,mic:0}; }
+      if(es[j].wkp===undefined){ var b9=(+es[j].jz||0)+(+es[j].al||0);
+        es[j].wkp=b9>0?Math.round((+es[j].wk||0)/b9*1000)/10:0; delete es[j].wk; } } }
   return S.sn; }
-function snEntSum(e){ return (+e.jz||0)+(+e.al||0)+(+e.wk||0)+(+e.mic||0); }
+function snWkAmt(e){ return Math.round(((+e.jz||0)+(+e.al||0))*(+e.wkp||0)/100); }
+function snEntSum(e){ return (+e.jz||0)+(+e.al||0)+snWkAmt(e)+(+e.mic||0); }
 function snSum(g){ var t=0; for(var i=0;i<g.ents.length;i++)t+=snEntSum(g.ents[i]); return t; }
 function snAdd(){ var N=snInit();
   var nm=($("sn_new").value||"").trim();
@@ -2940,6 +3061,7 @@ function snAdd(){ var N=snInit();
   SN_SEL=0; SN_EDIT=null;
   $("sn_new").value="";
   save(); render(); }
+function snCtlTog(){ S.snCtl=S.snCtl?0:1; save(); render(); }
 function snSel(i){ SN_SEL=i; SN_EDIT=null; render(); }
 function snColor(ci){ var N=snInit(); if(!N.grps[SN_SEL])return;
   N.grps[SN_SEL].ci=ci; save(); render(); }
@@ -2955,7 +3077,7 @@ function snEntAdd(){ var N=snInit(); var g=N.grps[SN_SEL];
   var nm=($("sn_n")?$("sn_n").value:"").trim();
   var v=num("sn_v");
   if(!nm&&!v){ alert("اكتب الاسم والراتب."); return; }
-  g.ents.push({id:"",kn:nm||"بدون اسم",jz:v,al:0,wk:0,mic:0});
+  g.ents.push({id:"",kn:nm||"بدون اسم",jz:v,al:0,wkp:0,mic:0});
   g.open=true;
   if($("sn_n"))$("sn_n").value="";
   if($("sn_v"))$("sn_v").value="";
@@ -2968,7 +3090,7 @@ function snRowSave(){ if(!SN_EDIT)return; var N=snInit();
   var e=g.ents[SN_EDIT.j]; if(!e)return;
   e.id=($("sn_e_id")?$("sn_e_id").value:"").trim();
   e.kn=($("sn_e_kn")?$("sn_e_kn").value:"").trim();
-  e.jz=num("sn_e_jz"); e.al=num("sn_e_al"); e.wk=num("sn_e_wk"); e.mic=num("sn_e_mic");
+  e.jz=num("sn_e_jz"); e.al=num("sn_e_al"); e.wkp=num2(($("sn_e_wk")?$("sn_e_wk").value:"0")); e.mic=num("sn_e_mic");
   SN_EDIT=null; save(); render(); }
 function snRowDel(){ if(!SN_EDIT)return; var i=SN_EDIT.i,j=SN_EDIT.j; SN_SEL=i; SN_EDIT=null;
   var N=snInit(); N.grps[i].ents.splice(j,1); save(); render(); }
@@ -2989,7 +3111,7 @@ function snXlImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
       ents.push({id:cId>=0?String(rw[cId]).trim():"",kn:cKn>=0?String(rw[cKn]).trim():"",
         jz:cJz>=0?(+String(rw[cJz]).replace(/[\u060C,\s]/g,"")||0):0,
         al:cAl>=0?(+String(rw[cAl]).replace(/[\u060C,\s]/g,"")||0):0,
-        wk:cWk>=0?(+String(rw[cWk]).replace(/[\u060C,\s]/g,"")||0):0,
+        wkp:cWk>=0?(+String(rw[cWk]).replace(/[\u060C,%\s]/g,"")||0):0,
         mic:cMic>=0?(+String(rw[cMic]).replace(/[\u060C,\s]/g,"")||0):0}); }
     var N=snInit();
     var nm=String(f.name||"مجموعة XL").replace(/\.(xlsx|xls|csv)$/i,"");
@@ -3001,6 +3123,9 @@ function snXlImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
   rd.readAsArrayBuffer(f); }
 function renderSalNotes(){ var el=$("sn_list"); if(!el)return;
   var N=snInit();
+  var cw=$("sn_ctlWrap"), ca=$("sn_ctlArw");
+  if(cw)cw.style.display=S.snCtl?"none":"";
+  if(ca)ca.innerHTML=S.snCtl?"\u25B2":"\u25BC";
   if(SN_SEL>=N.grps.length)SN_SEL=0;
   var gs=$("sn_gsel");
   if(gs){ var gh='';
@@ -3046,7 +3171,7 @@ function renderSalNotes(){ var el=$("sn_list"); if(!el)return;
             +'<input id="sn_e_kn" value="'+String(en.kn).replace(/"/g,"&quot;")+'" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
             +'<input id="sn_e_jz" value="'+(en.jz||"")+'" inputmode="decimal" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
             +'<input id="sn_e_al" value="'+(en.al||"")+'" inputmode="decimal" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
-            +'<input id="sn_e_wk" value="'+(en.wk||"")+'" inputmode="decimal" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
+            +'<input id="sn_e_wk" value="'+(en.wkp||"")+'" inputmode="decimal" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
             +'<input id="sn_e_mic" value="'+(en.mic||"")+'" inputmode="decimal" style="background:rgba(0,0,0,.06);border:none;border-radius:6px;padding:6px 3px;font-size:10px;text-align:center;outline:none;color:#22303e">'
             +'</div>'
             +'<div style="display:flex;gap:6px;margin-top:6px">'
@@ -3060,7 +3185,7 @@ function renderSalNotes(){ var el=$("sn_list"); if(!el)return;
             +'<div style="font-size:10.5px;font-weight:800;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(en.kn||"\u2014")+'</div>'
             +'<div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center">'+fmt(en.jz||0)+'</div>'
             +'<div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center;opacity:.85">'+fmt(en.al||0)+'</div>'
-            +'<div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center;opacity:.85">'+fmt(en.wk||0)+'</div>'
+            +'<div style="text-align:center"><div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums">'+(+en.wkp||0)+'%</div><div style="font-size:8px;font-weight:700;opacity:.5;font-variant-numeric:tabular-nums">'+fmt(snWkAmt(en))+'</div></div>'
             +'<div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;text-align:center;opacity:.85">'+fmt(en.mic||0)+'</div>'
             +'</div>';
         }
@@ -4041,6 +4166,7 @@ function render(){
     }
   }
   if($("sn_list")) renderSalNotes();
+  if($("sh_list")) renderSh();
   if($("fl_sess")){ flSessRender(); flHideInit(); flApplyHide(); }
   if($("sc_net")) renderSc();
   if($("du_trecv")) renderDuo();
