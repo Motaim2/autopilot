@@ -2949,7 +2949,11 @@ function shDate(v){
     var p2=function(x){return (x<10?"0":"")+x;};
     return d.getUTCFullYear()+"/"+p2(d.getUTCMonth()+1)+"/"+p2(d.getUTCDate())+" "+p2(d.getUTCHours())+":"+p2(d.getUTCMinutes());
   }
-  return String(v).trim();
+  var t=String(v).trim();
+  t=t.replace("T"," ");
+  var m=t.match(/^(\d{4})[-\/](\d{2})[-\/](\d{2})[ ]+(\d{2}):(\d{2})/);
+  if(m)return m[1]+"/"+m[2]+"/"+m[3]+" "+m[4]+":"+m[5];
+  return t;
 }
 function shImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
   if(typeof XLSX==="undefined"){ alert("قراءة XL تحتاج إنترنت."); return; }
@@ -2960,9 +2964,11 @@ function shImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
     if(rows.length<2){ alert("الملف فاضي."); return; }
     var hd=rows[0].map(function(x){return String(x);});
     function fc(re){ for(var i=0;i<hd.length;i++){ if(re.test(hd[i]))return i; } return -1; }
-    var cId=fc(/آيدي|ايدي|معرف|id/i), cNm=fc(/اسم|كنية|كنيه|name|لقب/i),
-        cKz=fc(/كونز|شحن|مبلغ|عدد|konz|coin/i), cDt=fc(/تاريخ|وقت|date|time/i);
-    if(cKz<0){ alert("ما لقيت عمود الكونز/الشحن."); return; }
+    var cId=fc(/آيدي|ايدي|معرف|id|号/i), cNm=fc(/اسم|كنية|كنيه|name|لقب|昵称/i),
+        cKz=fc(/كونز|شحن|مبلغ|عدد|konz|coin|金币/i), cDt=fc(/تاريخ|وقت|date|time|时间/i);
+    /* الافتراضي حسب ترتيب ملف الشحن: A آيدي \u00B7 B الاسم \u00B7 D الكونز \u00B7 E الوقت */
+    if(cId<0)cId=0; if(cNm<0)cNm=1; if(cKz<0)cKz=3; if(cDt<0)cDt=4;
+    if(hd.length<=cKz){ alert("الملف ما فيه عمود الكونز (D)."); return; }
     var old=shInit().ppl, oldT={};
     for(var o9=0;o9<old.length;o9++){ var op=old[o9]; var m9={};
       for(var s9=0;s9<op.ships.length;s9++){ var k9=op.ships[s9].d+"|"+op.ships[s9].v;
