@@ -918,6 +918,20 @@
   <div class="resetbar"><button class="resetBtn" data-r="duo" onclick="doReset('duo',this)">تصفير الثنائي كامل</button></div>
 </div>
 
+<div class="pane" id="pane15">
+  <div class="hero">
+    <div class="l">مجاميع الرواتب</div>
+    <div class="big2" id="sn_tot">$0</div>
+    <div class="s" id="sn_sub"></div>
+  </div>
+  <div class="stage stg-log">
+    <h2>&#127899; التحكم — كل شي من هنا</h2>
+    <div class="inrow" style="margin-top:7px"><input id="sn_new" type="text" placeholder="اسم مجموعة جديدة"><button class="btn gold sm" onclick="snAdd()">+ مجموعة</button></div>
+    <div class="chips" id="sn_gsel" style="margin-top:7px"></div>
+    <div id="sn_ctl"></div>
+  </div>
+  <div id="sn_list"></div>
+</div>
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
 <canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
@@ -942,6 +956,7 @@
   <div class="tb" data-p="pane3" onclick="switchTab('pane3',this)" style="background:#FFE0C7"><span class="i">&#128273;</span>فك وكاس</div>
   <div class="tb" data-p="pane8" onclick="switchTab('pane8',this)" style="background:#F9D5D3"><span class="i">&#127919;</span>تارقت</div>
   <div class="tb" data-p="pane5" onclick="switchTab('pane5',this)" style="background:#DCF5C2"><span class="i">&#128176;</span>الرواتب</div>
+  <div class="tb" data-p="pane15" onclick="switchTab('pane15',this)" style="background:#D6EFE0"><span class="i">&#128181;</span>مجاميع</div>
   <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)" style="background:#E0E7FF"><span class="i">&#10067;</span>نسبة</div>
   <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)" style="background:#FCE1F0"><span class="i">&#128101;</span>أشخاص</div>
   <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)" style="background:#FFF0C2"><span class="i">&#128276;</span>تنبيهات</div>
@@ -2872,6 +2887,89 @@ function flSalEdit(id,el){ if(!FL.salOv)FL.salOv={}; var v=num(el.id); FL.salOv[
 function flHide(id){ if(!FL.hidden)FL.hidden={}; FL.hidden[id]=!FL.hidden[id]; flRenderResults(); }
 function flSalOf(id){ if(FL.salOv&&FL.salOv[id]!==undefined)return FL.salOv[id]; if(FL.res.salMap&&FL.res.salMap[id]!==undefined)return FL.res.salMap[id]; return FL.res.sal; }
 var NI_SEL={};
+var SN_COLS=["#FFE3B3","#C9E7FF","#E4D9FF","#FFD6E4","#CFF3DD","#FFF3B0","#FFE0C7","#D6EFE0","#F9D5D3","#E0E7FF"];
+var SN_SEL=0;
+function snInit(){ if(!S.sn)S.sn={grps:[]}; if(!S.sn.grps)S.sn.grps=[]; return S.sn; }
+function snAdd(){ var N=snInit();
+  var nm=($("sn_new").value||"").trim();
+  if(!nm){ alert("اكتب اسم المجموعة."); return; }
+  N.grps.unshift({id:Date.now(),name:nm,open:true,ci:N.grps.length%SN_COLS.length,ents:[]});
+  SN_SEL=0;
+  $("sn_new").value="";
+  save(); render(); }
+function snSel(i){ SN_SEL=i; render(); }
+function snColor(ci){ var N=snInit(); if(!N.grps[SN_SEL])return;
+  N.grps[SN_SEL].ci=ci; save(); render(); }
+function snRen(){ var N=snInit(); var g=N.grps[SN_SEL]; if(!g)return;
+  var v=prompt("الاسم الجديد:",g.name);
+  if(v===null)return; v=String(v).trim(); if(!v)return;
+  g.name=v; save(); render(); }
+function snDel(){ var N=snInit(); var g=N.grps[SN_SEL]; if(!g)return;
+  if(!confirm("حذف \u00AB"+g.name+"\u00BB بكل أسمائه؟"))return;
+  N.grps.splice(SN_SEL,1); SN_SEL=0; save(); render(); }
+function snEntAdd(){ var N=snInit(); var g=N.grps[SN_SEL];
+  if(!g){ alert("أنشئ أو اختر مجموعة أول."); return; }
+  var nm=($("sn_n")?$("sn_n").value:"").trim();
+  var v=num("sn_v");
+  if(!nm&&!v){ alert("اكتب الاسم والراتب."); return; }
+  g.ents.push({n:nm||"بدون اسم",v:v});
+  g.open=true;
+  if($("sn_n"))$("sn_n").value="";
+  if($("sn_v"))$("sn_v").value="";
+  save(); render(); }
+function snEntDel(j){ var N=snInit(); var g=N.grps[SN_SEL]; if(!g)return;
+  g.ents.splice(j,1); save(); render(); }
+function snTog(i){ var N=snInit(); N.grps[i].open=!N.grps[i].open; save(); render(); }
+function snSum(g){ var t=0; for(var i=0;i<g.ents.length;i++)t+=g.ents[i].v; return t; }
+function renderSalNotes(){ var el=$("sn_list"); if(!el)return;
+  var N=snInit();
+  if(SN_SEL>=N.grps.length)SN_SEL=0;
+  /* رقائق اختيار المجموعة */
+  var gs=$("sn_gsel");
+  if(gs){ var gh='';
+    for(var q=0;q<N.grps.length;q++){ var gq=N.grps[q];
+      gh+='<span class="chip'+(q===SN_SEL?" f on":"")+'" onclick="snSel('+q+')" style="border-color:'+SN_COLS[gq.ci||0]+'">'+gq.name+'</span>'; }
+    gs.innerHTML=gh||'<span style="font-size:10px;color:var(--muted)">أنشئ أول مجموعة فوق</span>'; }
+  /* لوحة التحكم بالمجموعة المختارة */
+  var ct=$("sn_ctl");
+  if(ct){ var g=N.grps[SN_SEL];
+    if(!g)ct.innerHTML='';
+    else{ var ch='';
+      ch+='<div class="inrow" style="margin-top:8px"><input id="sn_n" type="text" placeholder="الاسم"><input id="sn_v" type="number" placeholder="الراتب $" style="max-width:110px"><button class="btn grn sm" onclick="snEntAdd()">+ أضف</button></div>';
+      if(g.ents.length){ ch+='<div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:4px">';
+        for(var j=0;j<g.ents.length;j++)ch+='<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.1);border-radius:8px;padding:4px 8px">'+g.ents[j].n+' $'+fmt(g.ents[j].v)+' <b onclick="snEntDel('+j+')" style="color:#FF8A80;cursor:pointer">\u00D7</b></span>';
+        ch+='</div>'; }
+      ch+='<div style="display:flex;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap"><span style="font-size:10px;color:var(--muted)">اللون:</span>';
+      for(var c9=0;c9<SN_COLS.length;c9++)ch+='<span onclick="snColor('+c9+')" style="width:20px;height:20px;border-radius:50%;background:'+SN_COLS[c9]+';display:inline-block;cursor:pointer;border:2px solid '+((g.ci||0)===c9?'#fff':'transparent')+'"></span>';
+      ch+='</div>';
+      ch+='<div class="rbtns" style="margin-top:8px"><button class="btn dk sm" onclick="snRen()">\u270F تغيير الاسم</button><button class="btn red sm" onclick="snDel()">\u00D7 حذف المجموعة</button></div>';
+      ct.innerHTML=ch; } }
+  /* العرض النظيف تحت */
+  var h=''; var tot=0, names=0;
+  for(var i=0;i<N.grps.length;i++){ var gg=N.grps[i]; var col=SN_COLS[gg.ci||0];
+    var sum=snSum(gg); tot+=sum; names+=gg.ents.length;
+    h+='<div style="background:'+col+';border-radius:14px;margin:0 10px 9px;box-shadow:0 2.5px 0 rgba(23,32,43,.18);color:#22303e;overflow:hidden">';
+    h+='<div onclick="snTog('+i+')" style="display:flex;align-items:center;gap:8px;padding:12px 13px;cursor:pointer">'
+      +'<span style="font-size:15px;font-weight:900;font-variant-numeric:tabular-nums">$'+fmt(sum)+'</span>'
+      +'<span style="flex:1"></span>'
+      +'<span style="font-size:13px;font-weight:900">'+gg.name+'</span>'
+      +'<span style="font-size:11px;opacity:.6;transform:rotate('+(gg.open?'180':'0')+'deg)">\u25BC</span>'
+      +'</div>';
+    if(gg.open&&gg.ents.length){
+      h+='<div style="background:rgba(255,255,255,.5);padding:8px 10px 10px">';
+      for(var j2=0;j2<gg.ents.length;j2++){ var en=gg.ents[j2];
+        h+='<div style="display:flex;align-items:center;background:rgba(255,255,255,.75);border-radius:9px;padding:8px 11px;margin-top:5px">'
+          +'<span style="font-size:12.5px;font-weight:900;font-variant-numeric:tabular-nums">$'+fmt(en.v)+'</span>'
+          +'<span style="flex:1"></span>'
+          +'<span style="font-size:11.5px;font-weight:700">'+en.n+'</span>'
+          +'</div>'; }
+      h+='</div>'; }
+    h+='</div>';
+  }
+  el.innerHTML=h||'<div class="empty" style="padding:14px">أضف أول مجموعة من مستطيل التحكم</div>';
+  if($("sn_tot"))$("sn_tot").textContent="$"+fmt(tot);
+  if($("sn_sub"))$("sn_sub").textContent=N.grps.length+" مجموعة \u00B7 "+names+" اسم";
+}
 var SESS_COLS=["#FFE3B3","#C9E7FF","#E4D9FF","#FFD6E4","#CFF3DD","#FFF3B0","#FFE0C7"];
 function flSessRender(){ var el=$("fl_sess"); if(!el)return;
   var list=S.flSess||[];
@@ -3833,6 +3931,7 @@ function render(){
       v7.innerHTML=h7;
     }
   }
+  if($("sn_list")) renderSalNotes();
   if($("fl_sess")){ flSessRender(); flHideInit(); flApplyHide(); }
   if($("sc_net")) renderSc();
   if($("du_trecv")) renderDuo();
