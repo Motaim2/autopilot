@@ -653,9 +653,9 @@
 <div class="pane" id="pane10">
   <div id="snapT_pane10"></div>
   <div class="stage stg-log">
-    <h2>&#128584; ترتيب الصفحة</h2>
-    <div class="rbtns" style="margin-top:6px"><button class="btn dk sm" id="fl_hideBtn" onclick="flHideMode()">&#128584; وضع الإخفاء</button><button class="btn dk sm" onclick="flHideAllOff()">&#128065; إظهار الكل</button></div>
-    <div class="note" id="fl_hideNote" style="margin-top:5px"></div>
+    <h2>&#128203; أقسام الصفحة <span style="font-size:9.5px;color:var(--muted)">— اضغط أي قسم يفتح/يقفل</span></h2>
+    <div id="fl_secs" style="margin-top:7px"></div>
+    <div class="rbtns" style="margin-top:6px"><button class="btn dk sm" onclick="flSecAll(1)">&#128065; افتح الكل</button><button class="btn dk sm" onclick="flSecAll(0)">&#128584; اقفل الكل</button></div>
   </div>
   <div class="stage stg-ship">
     <h2>&#128193; الملف الأساسي (حساباتي + التوزيعة)</h2>
@@ -3403,30 +3403,7 @@ function renderSalNotes(){ var el=$("sn_list"); if(!el)return;
   if($("sn_sub"))$("sn_sub").textContent=N.grps.length+" مجموعة \u00B7 "+names+" اسم";
 }
 var SESS_COLS=["#FFE3B3","#C9E7FF","#E4D9FF","#FFD6E4","#CFF3DD","#FFF3B0","#FFE0C7"];
-function flSessRender(){ var el=$("fl_sess"); if(!el)return;
-  var list=S.flSess||[];
-  var h='';
-  if(!list.length)h='<div class="empty" style="padding:8px">ما فيه جلسات محفوظة</div>';
-  else{ h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-    for(var i=0;i<list.length;i++){ var ss=list[i]; var col=SESS_COLS[i%SESS_COLS.length];
-      h+='<div style="background:'+col+';border-radius:11px;padding:8px;color:#2d3743;box-shadow:0 2px 0 rgba(23,32,43,.15)">'
-        +'<div onclick="flSessLoad('+ss.id+')" style="font-size:11px;font-weight:900;cursor:pointer">'+ss.name+'</div>'
-        +'<div style="font-size:8px;opacity:.65;margin-top:2px">'+(ss.ts||"")+' \u00B7 '+(ss.upd&&ss.upd.rows?ss.upd.rows.length:0)+' حساب</div>'
-        +'<div style="display:flex;gap:5px;margin-top:6px">'
-        +'<span onclick="flSessLoad('+ss.id+')" style="flex:1;text-align:center;font-size:9px;font-weight:800;background:rgba(0,0,0,.12);border-radius:7px;padding:4px 0;cursor:pointer">فتح</span>'
-        +'<span onclick="flSessRen('+ss.id+')" style="flex:1;text-align:center;font-size:9px;font-weight:800;background:rgba(0,0,0,.12);border-radius:7px;padding:4px 0;cursor:pointer">\u270F</span>'
-        +'<span onclick="flSessDel('+ss.id+')" style="flex:1;text-align:center;font-size:9px;font-weight:800;background:rgba(255,0,0,.18);border-radius:7px;padding:4px 0;cursor:pointer">\u00D7</span>'
-        +'</div></div>'; }
-    h+='</div>'; }
-  el.innerHTML=h;
-  var hn=$("fl_hideNote");
-  if(hn){ var hk=Object.keys(S.flHide||{});
-    var t=FL.hideMode?"\uD83D\uDD34 وضع الإخفاء شغال \u2014 اضغط أي مربع بالصفحة يختفي":"";
-    if(hk.length){
-      hn.innerHTML=t+(t?" \u00B7 ":"")+"مخفي ("+hk.length+"): "+hk.map(function(k){return '<span onclick="flUnhide(\''+k.replace(/['"\\]/g,"")+'\')" style="display:inline-block;background:rgba(255,255,255,.12);border-radius:7px;padding:2px 7px;margin:2px;cursor:pointer">'+k+' \u00D7</span>';}).join("");
-    } else hn.textContent=t;
-  }
-}
+function flSessRender(){}
 function flSessSave(){
   if(!FL.master||!FL.upd){ alert("حمّل الملفين وحلّل أول، بعدها احفظ الجلسة."); return; }
   var name=($("fl_ss_name").value||"").trim()||("جلسة "+new Date().toLocaleDateString("ar-SA"));
@@ -3463,32 +3440,34 @@ function flSessRen(id){ var list=S.flSess||[];
 function flSessDel(id){ if(!confirm("حذف الجلسة نهائيًا؟"))return;
   S.flSess=(S.flSess||[]).filter(function(x){return x.id!==id;});
   save(); flSessRender(); }
-function flHideKey(el){ var t=el.querySelector?el.querySelector("h2, .l"):null;
+function flHideKey(el){ var t=el.querySelector?el.querySelector("h2"):null;
   var txt=(t?t.textContent:el.textContent)||"";
   return String(txt).trim().slice(0,42); }
-function flHideMode(){ FL.hideMode=!FL.hideMode;
-  var b=$("fl_hideBtn"); if(b)b.textContent=FL.hideMode?"\uD83D\uDD34 اضغط المربعات \u2014 ثم اضغطني للإيقاف":"\uD83D\uDE48 وضع الإخفاء";
-  flSessRender(); }
-function flHideAllOff(){ S.flHide={}; save(); flApplyHide(); flSessRender(); }
-function flUnhide(k){ if(S.flHide)delete S.flHide[k]; save(); flApplyHide(); flSessRender(); }
-function flApplyHide(){ var pane=$("pane10"); if(!pane||!pane.querySelectorAll)return;
-  var els9=pane.querySelectorAll(".stage,.c,.fltwrap,.chips,.rbtns,.line");
-  for(var i=0;i<els9.length;i++){ var k=flHideKey(els9[i]);
-    els9[i].style.display=(S.flHide&&S.flHide[k])?"none":""; } }
-function flHideInit(){ var pane=$("pane10"); if(!pane||pane._hideInit||!pane.addEventListener)return; pane._hideInit=1;
-  pane.addEventListener("click",function(e){
-    if(!FL.hideMode)return;
-    var t=e.target; var el=null;
-    while(t&&t!==pane){ var cl=t.className||"";
-      if(typeof cl==="string"&&(cl.indexOf("stage")>-1||/(^| )c( |$)/.test(cl)||cl.indexOf("fltwrap")>-1||cl.indexOf("chips")>-1||cl.indexOf("rbtns")>-1||/(^| )line( |$)/.test(cl))){ el=t; if(cl.indexOf("stage")>-1)break; }
-      t=t.parentNode; }
-    if(!el)return;
-    if(el.querySelector&&el.querySelector("#fl_sess"))return;
-    e.stopPropagation(); e.preventDefault();
-    S.flHide=S.flHide||{};
-    S.flHide[flHideKey(el)]=1;
-    save(); flApplyHide(); flSessRender();
-  },true); }
+function flSecs(){ var pane=$("pane10"); if(!pane||!pane.querySelectorAll)return [];
+  var st=pane.querySelectorAll(".stage"), out=[];
+  for(var i=0;i<st.length;i++){
+    if(st[i].querySelector&&st[i].querySelector("#fl_secs"))continue;
+    var k=flHideKey(st[i]); if(!k)continue;
+    out.push({k:k,el:st[i]});
+  }
+  return out; }
+function flSecTog(k){ S.flHide=S.flHide||{};
+  if(S.flHide[k])delete S.flHide[k]; else S.flHide[k]=1;
+  save(); flApplyHide(); flSecRender(); }
+function flSecAll(on){ var ls=flSecs(); S.flHide={};
+  if(!on){ for(var i=0;i<ls.length;i++)S.flHide[ls[i].k]=1; }
+  save(); flApplyHide(); flSecRender(); }
+function flApplyHide(){ var ls=flSecs();
+  for(var i=0;i<ls.length;i++){
+    ls[i].el.style.display=(S.flHide&&S.flHide[ls[i].k])?"none":""; } }
+function flSecRender(){ var el=$("fl_secs"); if(!el)return;
+  var ls=flSecs(), h='';
+  for(var i=0;i<ls.length;i++){ var on=!(S.flHide&&S.flHide[ls[i].k]);
+    h+='<div onclick="flSecTog(\''+ls[i].k.replace(/['"\\]/g,"")+'\')" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,'+(on?'.09':'.04')+');border-radius:9px;padding:8px 10px;margin-bottom:5px;cursor:pointer">'
+      +'<span style="font-size:12px;color:'+(on?'#5EE3A6':'var(--muted)')+'">'+(on?'\u25BC':'\u25B6')+'</span>'
+      +'<span style="flex:1;font-size:11px;font-weight:800;color:'+(on?'var(--ink)':'var(--muted)')+'">'+ls[i].k+'</span>'
+      +'<span style="font-size:9px;font-weight:800;color:'+(on?'#5EE3A6':'var(--muted)')+'">'+(on?'مفتوح':'مقفل')+'</span></div>'; }
+  el.innerHTML=h||'<div class="empty" style="padding:6px">ما فيه أقسام</div>'; }
 function flNiTog(id){ if(NI_SEL[id])delete NI_SEL[id]; else NI_SEL[id]=1; flRenderResults(); }
 function flNiAll(){ var R=FL.res; if(!R||!R.notIn)return;
   var all=true;
@@ -3813,6 +3792,7 @@ function flRenderResults(){
   }
   el.innerHTML=h;
   flApplyHide();
+  flSecRender();
 }
 
 /* ===== إدخال الأرقام بالصوت ===== */
@@ -4374,7 +4354,7 @@ function render(){
   renderSnaps();
   if($("sn_list")) renderSalNotes();
   if($("sh_list")) renderSh();
-  if($("pane10")){ flSessRender(); flHideInit(); flApplyHide(); }
+  if($("fl_secs")){ flApplyHide(); flSecRender(); }
   if($("sc_net")) renderSc();
   if($("du_trecv")) renderDuo();
   if($("brd_accs")) renderPlan();
