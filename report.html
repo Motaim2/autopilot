@@ -20,180 +20,168 @@
   --paper:#F4F2EA;
   --paper-ink:#1E2A24;
   --paper-line:#D8D4C4;
+  --day-bg:#FFE7C2;   --day-ink:#6B4A12;
+  --night-bg:#2B3757; --night-ink:#C7D4F5;
   --radius:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
   font-family:'IBM Plex Sans Arabic',sans-serif;
-  background:var(--bg);
-  color:var(--ink);
+  background:var(--bg);color:var(--ink);
   display:flex;flex-direction:column;
-  max-width:760px;margin:0 auto;
-  min-height:100dvh;
+  max-width:760px;margin:0 auto;min-height:100dvh;
 }
 /* ---------- Header ---------- */
 header{
-  padding:14px 16px 10px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  border-bottom:1px solid var(--line);
-  position:sticky;top:0;background:var(--bg);z-index:20;
+  padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:20;
 }
 .brand{display:flex;align-items:center;gap:10px}
-.flame{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(160deg,var(--green-dark),var(--green));
-  display:flex;align-items:center;justify-content:center;font-size:17px;
-}
+.flame{width:34px;height:34px;border-radius:10px;background:linear-gradient(160deg,var(--green-dark),var(--green));display:flex;align-items:center;justify-content:center;font-size:17px}
 .brand h1{font-size:15px;font-weight:700;line-height:1.2}
 .brand small{display:block;color:var(--dim);font-weight:400;font-size:11px;font-family:'IBM Plex Mono',monospace}
 .hbtns{display:flex;gap:8px}
-.hbtn{
-  background:var(--panel);border:1px solid var(--line);color:var(--dim);
-  border-radius:10px;padding:7px 11px;font-family:inherit;font-size:12px;cursor:pointer;
-  display:flex;align-items:center;gap:5px;transition:.15s;
-}
+.hbtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:10px;padding:7px 11px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
 .hbtn:active{transform:scale(.96)}
 .hbtn.on{color:var(--green);border-color:var(--green-dark)}
 
 /* ---------- Main ---------- */
-main{flex:1;overflow-y:auto;padding:16px 14px 130px;display:flex;flex-direction:column;gap:14px}
+main{flex:1;overflow-y:auto;padding:16px 14px 140px;display:flex;flex-direction:column;gap:14px}
 
-/* Bot confirmation strip */
-.confirm{
-  background:var(--panel);border:1px solid var(--line);
-  border-radius:var(--radius);padding:12px 14px;
-  display:flex;gap:10px;align-items:flex-start;
-  animation:pop .25s ease;
-}
+/* ---------- Report paper ---------- */
+.paper{background:var(--paper);color:var(--paper-ink);border-radius:var(--radius);overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.35);direction:ltr;text-align:left}
+.paper-head{padding:12px 16px;border-bottom:2px solid var(--paper-ink);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.paper-head .t{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.paper-head .right{display:flex;align-items:center;gap:8px;direction:ltr}
+.paper-head .d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5a6157}
+.shiftBtn{border:1px solid var(--paper-line);background:#fff;border-radius:20px;padding:4px 10px;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer}
+.shiftBtn.day{background:var(--day-bg);color:var(--day-ink);border-color:#E8C68C}
+.shiftBtn.night{background:var(--night-bg);color:var(--night-ink);border-color:#3D4C77}
+.paper-body{padding:10px 10px 12px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.8;min-height:90px;max-height:45vh;overflow-y:auto}
+.paper-body.empty{color:#8a9086;font-style:italic;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;padding:20px 16px}
+/* tappable report lines */
+.rline{padding:3px 8px;border-radius:7px;white-space:pre-wrap;word-break:break-word;cursor:pointer;transition:background .12s;min-height:1em}
+.rline:active,.rline.sel{background:#E5E0CE}
+.rline.head{font-weight:600;margin-top:4px}
+.rline-edit{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;border:1.5px solid var(--green-dark);border-radius:8px;padding:8px;outline:none;resize:vertical;min-height:64px;background:#fff;color:var(--paper-ink)}
+.rline-btns{display:flex;gap:6px;justify-content:flex-end;margin:6px 0 4px}
+.mini{border:none;border-radius:8px;padding:6px 14px;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.mini.ok{background:var(--green-dark);color:#fff}
+.mini.no{background:#E3DFCF;color:#555}
+.paper-foot{border-top:1px dashed var(--paper-line);padding:10px 12px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.pbtn{font-family:'IBM Plex Sans Arabic',sans-serif;font-size:12.5px;font-weight:600;border:none;border-radius:9px;padding:8px 14px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px}
+.pbtn:active{transform:scale(.96)}
+.pbtn.copy{background:var(--paper-ink);color:var(--paper)}
+.pbtn.copy.done{background:var(--green-dark);color:#fff}
+.pbtn.ghost{background:transparent;color:#6c7368;border:1px solid var(--paper-line)}
+
+/* ---------- Confirm feed ---------- */
+#feed{display:flex;flex-direction:column;gap:10px}
+.confirm{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;gap:10px;align-items:flex-start;animation:pop .25s ease}
 @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.confirm .dot{
-  min-width:9px;height:9px;border-radius:50%;margin-top:7px;background:var(--green);
-}
+.confirm .dot{min-width:9px;height:9px;border-radius:50%;margin-top:7px;background:var(--green)}
 .confirm.ask .dot{background:var(--amber)}
 .confirm.err .dot{background:var(--flare)}
-.confirm p{font-size:13.5px;line-height:1.8;color:var(--ink)}
+.confirm p{font-size:13.5px;line-height:1.8}
 .confirm .tag{font-size:10.5px;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
-
-/* thinking */
 .think{display:flex;gap:5px;padding:6px 2px}
 .think span{width:7px;height:7px;border-radius:50%;background:var(--dim);animation:blink 1s infinite}
 .think span:nth-child(2){animation-delay:.2s}
 .think span:nth-child(3){animation-delay:.4s}
 @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
 
-/* ---------- Report paper ---------- */
-.paper{
-  background:var(--paper);color:var(--paper-ink);
-  border-radius:var(--radius);
-  overflow:hidden;
-  box-shadow:0 8px 28px rgba(0,0,0,.35);
-  direction:ltr;text-align:left;
+/* ---------- Archive ---------- */
+.arch{margin-top:6px}
+.arch h3{font-size:13px;font-weight:700;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.week{margin-bottom:12px}
+.week-label{font-size:10px;color:var(--dim);font-family:'IBM Plex Mono',monospace;margin-bottom:5px}
+.weekgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;direction:rtl}
+.chip{
+  border-radius:10px;padding:7px 2px;text-align:center;cursor:pointer;
+  border:1.5px solid transparent;transition:.15s;line-height:1.35;
 }
-.paper-head{
-  padding:12px 16px;
-  border-bottom:2px solid var(--paper-ink);
-  display:flex;justify-content:space-between;align-items:center;gap:8px;
+.chip:active{transform:scale(.94)}
+.chip .wd{font-size:10.5px;font-weight:700;display:block}
+.chip .md{font-size:9px;display:block;opacity:.8;font-family:'IBM Plex Mono',monospace;direction:ltr}
+.chip.day{background:var(--day-bg);color:var(--day-ink)}
+.chip.night{background:var(--night-bg);color:var(--night-ink)}
+.chip.sel{border-color:var(--green);box-shadow:0 0 0 2px rgba(47,191,113,.25)}
+/* expanded old report */
+.arch-card{
+  background:var(--paper);color:var(--paper-ink);border-radius:14px;overflow:hidden;
+  direction:ltr;text-align:left;margin:8px 0 14px;animation:pop .2s ease;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);
 }
-.paper-head .t{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.paper-head .d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5a6157}
-.paper-body{
-  padding:14px 16px 16px;
-  font-family:'IBM Plex Mono',monospace;
-  font-size:12.5px;line-height:1.85;
-  white-space:pre-wrap;word-break:break-word;
-  min-height:90px;max-height:45vh;overflow-y:auto;
+.arch-card .ac-head{padding:9px 14px;border-bottom:1.5px solid var(--paper-ink);display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.arch-card .ac-body{padding:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.75;max-height:40vh;overflow-y:auto}
+.aline{padding:3px 8px;border-radius:7px;white-space:pre-wrap;word-break:break-word;cursor:pointer;min-height:1em}
+.aline:active{background:#E5E0CE}
+.arch-card .ac-foot{border-top:1px dashed var(--paper-line);padding:8px 12px;display:flex;justify-content:space-between;align-items:center}
+.ac-hint{font-size:10.5px;color:#8a9086;font-family:'IBM Plex Sans Arabic',sans-serif}
+.arch-empty{color:var(--dim);font-size:12.5px;text-align:center;padding:16px;line-height:1.9;background:var(--panel);border-radius:12px;border:1px dashed var(--line)}
+
+/* ---------- Line action sheet ---------- */
+.sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;opacity:0;pointer-events:none;transition:.2s}
+.sheet-ov.open{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;bottom:0;left:50%;transform:translate(-50%,110%);
+  width:100%;max-width:760px;background:var(--panel);border-radius:20px 20px 0 0;
+  border:1px solid var(--line);border-bottom:none;z-index:70;
+  transition:transform .25s cubic-bezier(.3,1,.4,1);
+  padding:14px 14px calc(16px + env(safe-area-inset-bottom));
 }
-.paper-body.empty{color:#8a9086;font-style:italic;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl}
-.paper-foot{
-  border-top:1px dashed var(--paper-line);
-  padding:10px 16px;display:flex;justify-content:flex-end;gap:8px;
+.sheet.open{transform:translate(-50%,0)}
+.sheet .preview{
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);
+  direction:ltr;text-align:left;margin-bottom:12px;max-height:76px;overflow:hidden;line-height:1.6;
 }
-.pbtn{
-  font-family:'IBM Plex Sans Arabic',sans-serif;font-size:12.5px;font-weight:600;
-  border:none;border-radius:9px;padding:8px 16px;cursor:pointer;transition:.15s;
-  display:flex;align-items:center;gap:6px;
+.sheet-btn{
+  width:100%;display:flex;align-items:center;gap:10px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;
+  color:var(--ink);font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;
 }
-.pbtn:active{transform:scale(.96)}
-.pbtn.copy{background:var(--paper-ink);color:var(--paper)}
-.pbtn.copy.done{background:var(--green-dark);color:#fff}
-.pbtn.ghost{background:transparent;color:#6c7368;border:1px solid var(--paper-line)}
+.sheet-btn:active{background:var(--line)}
+.sheet-btn.danger{color:var(--flare)}
+
+/* ---------- Toast ---------- */
+#toast{
+  position:fixed;bottom:110px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--green-dark);color:#fff;padding:9px 18px;border-radius:20px;
+  font-size:13px;font-weight:600;z-index:90;opacity:0;pointer-events:none;transition:.25s;
+  box-shadow:0 6px 18px rgba(0,0,0,.4);white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ---------- Composer ---------- */
-.composer{
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:760px;
-  padding:10px 12px calc(12px + env(safe-area-inset-bottom));
-  background:linear-gradient(to top,var(--bg) 75%,transparent);
-  z-index:30;
-}
-.box{
-  background:var(--panel2);border:1px solid var(--line);
-  border-radius:20px;padding:10px 12px 8px;
-  transition:border-color .2s;
-}
+.composer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:760px;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 75%,transparent);z-index:30}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:10px 12px 8px;transition:border-color .2s}
 .box:focus-within{border-color:var(--green-dark)}
 .box.rec{border-color:var(--flare);box-shadow:0 0 0 3px rgba(255,122,69,.15)}
-textarea{
-  width:100%;background:transparent;border:none;outline:none;resize:none;
-  color:var(--ink);font-family:inherit;font-size:14.5px;line-height:1.7;
-  max-height:120px;min-height:26px;
-}
-textarea::placeholder{color:var(--dim)}
+textarea#input{width:100%;background:transparent;border:none;outline:none;resize:none;color:var(--ink);font-family:inherit;font-size:14.5px;line-height:1.7;max-height:120px;min-height:26px}
+textarea#input::placeholder{color:var(--dim)}
 .box-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-.mic{
-  width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
-  background:var(--panel);color:var(--dim);cursor:pointer;font-size:17px;
-  display:flex;align-items:center;justify-content:center;transition:.15s;
-}
-.mic.rec{
-  background:var(--flare);border-color:var(--flare);color:#fff;
-  animation:pulse 1.2s infinite;
-}
+.mic{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--dim);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.mic.rec{background:var(--flare);border-color:var(--flare);color:#fff;animation:pulse 1.2s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,122,69,.5)}70%{box-shadow:0 0 0 12px rgba(255,122,69,0)}100%{box-shadow:0 0 0 0 rgba(255,122,69,0)}}
-.send{
-  height:42px;padding:0 22px;border-radius:21px;border:none;cursor:pointer;
-  background:var(--green);color:#08130D;font-family:inherit;font-weight:700;font-size:14px;
-  display:flex;align-items:center;gap:7px;transition:.15s;
-}
+.send{height:42px;padding:0 22px;border-radius:21px;border:none;cursor:pointer;background:var(--green);color:#08130D;font-family:inherit;font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px;transition:.15s}
 .send:disabled{opacity:.4;cursor:default}
 .send:not(:disabled):active{transform:scale(.96)}
 .hint{font-size:10.5px;color:var(--dim);text-align:center;margin-top:6px}
 
-/* ---------- Drawers (history / knowledge) ---------- */
-.overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;
-  opacity:0;pointer-events:none;transition:.25s;
-}
+/* ---------- Knowledge drawer ---------- */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;opacity:0;pointer-events:none;transition:.25s}
 .overlay.open{opacity:1;pointer-events:auto}
-.drawer{
-  position:fixed;bottom:0;left:50%;transform:translate(-50%,105%);
-  width:100%;max-width:760px;max-height:80dvh;
-  background:var(--panel);border-radius:22px 22px 0 0;border:1px solid var(--line);border-bottom:none;
-  z-index:50;transition:transform .3s cubic-bezier(.3,1,.4,1);
-  display:flex;flex-direction:column;
-}
+.drawer{position:fixed;bottom:0;left:50%;transform:translate(-50%,105%);width:100%;max-width:760px;max-height:80dvh;background:var(--panel);border-radius:22px 22px 0 0;border:1px solid var(--line);border-bottom:none;z-index:50;transition:transform .3s cubic-bezier(.3,1,.4,1);display:flex;flex-direction:column}
 .drawer.open{transform:translate(-50%,0)}
 .drawer-head{padding:16px 18px 10px;display:flex;justify-content:space-between;align-items:center}
 .drawer-head h2{font-size:15px;font-weight:700}
 .xbtn{background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:4px 8px}
 .drawer-body{overflow-y:auto;padding:4px 16px calc(20px + env(safe-area-inset-bottom))}
-.day{
-  background:var(--panel2);border:1px solid var(--line);border-radius:12px;
-  padding:12px 14px;margin-bottom:9px;cursor:pointer;
-  display:flex;justify-content:space-between;align-items:center;gap:8px;
-}
-.day .dd{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600}
-.day .dn{font-size:11px;color:var(--dim);margin-top:2px}
-.day .arr{color:var(--dim)}
-.kb-area{
-  width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--line);
-  border-radius:12px;color:var(--ink);font-family:inherit;font-size:13px;line-height:1.8;
-  padding:12px;outline:none;resize:vertical;
-}
+.kb-area{width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:inherit;font-size:13px;line-height:1.8;padding:12px;outline:none;resize:vertical}
 .kb-note{font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:10px}
 .kb-save{margin-top:10px;width:100%;height:44px;border:none;border-radius:12px;background:var(--green);color:#08130D;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
-.empty-list{color:var(--dim);font-size:13px;text-align:center;padding:30px 10px;line-height:1.9}
 </style>
 </head>
 <body>
@@ -207,27 +195,37 @@ textarea::placeholder{color:var(--dim)}
     </div>
   </div>
   <div class="hbtns">
+    <button class="hbtn" id="keyBtn" title="مفتاح API" style="display:none">🔑</button>
     <button class="hbtn" id="knowBtn" title="ذاكرة المصطلحات">🧠 الذاكرة</button>
-    <button class="hbtn" id="histBtn" title="الأيام السابقة">📅 السجل</button>
   </div>
 </header>
 
 <main id="main">
-  <!-- English report paper (on top) -->
+  <!-- Today's report -->
   <div class="paper">
     <div class="paper-head">
       <span class="t">Daily Shift Report</span>
-      <span class="d" id="paperDate"></span>
+      <div class="right">
+        <button class="shiftBtn day" id="shiftBtn">☀️ نهار</button>
+        <span class="d" id="paperDate"></span>
+      </div>
     </div>
     <div class="paper-body empty" id="reportBody">اكتب أو تكلّم عن أول شغلة سويتوها اليوم، والتقرير الإنجليزي بيظهر هنا وينحدّث مع كل إضافة.</div>
     <div class="paper-foot">
       <button class="pbtn ghost" id="clearBtn">تقرير جديد</button>
+      <button class="pbtn ghost" id="proofBtn">✔️ تدقيق إملائي</button>
       <button class="pbtn copy" id="copyBtn">📋 نسخ التقرير</button>
     </div>
   </div>
 
-  <!-- confirmations appear here (below the report) -->
-  <div id="feed" style="display:flex;flex-direction:column;gap:10px"></div>
+  <!-- confirmations -->
+  <div id="feed"></div>
+
+  <!-- Archive -->
+  <div class="arch" id="arch">
+    <h3>📅 السجل الأسبوعي</h3>
+    <div id="archBody"></div>
+  </div>
 </main>
 
 <!-- Composer -->
@@ -239,91 +237,243 @@ textarea::placeholder{color:var(--dim)}
       <button class="send" id="sendBtn" disabled>إرسال ⬅</button>
     </div>
   </div>
-  <div class="hint" id="hint">كل رسالة تنضاف كنقطة في التقرير · يتم الحفظ تلقائيًا لكل يوم</div>
+  <div class="hint" id="hint">اضغط أي سطر في التقرير لتعديله أو حذفه · الحفظ تلقائي لكل يوم</div>
 </div>
 
-<!-- History drawer -->
-<div class="overlay" id="overlay"></div>
-<div class="drawer" id="histDrawer">
-  <div class="drawer-head"><h2>📅 تقارير الأيام السابقة</h2><button class="xbtn" data-close>✕</button></div>
-  <div class="drawer-body" id="histList"></div>
+<!-- Line action sheet -->
+<div class="sheet-ov" id="sheetOv"></div>
+<div class="sheet" id="sheet">
+  <div class="preview" id="sheetPrev"></div>
+  <button class="sheet-btn" id="sEdit">✏️ تعديل النص يدويًا</button>
+  <button class="sheet-btn" id="sAi">🤖 اطلب من المساعد يعدله</button>
+  <button class="sheet-btn" id="sCopy">📋 نسخ السطر</button>
+  <button class="sheet-btn danger" id="sDel">🗑️ حذف السطر</button>
 </div>
+
+<!-- Toast -->
+<div id="toast"></div>
 
 <!-- Knowledge drawer -->
+<div class="overlay" id="overlay"></div>
 <div class="drawer" id="knowDrawer">
   <div class="drawer-head"><h2>🧠 ذاكرة المصطلحات والصياغة</h2><button class="xbtn" data-close>✕</button></div>
   <div class="drawer-body">
-    <p class="kb-note">هنا يتعلّم المساعد أسلوب تقاريركم مع الوقت (مصطلحات المعدات، أسماء الوحدات، طريقة الصياغة). الصق هنا <b>مثال تقرير جاهز</b> من تقاريركم القديمة عشان يمشي على نفس النمط، وتقدر تعدّل أي شي بنفسك.</p>
-    <textarea class="kb-area" id="kbArea" placeholder="مثال:&#10;- P-201 = Condensate Pump&#10;- نكتب دايم Unit U-400 قبل اسم المعدة&#10;- صيغة التقرير المطلوبة:&#10;  1. ...&#10;  2. ..."></textarea>
+    <p class="kb-note">هنا يتعلّم المساعد أسلوب تقاريركم مع الوقت (مصطلحات المعدات، أسماء الوحدات، طريقة الصياغة). تقدر تضيف أو تعدّل أي شي بنفسك.</p>
+    <textarea class="kb-area" id="kbArea" placeholder="مثال:&#10;- P-201 = Condensate Pump&#10;- أسماء الأقسام الأربعة: ..."></textarea>
     <button class="kb-save" id="kbSave">💾 حفظ الذاكرة</button>
   </div>
 </div>
 
 <script>
-/* ================= State ================= */
+/* ================= Helpers ================= */
 const $ = id => document.getElementById(id);
 const todayKey = () => {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 };
-let state = {
-  report: '',            // current English report text
-  convo: [],             // today's exchanges [{u, a}]
-  pendingQ: false,       // bot asked a clarifying question
+const AR_DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtChip(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return { wd: AR_DAYS[dt.getDay()], md: MONTHS[m-1] + ' ' + d };
+}
+function toast(txt){
+  const t = $('toast');
+  t.textContent = txt;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); }
+  catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+}
+
+/* ================= Storage layer (Claude artifact OR GitHub Pages) ================= */
+const insideClaude = typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+const store = {
+  async get(k){
+    if(insideClaude){ try{ return await window.storage.get(k); }catch(e){ return null; } }
+    const v = localStorage.getItem('sr_' + k);
+    return v == null ? null : { value: v };
+  },
+  async set(k, v){
+    if(insideClaude){ try{ return await window.storage.set(k, v); }catch(e){ return null; } }
+    localStorage.setItem('sr_' + k, v); return {};
+  },
+  async list(prefix){
+    if(insideClaude){ try{ return await window.storage.list(prefix); }catch(e){ return {keys:[]}; } }
+    const keys = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('sr_' + prefix)) keys.push(k.slice(3));
+    }
+    return { keys };
+  }
 };
+let apiKey = localStorage.getItem('sr_apikey') || '';
+
+/* ================= State ================= */
+let state = { report:'', convo:[], shift:'day' };
 let knowledge = '';
 let busy = false;
+let openArchDate = null;
 
 $('paperDate').textContent = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
 
-/* ================= Storage ================= */
+/* ================= Persistence ================= */
 async function loadAll(){
   try{
-    const k = await window.storage.get('knowledge');
+    const k = await store.get('knowledge');
     if(k && k.value) knowledge = k.value;
   }catch(e){}
   try{
-    const r = await window.storage.get('report:' + todayKey());
+    const r = await store.get('report:' + todayKey());
     if(r && r.value){
       const obj = JSON.parse(r.value);
       state.report = obj.report || '';
       state.convo  = obj.convo  || [];
-      renderReport();
-      if(state.report) addConfirm('ok', 'رجّعت لك تقرير اليوم المحفوظ ✅ كمّل إضافاتك عادي.');
+      state.shift  = obj.shift  || 'day';
+    }else{
+      // default today's shift = most recent saved day's shift
+      const l = await store.list('report:');
+      const keys = (l && l.keys ? l.keys : []).sort().reverse();
+      if(keys.length){
+        const prev = await store.get(keys[0]);
+        if(prev && prev.value){
+          try{ state.shift = JSON.parse(prev.value).shift || 'day'; }catch(e){}
+        }
+      }
     }
   }catch(e){}
+  renderShiftBtn();
+  renderReport();
+  renderArchive();
 }
 async function saveToday(){
   try{
-    await window.storage.set('report:' + todayKey(), JSON.stringify({
-      report: state.report, convo: state.convo.slice(-20), updatedAt: new Date().toISOString()
+    await store.set('report:' + todayKey(), JSON.stringify({
+      report: state.report, convo: state.convo.slice(-20),
+      shift: state.shift, updatedAt: new Date().toISOString()
     }));
   }catch(e){}
+  renderArchive();
 }
-async function saveKnowledge(){
-  try{ await window.storage.set('knowledge', knowledge); }catch(e){}
-}
+async function saveKnowledge(){ try{ await store.set('knowledge', knowledge); }catch(e){} }
 
-/* ================= UI helpers ================= */
+/* ================= Shift toggle ================= */
+function renderShiftBtn(){
+  const b = $('shiftBtn');
+  if(state.shift === 'night'){ b.className = 'shiftBtn night'; b.textContent = '🌙 ليل'; }
+  else{ b.className = 'shiftBtn day'; b.textContent = '☀️ نهار'; }
+}
+$('shiftBtn').onclick = () => {
+  state.shift = state.shift === 'day' ? 'night' : 'day';
+  renderShiftBtn(); saveToday();
+  toast(state.shift === 'day' ? 'شفت نهار ☀️' : 'شفت ليل 🌙');
+};
+
+/* ================= Report rendering (tappable lines) ================= */
 function renderReport(){
   const el = $('reportBody');
-  if(state.report.trim()){
-    el.textContent = state.report;
-    el.classList.remove('empty');
-  }else{
+  el.innerHTML = '';
+  if(!state.report.trim()){
+    el.className = 'paper-body empty';
     el.textContent = 'اكتب أو تكلّم عن أول شغلة سويتوها اليوم، والتقرير الإنجليزي بيظهر هنا وينحدّث مع كل إضافة.';
-    el.classList.add('empty');
+    return;
   }
+  el.className = 'paper-body';
+  const lines = state.report.split('\n');
+  lines.forEach((ln, i) => {
+    const div = document.createElement('div');
+    div.className = 'rline' + (/:\s*$/.test(ln.trim()) || /^DAILY SHIFT REPORT/i.test(ln.trim()) ? ' head' : '');
+    div.textContent = ln === '' ? '\u00a0' : ln;
+    if(ln.trim() !== ''){
+      div.onclick = () => openSheet(i);
+    }
+    el.appendChild(div);
+  });
 }
+function setReportLines(lines){
+  state.report = lines.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  renderReport(); saveToday();
+}
+
+/* ================= Line action sheet ================= */
+let sheetLine = -1;
+function openSheet(i){
+  sheetLine = i;
+  const lines = state.report.split('\n');
+  $('sheetPrev').textContent = lines[i];
+  $('sheetOv').classList.add('open');
+  $('sheet').classList.add('open');
+}
+function closeSheet(){
+  $('sheetOv').classList.remove('open');
+  $('sheet').classList.remove('open');
+}
+$('sheetOv').onclick = closeSheet;
+
+$('sCopy').onclick = async () => {
+  const lines = state.report.split('\n');
+  await copyText(lines[sheetLine].replace(/^-\s*/,''));
+  closeSheet(); toast('نسخت السطر 📋');
+};
+$('sDel').onclick = () => {
+  const lines = state.report.split('\n');
+  if(!confirm('حذف هذا السطر؟\n' + lines[sheetLine])) return;
+  lines.splice(sheetLine, 1);
+  setReportLines(lines);
+  closeSheet(); toast('انحذف 🗑️');
+};
+$('sAi').onclick = () => {
+  const lines = state.report.split('\n');
+  closeSheet();
+  input.value = 'بخصوص هذا السطر: "' + lines[sheetLine].trim() + '" — ';
+  input.dispatchEvent(new Event('input'));
+  input.focus();
+  // move cursor to end
+  input.setSelectionRange(input.value.length, input.value.length);
+  toast('اكتب وش تبغى يعدّل فيه ✍️');
+};
+$('sEdit').onclick = () => {
+  const i = sheetLine;
+  closeSheet();
+  const el = $('reportBody');
+  const div = el.children[i];
+  if(!div) return;
+  const lines = state.report.split('\n');
+  const ta = document.createElement('textarea');
+  ta.className = 'rline-edit';
+  ta.value = lines[i];
+  const btns = document.createElement('div');
+  btns.className = 'rline-btns';
+  btns.innerHTML = '<button class="mini no">إلغاء</button><button class="mini ok">حفظ</button>';
+  div.replaceWith(ta);
+  ta.after(btns);
+  ta.focus();
+  ta.style.height = ta.scrollHeight + 'px';
+  btns.querySelector('.ok').onclick = () => {
+    lines[i] = ta.value.replace(/\n/g,' ').trim();
+    if(lines[i] === '') lines.splice(i,1);
+    setReportLines(lines);
+    toast('تعدّل ✅');
+  };
+  btns.querySelector('.no').onclick = () => renderReport();
+};
+
+/* ================= Confirm feed ================= */
 function addConfirm(type, text, tag){
   const div = document.createElement('div');
   div.className = 'confirm' + (type==='ask'?' ask':type==='err'?' err':'');
-  div.innerHTML = '<div class="dot"></div><div>' +
-    (tag?'<div class="tag">'+tag+'</div>':'') +
-    '<p></p></div>';
+  div.innerHTML = '<div class="dot"></div><div>' + (tag?'<div class="tag">'+tag+'</div>':'') + '<p></p></div>';
   div.querySelector('p').textContent = text;
   $('feed').appendChild(div);
-  // keep only last 4 confirmations
   while($('feed').children.length > 4) $('feed').removeChild($('feed').firstChild);
   div.scrollIntoView({behavior:'smooth', block:'nearest'});
   return div;
@@ -373,11 +523,11 @@ function stopRec(){
   recording = false;
   $('micBtn').classList.remove('rec');
   $('box').classList.remove('rec');
-  $('hint').textContent = 'كل رسالة تنضاف كنقطة في التقرير · يتم الحفظ تلقائيًا لكل يوم';
+  $('hint').textContent = 'اضغط أي سطر في التقرير لتعديله أو حذفه · الحفظ تلقائي لكل يوم';
 }
 $('micBtn').onclick = () => {
   if(!rec) return;
-  if(recording){ rec.stop(); stopRec(); return; }
+  if(recording){ try{rec.stop();}catch(e){} stopRec(); return; }
   try{
     rec.start();
     recording = true;
@@ -409,7 +559,7 @@ Gas Processing Unit-2:
 
 function buildPrompt(userMsg){
   const recent = state.convo.slice(-6).map(x => 'العامل: ' + x.u + '\nالمساعد: ' + x.a).join('\n');
-  return `أنت مساعد صياغة تقارير يومية لعامل في مصنع غاز بأرامكو. العامل يخبرك بالعربي (لهجة سعودية) عن أعمال ورديته، وأنت تحوّلها إلى تقرير إنجليزي مهني بصيغة نقاط، بأسلوب تقارير التشغيل والصيانة الصناعية (concise, professional, past tense, technical terminology).
+  return `أنت مساعد صياغة تقارير يومية لعامل في مصنع غاز بأرامكو. العامل يخبرك بالعربي (لهجة سعودية) عن أعمال ورديته، وأنت تحوّلها إلى تقرير إنجليزي مهني بأسلوب تقارير التشغيل والصيانة الصناعية.
 
 ## نمط تقاريرهم الرسمي (اتبعه دائمًا):
 ${BASE_STYLE}
@@ -427,21 +577,18 @@ ${recent || '(لا يوجد)'}
 "${userMsg}"
 
 ## مطلوب منك:
-1. إذا فهمت الرسالة وعرفت القسم/الوحدة: أضِف النقطة تحت قسمها الصحيح (أو عدّل نقطة موجودة إذا طلب تعديلًا)، وأعد التقرير الكامل المحدّث بنفس نمط الأقسام أعلاه. حافظ على باقي الأقسام والنقاط كما هي. أول سطر في التقرير: DAILY SHIFT REPORT — ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+1. إذا فهمت الرسالة وعرفت القسم/الوحدة: أضِف النقطة تحت قسمها الصحيح (أو عدّل/دقّق حسب الطلب)، وأعد التقرير الكامل المحدّث بنفس نمط الأقسام أعلاه. حافظ على باقي الأقسام والنقاط كما هي. أول سطر في التقرير: DAILY SHIFT REPORT — ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
 2. إذا لم تفهم جزءًا أو لم يذكر القسم/الوحدة: لا تخمّن — اسأل سؤالًا واحدًا محددًا بالعربي.
 3. إذا تعلمت مصطلحًا أو نمطًا جديدًا من هذه الرسالة يفيد التقارير القادمة، لخّصه بسطر قصير.
 
 أجب حصريًا بـ JSON صالح واحد، بدون أي نص قبله أو بعده وبدون Markdown. مهم جدًا: استخدم \\n داخل النصوص بدل الأسطر الجديدة الحقيقية، وهرّب علامات الاقتباس المزدوجة:
-{"understood": true, "reply_ar": "ردك بالعربي: تأكيد قصير لما فهمته وأضفته، أو سؤالك إذا لم تفهم", "report_en": "التقرير الإنجليزي الكامل المحدث كسلسلة واحدة مع \\n بين الأسطر، أو null إذا لم تفهم", "learned": "سطر قصير بما تعلمته أو null"}`;
+{"understood": true, "reply_ar": "ردك بالعربي: تأكيد قصير لما فهمته، أو سؤالك إذا لم تفهم", "report_en": "التقرير الإنجليزي الكامل المحدث كسلسلة واحدة مع \\n بين الأسطر، أو null إذا لم تفهم", "learned": "سطر قصير بما تعلمته أو null"}`;
 }
 
 function extractJSON(text){
-  // remove code fences and invisible chars
-  let t = String(text).replace(/```json/gi,'').replace(/```/g,'')
-                      .replace(/[\u200e\u200f\ufeff]/g,'').trim();
+  let t = String(text).replace(/```json/gi,'').replace(/```/g,'').replace(/[\u200e\u200f\ufeff]/g,'').trim();
   const start = t.indexOf('{');
   if(start === -1) return null;
-  // walk brackets to find matching close (handles extra text after JSON)
   let depth = 0, inStr = false, esc = false;
   for(let i = start; i < t.length; i++){
     const c = t[i];
@@ -457,18 +604,21 @@ function extractJSON(text){
       }
     }
   }
-  // last resort: lastIndexOf
   const end = t.lastIndexOf('}');
-  if(end > start){
-    try{ return JSON.parse(t.slice(start, end+1)); }catch(e){}
-  }
+  if(end > start){ try{ return JSON.parse(t.slice(start, end+1)); }catch(e){} }
   return null;
 }
 
 async function callClaude(msg){
+  if(!insideClaude && !apiKey) throw new Error('NEED_KEY');
+  const headers = {'Content-Type':'application/json'};
+  if(!insideClaude && apiKey){
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST', headers,
     body: JSON.stringify({
       model:'claude-sonnet-4-6',
       max_tokens: 1000,
@@ -483,17 +633,13 @@ async function callClaude(msg){
     throw new Error(apiMsg);
   }
   if(!data || !Array.isArray(data.content)) throw new Error('رد غير متوقع من الخادم');
-  const text = data.content.filter(b => b && b.type === 'text').map(b => b.text).join('\n');
-  return text;
+  return data.content.filter(b => b && b.type === 'text').map(b => b.text).join('\n');
 }
 
-async function send(){
-  const msg = input.value.trim();
-  if(!msg || busy) return;
-  if(recording && rec){ try{ rec.stop(); }catch(e){} stopRec(); }
+async function processMessage(msg, displayText, restoreOnFail){
+  if(busy) return;
   busy = true; sendBtn.disabled = true;
-  input.value = ''; input.style.height = 'auto';
-  addConfirm('ok', msg, 'أنت');
+  addConfirm('ok', displayText || msg, 'أنت');
   const think = addThinking();
 
   let obj = null, lastErr = null;
@@ -502,13 +648,12 @@ async function send(){
       const text = await callClaude(msg);
       obj = extractJSON(text);
       if(!obj && text.trim()){
-        // model replied without JSON — use the text itself as the Arabic reply
-        obj = { understood: false, reply_ar: text.trim(), report_en: null, learned: null };
+        obj = { understood:false, reply_ar:text.trim(), report_en:null, learned:null };
       }
       if(!obj) lastErr = new Error('ما قدرت أفهم رد النموذج');
     }catch(e){
       lastErr = e;
-      if(attempt < 2) await new Promise(r => setTimeout(r, 800));
+      if(attempt < 2 && e.message !== 'NEED_KEY') await new Promise(r => setTimeout(r, 800));
     }
   }
 
@@ -518,7 +663,7 @@ async function send(){
       state.report = String(obj.report_en);
       state.convo.push({u: msg, a: obj.reply_ar || 'تم'});
       renderReport();
-      addConfirm('ok', obj.reply_ar || '✅ فهمتك، أضفتها للتقرير.', 'المساعد');
+      addConfirm('ok', obj.reply_ar || '✅ فهمتك، حدّثت التقرير.', 'المساعد');
       if(obj.learned && obj.learned !== 'null' && typeof obj.learned === 'string'){
         knowledge = (knowledge ? knowledge + '\n' : '') + '- ' + obj.learned;
         saveKnowledge();
@@ -530,95 +675,204 @@ async function send(){
       saveToday();
     }
   }else{
-    addConfirm('err', 'ما قدرت أرسل: ' + (lastErr && lastErr.message ? lastErr.message : 'خطأ غير معروف') + ' — رسالتك محفوظة، اضغط عليها لإعادة الإرسال.');
-    // put message back so nothing is lost
-    input.value = msg;
-    input.dispatchEvent(new Event('input'));
+    if(lastErr && lastErr.message === 'NEED_KEY'){
+      addConfirm('err', 'التطبيق شغال على استضافة خارجية — يحتاج مفتاح Claude API. اضغط زر 🔑 فوق وأدخل مفتاحك مرة واحدة وينحفظ بجهازك.');
+      $('keyBtn').style.display = 'flex';
+    }else if(lastErr && /Load failed|Failed to fetch|NetworkError/i.test(lastErr.message||'')){
+      addConfirm('err', 'ما وصل الطلب للخادم. إذا التطبيق على GitHub تأكد من مفتاح API (زر 🔑)، وإذا داخل Claude جرّب مرة ثانية.');
+      if(!insideClaude) $('keyBtn').style.display = 'flex';
+    }else{
+      addConfirm('err', 'ما قدرت أرسل: ' + (lastErr && lastErr.message ? lastErr.message : 'خطأ غير معروف'));
+    }
+    if(restoreOnFail){
+      input.value = msg;
+      input.dispatchEvent(new Event('input'));
+    }
   }
   busy = false;
   sendBtn.disabled = !input.value.trim();
+}
+
+function send(){
+  const msg = input.value.trim();
+  if(!msg || busy) return;
+  if(recording && rec){ try{rec.stop();}catch(e){} stopRec(); }
+  input.value = ''; input.style.height = 'auto';
+  processMessage(msg, msg, true);
 }
 sendBtn.onclick = send;
 input.addEventListener('keydown', e => {
   if(e.key==='Enter' && !e.shiftKey && !('ontouchstart' in window)){ e.preventDefault(); send(); }
 });
 
-/* ================= Copy ================= */
+/* ================= Proofread ================= */
+$('proofBtn').onclick = () => {
+  if(!state.report.trim() || busy) return;
+  processMessage(
+    'دقّق التقرير الحالي كاملًا: صحّح الأخطاء الإملائية والنحوية وحسّن صياغة الجمل بأسلوب التقارير الرسمية، بدون تغيير أي حقائق أو أرقام أو مسميات معدات وبدون إضافة أو حذف نقاط. أعد التقرير كاملًا بعد التدقيق.',
+    '✔️ تدقيق إملائي ونحوي للتقرير',
+    false
+  );
+};
+
+/* ================= Copy today's report ================= */
 $('copyBtn').onclick = async () => {
   if(!state.report.trim()) return;
+  await copyText(state.report);
   const btn = $('copyBtn');
-  try{
-    await navigator.clipboard.writeText(state.report);
-  }catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = state.report; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); ta.remove();
-  }
   btn.textContent = '✅ تم النسخ'; btn.classList.add('done');
   setTimeout(()=>{ btn.textContent='📋 نسخ التقرير'; btn.classList.remove('done'); }, 1800);
 };
 
 /* ================= New report ================= */
-$('clearBtn').onclick = async () => {
+$('clearBtn').onclick = () => {
   if(!state.report.trim()) return;
-  if(!confirm('يبدأ تقرير جديد فاضي؟ (تقرير اليوم الحالي محفوظ في السجل)')) return;
+  if(!confirm('يبدأ تقرير جديد فاضي؟')) return;
   state.report = ''; state.convo = [];
   renderReport(); saveToday();
   addConfirm('ok', 'بدأنا تقرير جديد ✨');
 };
 
-/* ================= Drawers ================= */
-function openDrawer(id){ $('overlay').classList.add('open'); $(id).classList.add('open'); }
-function closeDrawers(){
-  $('overlay').classList.remove('open');
-  $('histDrawer').classList.remove('open');
-  $('knowDrawer').classList.remove('open');
+/* ================= Archive (weekly chips) ================= */
+async function renderArchive(){
+  const body = $('archBody');
+  let keys = [];
+  try{
+    const l = await store.list('report:');
+    keys = (l && l.keys ? l.keys : []).sort().reverse();
+  }catch(e){}
+  if(!keys.length){
+    body.innerHTML = '<div class="arch-empty">ما فيه تقارير محفوظة بعد — أول ما ترسل شي اليوم بينحفظ هنا تلقائيًا 📅</div>';
+    return;
+  }
+  // load all records (lightweight)
+  const records = {};
+  for(const k of keys){
+    try{
+      const r = await store.get(k);
+      records[k.replace('report:','')] = r && r.value ? JSON.parse(r.value) : {};
+    }catch(e){ records[k.replace('report:','')] = {}; }
+  }
+  const dates = keys.map(k => k.replace('report:',''));
+  body.innerHTML = '';
+  // chunk into weeks of 7 (newest first)
+  for(let w = 0; w < dates.length; w += 7){
+    const chunk = dates.slice(w, w + 7);
+    const week = document.createElement('div');
+    week.className = 'week';
+    const lbl = document.createElement('div');
+    lbl.className = 'week-label';
+    lbl.textContent = chunk[chunk.length-1] + ' ← ' + chunk[0];
+    week.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'weekgrid';
+    chunk.forEach(date => {
+      const rec = records[date] || {};
+      const chip = document.createElement('div');
+      chip.className = 'chip ' + (rec.shift === 'night' ? 'night' : 'day') + (openArchDate === date ? ' sel' : '');
+      const f = fmtChip(date);
+      chip.innerHTML = '<span class="wd"></span><span class="md"></span>';
+      chip.querySelector('.wd').textContent = f.wd;
+      chip.querySelector('.md').textContent = f.md;
+      chip.onclick = () => {
+        openArchDate = (openArchDate === date) ? null : date;
+        renderArchiveSync(dates, records);
+      };
+      grid.appendChild(chip);
+    });
+    week.appendChild(grid);
+    // expanded card belongs under its week
+    if(openArchDate && chunk.includes(openArchDate)){
+      week.appendChild(buildArchCard(openArchDate, records[openArchDate] || {}));
+    }
+    body.appendChild(week);
+  }
 }
+/* re-render without re-reading storage */
+function renderArchiveSync(dates, records){
+  const body = $('archBody');
+  body.innerHTML = '';
+  for(let w = 0; w < dates.length; w += 7){
+    const chunk = dates.slice(w, w + 7);
+    const week = document.createElement('div');
+    week.className = 'week';
+    const lbl = document.createElement('div');
+    lbl.className = 'week-label';
+    lbl.textContent = chunk[chunk.length-1] + ' ← ' + chunk[0];
+    week.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'weekgrid';
+    chunk.forEach(date => {
+      const rec = records[date] || {};
+      const chip = document.createElement('div');
+      chip.className = 'chip ' + (rec.shift === 'night' ? 'night' : 'day') + (openArchDate === date ? ' sel' : '');
+      const f = fmtChip(date);
+      chip.innerHTML = '<span class="wd"></span><span class="md"></span>';
+      chip.querySelector('.wd').textContent = f.wd;
+      chip.querySelector('.md').textContent = f.md;
+      chip.onclick = () => {
+        openArchDate = (openArchDate === date) ? null : date;
+        renderArchiveSync(dates, records);
+      };
+      grid.appendChild(chip);
+    });
+    week.appendChild(grid);
+    if(openArchDate && chunk.includes(openArchDate)){
+      week.appendChild(buildArchCard(openArchDate, records[openArchDate] || {}));
+      week.lastChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+    body.appendChild(week);
+  }
+}
+function buildArchCard(date, rec){
+  const card = document.createElement('div');
+  card.className = 'arch-card';
+  const head = document.createElement('div');
+  head.className = 'ac-head';
+  head.innerHTML = '<span></span><span>' + (rec.shift === 'night' ? '🌙 NIGHT' : '☀️ DAY') + '</span>';
+  head.querySelector('span').textContent = date;
+  card.appendChild(head);
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'ac-body';
+  const text = rec.report || '';
+  if(!text.trim()){
+    bodyEl.innerHTML = '<div style="color:#8a9086;font-family:IBM Plex Sans Arabic,sans-serif;direction:rtl;text-align:center;padding:10px">(تقرير فاضي)</div>';
+  }else{
+    text.split('\n').forEach(ln => {
+      const d = document.createElement('div');
+      d.className = 'aline';
+      d.textContent = ln === '' ? '\u00a0' : ln;
+      if(ln.trim() !== ''){
+        d.onclick = async () => { await copyText(ln.replace(/^-\s*/,'')); toast('نسخت السطر 📋'); };
+      }
+      bodyEl.appendChild(d);
+    });
+  }
+  card.appendChild(bodyEl);
+  const foot = document.createElement('div');
+  foot.className = 'ac-foot';
+  const hint = document.createElement('span');
+  hint.className = 'ac-hint';
+  hint.textContent = 'اضغط أي سطر لنسخه';
+  const btn = document.createElement('button');
+  btn.className = 'pbtn copy';
+  btn.textContent = '📋 نسخ الكل';
+  btn.onclick = async () => {
+    await copyText(text);
+    btn.textContent = '✅ تم'; btn.classList.add('done');
+    setTimeout(()=>{ btn.textContent='📋 نسخ الكل'; btn.classList.remove('done'); }, 1500);
+  };
+  foot.appendChild(hint); foot.appendChild(btn);
+  card.appendChild(foot);
+  return card;
+}
+
+/* ================= Knowledge drawer ================= */
+function openDrawer(){ $('overlay').classList.add('open'); $('knowDrawer').classList.add('open'); }
+function closeDrawers(){ $('overlay').classList.remove('open'); $('knowDrawer').classList.remove('open'); }
 $('overlay').onclick = closeDrawers;
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeDrawers);
-
-$('histBtn').onclick = async () => {
-  const list = $('histList');
-  list.innerHTML = '<div class="empty-list">جاري التحميل...</div>';
-  openDrawer('histDrawer');
-  try{
-    const res = await window.storage.list('report:');
-    const keys = (res && res.keys ? res.keys : []).sort().reverse();
-    if(!keys.length){ list.innerHTML = '<div class="empty-list">ما فيه تقارير محفوظة بعد.<br>أول ما ترسل شي اليوم بينحفظ هنا تلقائيًا 📅</div>'; return; }
-    list.innerHTML = '';
-    for(const k of keys){
-      const date = k.replace('report:','');
-      const row = document.createElement('div');
-      row.className = 'day';
-      row.innerHTML = '<div><div class="dd">'+date+'</div><div class="dn">اضغط لعرض التقرير ونسخه</div></div><div class="arr">‹</div>';
-      row.onclick = async () => {
-        try{
-          const r = await window.storage.get(k);
-          const obj = JSON.parse(r.value);
-          state.reportView = obj.report || '';
-          if(date === todayKey()){ closeDrawers(); return; }
-          // show past report in the paper temporarily with a copy
-          if(confirm('عرض تقرير ' + date + ' مكان التقرير الحالي مؤقتًا؟ (تقرير اليوم ما يتأثر)')){
-            $('reportBody').textContent = obj.report || '(فارغ)';
-            $('reportBody').classList.remove('empty');
-            $('paperDate').textContent = date + ' (سجل)';
-            state.viewingPast = obj.report || '';
-            closeDrawers();
-            addConfirm('ok', 'تعرض الآن تقرير ' + date + '. اضغط "تقرير جديد؟ لا —" أرسل أي رسالة جديدة وبيرجع تقرير اليوم.');
-          }
-        }catch(e){}
-      };
-      list.appendChild(row);
-    }
-  }catch(e){
-    list.innerHTML = '<div class="empty-list">تعذّر تحميل السجل</div>';
-  }
-};
-
-$('knowBtn').onclick = async () => {
-  $('kbArea').value = knowledge;
-  openDrawer('knowDrawer');
-};
+$('knowBtn').onclick = () => { $('kbArea').value = knowledge; openDrawer(); };
 $('kbSave').onclick = async () => {
   knowledge = $('kbArea').value.trim();
   await saveKnowledge();
@@ -626,33 +880,24 @@ $('kbSave').onclick = async () => {
   addConfirm('ok', 'حفظت الذاكرة 🧠 بيمشي على هالمصطلحات والأسلوب في كل التقارير الجاية.');
 };
 
-/* restore today's paper when user sends after viewing past */
-const origSend = send;
-
-/* ================= Copy override when viewing past ================= */
-const origCopy = $('copyBtn').onclick;
-$('copyBtn').onclick = async () => {
-  const textToCopy = state.viewingPast != null && $('paperDate').textContent.includes('سجل') ? state.viewingPast : state.report;
-  if(!textToCopy || !textToCopy.trim()) return;
-  const btn = $('copyBtn');
-  try{ await navigator.clipboard.writeText(textToCopy); }
-  catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = textToCopy; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); ta.remove();
+/* ================= API key button ================= */
+if(!insideClaude){
+  $('keyBtn').style.display = 'flex';
+  if(apiKey) $('keyBtn').classList.add('on');
+}
+$('keyBtn').onclick = () => {
+  const k = prompt('أدخل مفتاح Claude API (يبدأ بـ sk-ant-...)\nينحفظ في جهازك فقط:', apiKey || '');
+  if(k === null) return;
+  apiKey = k.trim();
+  if(apiKey){
+    localStorage.setItem('sr_apikey', apiKey);
+    $('keyBtn').classList.add('on');
+    addConfirm('ok', 'حفظت المفتاح 🔑 جرّب أرسل رسالتك الآن.');
+  }else{
+    localStorage.removeItem('sr_apikey');
+    $('keyBtn').classList.remove('on');
   }
-  btn.textContent = '✅ تم النسخ'; btn.classList.add('done');
-  setTimeout(()=>{ btn.textContent='📋 نسخ التقرير'; btn.classList.remove('done'); }, 1800);
 };
-
-/* when sending after viewing past, restore today's header */
-input.addEventListener('focus', () => {
-  if($('paperDate').textContent.includes('سجل')){
-    $('paperDate').textContent = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
-    state.viewingPast = null;
-    renderReport();
-  }
-});
 
 loadAll();
 </script>
