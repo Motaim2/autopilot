@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>تقرير الوردية — Shift Report</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -25,16 +25,17 @@
   --radius:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
 body{
   font-family:'IBM Plex Sans Arabic',sans-serif;
   background:var(--bg);color:var(--ink);
-  display:flex;flex-direction:column;
-  max-width:760px;margin:0 auto;min-height:100dvh;
+  max-width:760px;margin:0 auto;
+  overflow-x:hidden;
 }
 /* ---------- Header ---------- */
 header{
-  padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
   border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:20;
 }
 .brand{display:flex;align-items:center;gap:10px}
@@ -47,7 +48,7 @@ header{
 .hbtn.on{color:var(--green);border-color:var(--green-dark)}
 
 /* ---------- Main ---------- */
-main{flex:1;overflow-y:auto;padding:16px 14px 140px;display:flex;flex-direction:column;gap:14px}
+main{padding:16px 14px 170px;display:flex;flex-direction:column;gap:14px}
 
 /* ---------- Report paper ---------- */
 .paper{background:var(--paper);color:var(--paper-ink);border-radius:var(--radius);overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.35);direction:ltr;text-align:left}
@@ -58,13 +59,13 @@ main{flex:1;overflow-y:auto;padding:16px 14px 140px;display:flex;flex-direction:
 .shiftBtn{border:1px solid var(--paper-line);background:#fff;border-radius:20px;padding:4px 10px;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer}
 .shiftBtn.day{background:var(--day-bg);color:var(--day-ink);border-color:#E8C68C}
 .shiftBtn.night{background:var(--night-bg);color:var(--night-ink);border-color:#3D4C77}
-.paper-body{padding:10px 10px 12px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.8;min-height:90px;max-height:45vh;overflow-y:auto}
+.paper-body{padding:10px 10px 12px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.8;min-height:90px}
 .paper-body.empty{color:#8a9086;font-style:italic;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'IBM Plex Sans Arabic',sans-serif;direction:rtl;padding:20px 16px}
 /* tappable report lines */
 .rline{padding:3px 8px;border-radius:7px;white-space:pre-wrap;word-break:break-word;cursor:pointer;transition:background .12s;min-height:1em}
 .rline:active,.rline.sel{background:#E5E0CE}
 .rline.head{font-weight:600;margin-top:4px}
-.rline-edit{width:100%;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.7;border:1.5px solid var(--green-dark);border-radius:8px;padding:8px;outline:none;resize:vertical;min-height:64px;background:#fff;color:var(--paper-ink)}
+.rline-edit{width:100%;font-family:'IBM Plex Mono',monospace;font-size:16px;line-height:1.7;border:1.5px solid var(--green-dark);border-radius:8px;padding:8px;outline:none;resize:vertical;min-height:64px;background:#fff;color:var(--paper-ink)}
 .rline-btns{display:flex;gap:6px;justify-content:flex-end;margin:6px 0 4px}
 .mini{border:none;border-radius:8px;padding:6px 14px;font-family:'IBM Plex Sans Arabic',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
 .mini.ok{background:var(--green-dark);color:#fff}
@@ -159,7 +160,7 @@ main{flex:1;overflow-y:auto;padding:16px 14px 140px;display:flex;flex-direction:
 .box{background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:10px 12px 8px;transition:border-color .2s}
 .box:focus-within{border-color:var(--green-dark)}
 .box.rec{border-color:var(--flare);box-shadow:0 0 0 3px rgba(255,122,69,.15)}
-textarea#input{width:100%;background:transparent;border:none;outline:none;resize:none;color:var(--ink);font-family:inherit;font-size:14.5px;line-height:1.7;max-height:120px;min-height:26px}
+textarea#input{width:100%;background:transparent;border:none;outline:none;resize:none;color:var(--ink);font-family:inherit;font-size:16px;line-height:1.7;max-height:120px;min-height:26px}
 textarea#input::placeholder{color:var(--dim)}
 .box-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .mic{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--dim);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:.15s}
@@ -179,7 +180,7 @@ textarea#input::placeholder{color:var(--dim)}
 .drawer-head h2{font-size:15px;font-weight:700}
 .xbtn{background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;padding:4px 8px}
 .drawer-body{overflow-y:auto;padding:4px 16px calc(20px + env(safe-area-inset-bottom))}
-.kb-area{width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:inherit;font-size:13px;line-height:1.8;padding:12px;outline:none;resize:vertical}
+.kb-area{width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:inherit;font-size:16px;line-height:1.8;padding:12px;outline:none;resize:vertical}
 .kb-note{font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:10px}
 .kb-save{margin-top:10px;width:100%;height:44px;border:none;border-radius:12px;background:var(--green);color:#08130D;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
 </style>
@@ -321,8 +322,25 @@ let apiKey = localStorage.getItem('sr_apikey') || '';
 /* ================= State ================= */
 let state = { report:'', convo:[], shift:'day' };
 let knowledge = '';
+let voiceMap = {};   // learned pronunciation dictionary: "ما سمعه المايك" -> "المصطلح الصحيح"
+let usedVoice = false;
 let busy = false;
 let openArchDate = null;
+
+function applyVoiceMap(text){
+  let out = text;
+  // apply longest phrases first so compound terms win
+  const keys = Object.keys(voiceMap).sort((a,b) => b.length - a.length);
+  for(const k of keys){
+    if(!k) continue;
+    try{
+      const rx = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+      out = out.replace(rx, voiceMap[k]);
+    }catch(e){}
+  }
+  return out;
+}
+async function saveVoiceMap(){ try{ await store.set('voicemap', JSON.stringify(voiceMap)); }catch(e){} }
 
 $('paperDate').textContent = new Date().toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
 
@@ -331,6 +349,10 @@ async function loadAll(){
   try{
     const k = await store.get('knowledge');
     if(k && k.value) knowledge = k.value;
+  }catch(e){}
+  try{
+    const vm = await store.get('voicemap');
+    if(vm && vm.value) voiceMap = JSON.parse(vm.value) || {};
   }catch(e){}
   try{
     const r = await store.get('report:' + todayKey());
@@ -511,7 +533,8 @@ if(SR){
       if(e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
       else interim += e.results[i][0].transcript;
     }
-    input.value = (base + fin + interim).trimStart();
+    usedVoice = true;
+    input.value = (base + applyVoiceMap(fin) + interim).trimStart();
     input.dispatchEvent(new Event('input'));
   };
   rec.onend = () => stopRec();
@@ -557,7 +580,7 @@ Gas Processing Unit-2:
 - إذا العامل ما ذكر أي وحدة/قسم تخص النقطة، اسأله: "هذي تحت أي وحدة؟" قبل الإضافة.
 - استخدم مسميات المعدات كما هي (PZV, FIT, G-211A...) وصحّح كتابتها للنمط القياسي (مثال: pzv18a → PZV-018A) مع التأكد من العامل إذا غير واضح.`;
 
-function buildPrompt(userMsg){
+function buildPrompt(userMsg, isVoice){
   const recent = state.convo.slice(-6).map(x => 'العامل: ' + x.u + '\nالمساعد: ' + x.a).join('\n');
   return `أنت مساعد صياغة تقارير يومية لعامل في مصنع غاز بأرامكو. العامل يخبرك بالعربي (لهجة سعودية) عن أعمال ورديته، وأنت تحوّلها إلى تقرير إنجليزي مهني بأسلوب تقارير التشغيل والصيانة الصناعية.
 
@@ -573,16 +596,20 @@ ${state.report || '(فارغ — هذه أول إضافة اليوم)'}
 ## آخر المحادثة اليوم:
 ${recent || '(لا يوجد)'}
 
-## رسالة العامل الجديدة:
+## رسالة العامل الجديدة${isVoice ? ' (⚠️ رسالة صوتية: كُتبت بالتعرف على الكلام، فالمصطلحات الإنجليزية قد تظهر بحروف عربية أو مكتوبة غلط حسب نطقه — فسّرها بذكاء)' : ''}:
 "${userMsg}"
+
+## قاموس نطق العامل المتعلَّم سابقًا (ما يسمعه المايك ← المقصود):
+${Object.keys(voiceMap).length ? Object.entries(voiceMap).map(([k,v]) => '- "' + k + '" ← ' + v).join('\n') : '(لا يوجد بعد)'}
 
 ## مطلوب منك:
 1. إذا فهمت الرسالة وعرفت القسم/الوحدة: أضِف النقطة تحت قسمها الصحيح (أو عدّل/دقّق حسب الطلب)، وأعد التقرير الكامل المحدّث بنفس نمط الأقسام أعلاه. حافظ على باقي الأقسام والنقاط كما هي. أول سطر في التقرير: DAILY SHIFT REPORT — ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
 2. إذا لم تفهم جزءًا أو لم يذكر القسم/الوحدة: لا تخمّن — اسأل سؤالًا واحدًا محددًا بالعربي.
 3. إذا تعلمت مصطلحًا أو نمطًا جديدًا من هذه الرسالة يفيد التقارير القادمة، لخّصه بسطر قصير.
+4. إذا كانت الرسالة صوتية وفسّرت فيها كلمة منطوقة إلى مصطلح (مثل "بي زد في ثمنطعش ايه" ← PZV-018A أو "جي بي ون" ← GPU-1)، أعد هذه الأزواج في voice_map حتى يتذكرها النظام لصوته دائمًا. المفتاح هو النص كما وصلك حرفيًا والقيمة المصطلح الصحيح.
 
 أجب حصريًا بـ JSON صالح واحد، بدون أي نص قبله أو بعده وبدون Markdown. مهم جدًا: استخدم \\n داخل النصوص بدل الأسطر الجديدة الحقيقية، وهرّب علامات الاقتباس المزدوجة:
-{"understood": true, "reply_ar": "ردك بالعربي: تأكيد قصير لما فهمته، أو سؤالك إذا لم تفهم", "report_en": "التقرير الإنجليزي الكامل المحدث كسلسلة واحدة مع \\n بين الأسطر، أو null إذا لم تفهم", "learned": "سطر قصير بما تعلمته أو null"}`;
+{"understood": true, "reply_ar": "ردك بالعربي: تأكيد قصير لما فهمته، أو سؤالك إذا لم تفهم", "report_en": "التقرير الإنجليزي الكامل المحدث كسلسلة واحدة مع \\n بين الأسطر، أو null إذا لم تفهم", "learned": "سطر قصير بما تعلمته أو null", "voice_map": {"النص المسموع":"المصطلح الصحيح"} أو null}`;
 }
 
 function extractJSON(text){
@@ -609,7 +636,7 @@ function extractJSON(text){
   return null;
 }
 
-async function callClaude(msg){
+async function callClaude(msg, isVoice){
   if(!insideClaude && !apiKey) throw new Error('NEED_KEY');
   const headers = {'Content-Type':'application/json'};
   if(!insideClaude && apiKey){
@@ -622,7 +649,7 @@ async function callClaude(msg){
     body: JSON.stringify({
       model:'claude-sonnet-4-6',
       max_tokens: 1000,
-      messages:[{role:'user', content: buildPrompt(msg)}]
+      messages:[{role:'user', content: buildPrompt(msg, isVoice)}]
     })
   });
   const raw = await res.text();
@@ -636,7 +663,7 @@ async function callClaude(msg){
   return data.content.filter(b => b && b.type === 'text').map(b => b.text).join('\n');
 }
 
-async function processMessage(msg, displayText, restoreOnFail){
+async function processMessage(msg, displayText, restoreOnFail, isVoice){
   if(busy) return;
   busy = true; sendBtn.disabled = true;
   addConfirm('ok', displayText || msg, 'أنت');
@@ -645,7 +672,7 @@ async function processMessage(msg, displayText, restoreOnFail){
   let obj = null, lastErr = null;
   for(let attempt = 1; attempt <= 2 && !obj; attempt++){
     try{
-      const text = await callClaude(msg);
+      const text = await callClaude(msg, isVoice);
       obj = extractJSON(text);
       if(!obj && text.trim()){
         obj = { understood:false, reply_ar:text.trim(), report_en:null, learned:null };
@@ -667,6 +694,16 @@ async function processMessage(msg, displayText, restoreOnFail){
       if(obj.learned && obj.learned !== 'null' && typeof obj.learned === 'string'){
         knowledge = (knowledge ? knowledge + '\n' : '') + '- ' + obj.learned;
         saveKnowledge();
+      }
+      if(obj.voice_map && typeof obj.voice_map === 'object'){
+        let added = false;
+        for(const [heard, term] of Object.entries(obj.voice_map)){
+          if(typeof heard === 'string' && typeof term === 'string' && heard.trim() && term.trim()){
+            voiceMap[heard.trim()] = term.trim();
+            added = true;
+          }
+        }
+        if(added) saveVoiceMap();
       }
       saveToday();
     }else{
@@ -698,7 +735,8 @@ function send(){
   if(!msg || busy) return;
   if(recording && rec){ try{rec.stop();}catch(e){} stopRec(); }
   input.value = ''; input.style.height = 'auto';
-  processMessage(msg, msg, true);
+  processMessage(msg, msg, true, usedVoice);
+  usedVoice = false;
 }
 sendBtn.onclick = send;
 input.addEventListener('keydown', e => {
