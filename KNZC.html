@@ -3156,13 +3156,19 @@ function tqImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
     var wb=XLSX.read(ev.target.result,{type:"array"});
     var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""}).filter(function(r){return r.join("").trim()!=="";});
     if(rows.length<2){ alert("الملف فاضي."); return; }
-    var hd=rows[0].map(function(x){return String(x);});
+    /* صف العناوين قد يكون تحت سطر عنوان التقرير */
+    var hRow=0;
+    for(var q=0;q<Math.min(6,rows.length);q++){
+      var jn=rows[q].join(" ");
+      if(/سحر|جاذبي/.test(jn)&&/كنية|كنيه|معرف|هوا/.test(jn)){ hRow=q; break; } }
+    var hd=rows[hRow].map(function(x){return String(x);});
     function fc(re){ for(var i=0;i<hd.length;i++){ if(re.test(hd[i]))return i; } return -1; }
-    var cId=fc(/آيدي|ايدي|معرف|id|号/i), cNm=fc(/اسم|name|昵称/i), cKn=fc(/كنية|كنيه|لقب|nick/i),
-        cJz=fc(/جاذبي|سحر/i), cAl=fc(/ألماس|الماس|ماس/i);
-    if(cJz<0){ alert("ما لقيت عمود الجاذبية."); return; }
+    var cId=fc(/معرف|آيدي|ايدي|هوا|^id$|号/i), cNm=fc(/^اسم|الاسم|name|昵称/i), cKn=fc(/كنية|كنيه|لقب|nick/i),
+        cJz=fc(/قيمة السحر|سحر|جاذبي/i), cAl=fc(/ألماس|الماس|ماس/i);
+    if(cAl>=0&&/راتب/.test(hd[cAl]||""))cAl=fc(/^الماس$|^ألماس$/i);
+    if(cJz<0){ alert("ما لقيت عمود قيمة السحر (الجاذبية)."); return; }
     var out=[];
-    for(var r=1;r<rows.length;r++){ var rw=rows[r];
+    for(var r=hRow+1;r<rows.length;r++){ var rw=rows[r];
       var jz=+String(rw[cJz]).replace(/[\u060C,\s]/g,"")||0;
       var idv=cId>=0?String(rw[cId]).trim():"";
       if(!idv&&!jz)continue;
