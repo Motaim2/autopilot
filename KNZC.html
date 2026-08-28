@@ -978,6 +978,33 @@
   <div id="bk_list"></div>
   <div id="snapB_pane17"></div>
 </div>
+<div class="pane" id="pane18">
+  <div id="snapT_pane18"></div>
+  <div class="hero">
+    <div class="l">تقفيل التارقت — الاحتياج الكلي</div>
+    <div class="big2" id="tq_need">0</div>
+    <div class="s" id="tq_sub">ارفع ملف السستم</div>
+  </div>
+  <div class="stage stg-ship">
+    <h2>&#128200; ملف السستم (كل الحسابات)</h2>
+    <input type="file" id="tq_file" accept=".xlsx,.xls,.csv" onchange="tqImport(this)" style="width:100%;color:var(--muted);font-size:12px;margin-top:6px">
+    <div class="note" style="margin-top:5px">يتعرف على: الآيدي · الاسم/الكنية · الجاذبية · الألماس</div>
+  </div>
+  <div class="stage stg-acc" id="tq_kpi"></div>
+  <div class="stage stg-log">
+    <h2>&#127919; الفلتر — قرب التقفيل</h2>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <span style="font-size:10px;color:var(--muted)">أنجز</span>
+      <input id="tq_pct" type="range" min="0" max="100" step="5" value="0" oninput="tqPct()" style="flex:1">
+      <span id="tq_pctv" style="font-size:13px;font-weight:900;color:#5EE3A6;min-width:44px;text-align:center">0%+</span>
+    </div>
+    <div class="chips" id="tq_quick" style="margin-top:6px"></div>
+    <div class="rbtns" style="margin-top:7px"><button class="btn dk sm" onclick="tqSelAll(1)">&#9745; تحديد الكل</button><button class="btn dk sm" onclick="tqSelAll(0)">&#10006; إزالة</button><button class="btn dk sm" onclick="tqWkMode()" id="tq_wkBtn">&#128176; وضع الوكيل</button></div>
+    <div class="note" id="tq_selNote" style="margin-top:6px"></div>
+  </div>
+  <div id="tq_list"></div>
+  <div id="snapB_pane18"></div>
+</div>
 <div class="toast" id="copyToast">✓</div>
 <video id="pip_vid" playsinline muted style="position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:.01;pointer-events:none"></video>
 <canvas id="pip_cv" width="360" height="200" style="position:fixed;left:-9999px;top:-9999px"></canvas>
@@ -1006,6 +1033,7 @@
   <div class="tb" data-p="pane15" onclick="switchTab('pane15',this)" style="background:#D6EFE0"><span class="i">&#128181;</span>مجاميع</div>
   <div class="tb" data-p="pane16" onclick="switchTab('pane16',this)" style="background:#FFDCC2"><span class="i">&#128230;</span>رصيد الشحن</div>
   <div class="tb" data-p="pane17" onclick="switchTab('pane17',this)" style="background:#E7E0FF"><span class="i">&#127974;</span>بنوك</div>
+  <div class="tb" data-p="pane18" onclick="switchTab('pane18',this)" style="background:#FFD9E8"><span class="i">&#127919;</span>تقفيل تارقت</div>
   <div class="tb" data-p="pane6" onclick="switchTab('pane6',this)" style="background:#E0E7FF"><span class="i">&#10067;</span>نسبة</div>
   <div class="tb" data-p="pane7" onclick="switchTab('pane7',this)" style="background:#FCE1F0"><span class="i">&#128101;</span>أشخاص</div>
   <div class="tb" data-p="pane4" onclick="switchTab('pane4',this)" style="background:#FFF0C2"><span class="i">&#128276;</span>تنبيهات</div>
@@ -3087,6 +3115,172 @@ function renderSh(){ var el=$("sh_list"); if(!el)return;
   if($("sh_tot"))$("sh_tot").textContent=fmt(tot);
   if($("sh_sub"))$("sh_sub").textContent="$"+fmt(Math.round(tot/c.rateBuy))+" \u00B7 "+H.ppl.length+" شخص \u00B7 "+nships+" شحنة";
 }
+var TQ={rows:[],sel:{},open:null,pct:0,wk:false};
+function tqInit(){ if(!S.tq)S.tq={rows:[],sel:{},pct:0}; if(!S.tq.rows)S.tq.rows=[]; if(!S.tq.sel)S.tq.sel={}; return S.tq; }
+/* فك الألماس التراكمي: يحوّل الألماس كونز يدعم بها نفسه ويرجع له 30% كل دورة */
+function tqAlmChain(alm){
+  var c=cfg(), back=0, cur=+alm||0, guard=0;
+  while(cur>=1000&&guard++<40){ back+=cur; cur=Math.round(cur*0.30); }
+  return back;
+}
+function tqCalc(r){
+  var c=cfg(), tg=tgOf(r.jaz);
+  var cur=tg.cur, nx=tg.next;
+  var o={id:r.id,nm:r.nm,kn:r.kn,jaz:r.jaz,alm:r.alm};
+  o.lv=cur?cur.lv:0;
+  o.salNow=(cur?(cur.jazSal||0)+(cur.wakeel||0):0);
+  o.almSal=tgAlmSal(r.alm||0);
+  o.wkNow=cur?(cur.wakeel||0):0;
+  if(nx){
+    o.nlv=nx.lv; o.need=Math.max(0,nx.jaz-r.jaz);
+    var span=nx.jaz-(cur?cur.jaz:0);
+    o.pct=span>0?Math.min(100,Math.round((r.jaz-(cur?cur.jaz:0))/span*100)):0;
+    o.salNext=(nx.jazSal||0)+(nx.wakeel||0);
+    o.wkNext=nx.wakeel||0;
+  } else { o.nlv=null; o.need=0; o.pct=100; o.salNext=o.salNow; o.wkNext=o.wkNow; }
+  o.diff=o.salNext-o.salNow;
+  o.usd=o.need/c.rateBuy;
+  o.almBack=tqAlmChain(r.alm||0);
+  o.almCovers=o.almBack>=o.need&&o.need>0;
+  o.needAfterAlm=Math.max(0,o.need-o.almBack);
+  /* راتب الوكيل بالكونز: يقفل بنفسه؟ */
+  o.wkKonz=o.wkNow*c.rateBuy;
+  o.wkCovers=o.need>0&&o.wkKonz>=o.need;
+  o.wkGap=o.need-o.wkKonz;
+  return o;
+}
+function tqImport(inp){ var f=inp&&inp.files&&inp.files[0]; if(!f)return;
+  if(typeof XLSX==="undefined"){ alert("قراءة XL تحتاج إنترنت."); return; }
+  var rd=new FileReader();
+  rd.onload=function(ev){ try{
+    var wb=XLSX.read(ev.target.result,{type:"array"});
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""}).filter(function(r){return r.join("").trim()!=="";});
+    if(rows.length<2){ alert("الملف فاضي."); return; }
+    var hd=rows[0].map(function(x){return String(x);});
+    function fc(re){ for(var i=0;i<hd.length;i++){ if(re.test(hd[i]))return i; } return -1; }
+    var cId=fc(/آيدي|ايدي|معرف|id|号/i), cNm=fc(/اسم|name|昵称/i), cKn=fc(/كنية|كنيه|لقب|nick/i),
+        cJz=fc(/جاذبي|سحر/i), cAl=fc(/ألماس|الماس|ماس/i);
+    if(cJz<0){ alert("ما لقيت عمود الجاذبية."); return; }
+    var out=[];
+    for(var r=1;r<rows.length;r++){ var rw=rows[r];
+      var jz=+String(rw[cJz]).replace(/[\u060C,\s]/g,"")||0;
+      var idv=cId>=0?String(rw[cId]).trim():"";
+      if(!idv&&!jz)continue;
+      out.push({id:idv,nm:cNm>=0?String(rw[cNm]).trim():"",kn:cKn>=0?String(rw[cKn]).trim():"",
+        jaz:jz, alm:cAl>=0?(+String(rw[cAl]).replace(/[\u060C,\s]/g,"")||0):0});
+    }
+    tqInit(); S.tq.rows=out; S.tq.sel={};
+    save(); render();
+    alert("\u2713 انرفع: "+out.length+" حساب.");
+  }catch(e){ alert("تعذرت قراءة الملف."); }
+  inp.value=""; };
+  rd.readAsArrayBuffer(f); }
+function tqPct(){ var T=tqInit(); T.pct=+($("tq_pct")?$("tq_pct").value:0)||0; save(); render(); }
+function tqPctSet(v){ if($("tq_pct"))$("tq_pct").value=v; tqPct(); }
+function tqSelAll(on){ var T=tqInit(); T.sel={};
+  if(on){ var ls=tqFiltered(); for(var i=0;i<ls.length;i++)T.sel[ls[i].id]=1; }
+  save(); render(); }
+function tqSel(id){ var T=tqInit(); if(T.sel[id])delete T.sel[id]; else T.sel[id]=1; save(); render(); }
+function tqOpen(id){ TQ.open=(TQ.open===id?null:id); render(); }
+function tqWkMode(){ TQ.wk=!TQ.wk; render(); }
+function tqFiltered(){ var T=tqInit(), out=[];
+  for(var i=0;i<T.rows.length;i++){ var o=tqCalc(T.rows[i]);
+    if(!o.need)continue;
+    if(o.pct<(T.pct||0))continue;
+    if(TQ.wk&&!o.wkCovers)continue;
+    out.push(o); }
+  out.sort(function(a,b){ return b.pct-a.pct||a.need-b.need; });
+  return out; }
+function renderTq(){ var el=$("tq_list"); if(!el)return;
+  var T=tqInit(), c=cfg();
+  if($("tq_pct")&&$("tq_pct").value!=String(T.pct||0))$("tq_pct").value=T.pct||0;
+  if($("tq_pctv"))$("tq_pctv").textContent=(T.pct||0)+"%+";
+  var qc=$("tq_quick");
+  if(qc){ var qh='';
+    var qs=[0,10,20,30,40,50,60,70,80,90,100];
+    for(var q=0;q<qs.length;q++)qh+='<span class="chip'+((T.pct||0)===qs[q]?" f on":"")+'" onclick="tqPctSet('+qs[q]+')" style="font-size:10px;padding:6px 9px">'+qs[q]+'%</span>';
+    qc.innerHTML=qh; }
+  var wkb=$("tq_wkBtn"); if(wkb)wkb.innerHTML=TQ.wk?"\uD83D\uDCB0 الوكيل: يقفل لحاله":"\uD83D\uDCB0 وضع الوكيل";
+  var ls=tqFiltered();
+  /* المؤشرات الشاملة */
+  var all=[], tNeed=0,tJaz=0,tAlm=0,tSalNow=0,tSalNext=0,tJz=0,tAl=0,tWk=0,nAlm=0,nWkOk=0;
+  for(var i=0;i<T.rows.length;i++){ var o=tqCalc(T.rows[i]); all.push(o);
+    tJaz+=o.jaz; tAlm+=o.alm; tNeed+=o.need; tSalNow+=o.salNow; tSalNext+=o.salNext;
+    var tg=tgOf(o.jaz).cur;
+    tJz+=tg?(tg.jazSal||0):0; tAl+=o.almSal; tWk+=o.wkNow;
+    if(o.alm>0)nAlm++;
+    if(o.wkCovers)nWkOk++; }
+  var kp=$("tq_kpi");
+  if(kp){ var sNeed=0,sDiff=0,sAlmBack=0,sCnt=0,sWkNeed=0;
+    for(var j=0;j<ls.length;j++){ if(!T.sel[ls[j].id])continue; sCnt++;
+      sNeed+=ls[j].need; sDiff+=ls[j].diff; sAlmBack+=ls[j].almBack; sWkNeed+=Math.max(0,ls[j].wkGap); }
+    kp.innerHTML='<h2>\uD83D\uDCCA نبذة شاملة</h2>'
+      +'<div class="mini" style="margin-top:7px;grid-template-columns:1fr 1fr 1fr">'
+      +'<div class="c"><div class="l">حسابات</div><div class="v n-vio">'+fmt(T.rows.length)+'</div></div>'
+      +'<div class="c"><div class="l">تحتاج تقفيل</div><div class="v v-gold">'+fmt(ls.length)+'</div></div>'
+      +'<div class="c"><div class="l">عندها ألماس</div><div class="v n-blue">'+fmt(nAlm)+'</div></div>'
+      +'<div class="c"><div class="l">\u03A3 الجاذبية</div><div class="v v-gold">'+fmt(tJaz)+'</div></div>'
+      +'<div class="c"><div class="l">\u03A3 الألماس</div><div class="v n-blue">'+fmt(tAlm)+'</div></div>'
+      +'<div class="c"><div class="l">الوكيل يقفل لحاله</div><div class="v n-green">'+fmt(nWkOk)+'</div></div>'
+      +'<div class="c"><div class="l">راتب الجاذبية</div><div class="v n-green">$'+fmt(tJz)+'</div></div>'
+      +'<div class="c"><div class="l">راتب الألماس</div><div class="v n-blue">$'+fmt(tAl)+'</div></div>'
+      +'<div class="c"><div class="l">راتب الوكيل</div><div class="v v-gold">$'+fmt(tWk)+'</div></div>'
+      +'</div>'
+      +'<div class="line" style="margin-top:7px"><span class="l">الراتب الآن \u2190 بعد التقفيل</span><span class="v">$'+fmt(tSalNow)+' \u2190 <b style="color:#5EE3A6">$'+fmt(tSalNext)+'</b></span></div>'
+      +(sCnt?('<div class="line"><span class="l" style="color:#8FD3FE">المحدد ('+sCnt+') يحتاج</span><span class="v v-gold">'+fmt(sNeed)+' كونز \u00B7 $'+fmt(Math.round(sNeed/c.rateBuy))+'</span></div>'
+        +'<div class="line"><span class="l" style="color:#8FD3FE">زيادة رواتبهم</span><span class="v v-grn">+$'+fmt(sDiff)+'</span></div>'
+        +'<div class="line"><span class="l" style="color:#8FD3FE">فك ألماسهم التراكمي يغطي</span><span class="v n-blue">'+fmt(sAlmBack)+' كونز</span></div>'):''); }
+  /* القائمة */
+  var h='';
+  for(var k=0;k<ls.length;k++){ var o=ls[k]; var on=!!T.sel[o.id];
+    var col=o.pct>=80?"#CFF3DD":(o.pct>=50?"#FFF3B0":"#FFE0E0");
+    h+='<div style="background:'+col+';border-radius:14px;margin:0 10px 9px;color:#22303e;box-shadow:0 2.5px 0 rgba(23,32,43,.16);overflow:hidden">';
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:11px 12px">'
+      +'<span onclick="tqSel(\''+o.id+'\')" style="font-size:15px;cursor:pointer;color:'+(on?"#1f7a4d":"rgba(34,48,62,.35)")+'">'+(on?"\u2611":"\u2610")+'</span>'
+      +'<div onclick="tqOpen(\''+o.id+'\')" style="flex:1;cursor:pointer;overflow:hidden">'
+      +'<div style="font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.kn||o.nm||o.id)+'</div>'
+      +'<div style="font-size:8.5px;opacity:.6;direction:ltr">'+o.id+(o.nm&&o.kn?" \u00B7 "+o.nm:"")+'</div></div>'
+      +'<div style="text-align:center"><div style="font-size:13px;font-weight:900">'+o.pct+'%</div>'
+      +'<div style="font-size:8px;opacity:.6">ت'+o.lv+'\u2192ت'+(o.nlv||o.lv)+'</div></div>'
+      +'<div style="text-align:left;min-width:74px"><div style="font-size:12px;font-weight:900;font-variant-numeric:tabular-nums">'+fmt(o.need)+'</div>'
+      +'<div style="font-size:8px;opacity:.6">ناقصه كونز</div></div>'
+      +'</div>'
+      +'<div style="height:4px;background:rgba(255,255,255,.5)"><i style="display:block;height:100%;width:'+o.pct+'%;background:#2f9e63"></i></div>';
+    if(TQ.open===o.id){
+      h+='<div style="background:rgba(255,255,255,.55);padding:10px 11px">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'
+        +'<div style="background:rgba(255,255,255,.7);border-radius:9px;padding:7px"><div style="font-size:8px;opacity:.55">الجاذبية الآن</div><div style="font-size:12px;font-weight:900">'+fmt(o.jaz)+'</div></div>'
+        +'<div style="background:rgba(255,255,255,.7);border-radius:9px;padding:7px"><div style="font-size:8px;opacity:.55">ناقصه بالدولار</div><div style="font-size:12px;font-weight:900">$'+fmt(Math.round(o.usd))+'</div></div>'
+        +'<div style="background:rgba(255,255,255,.7);border-radius:9px;padding:7px"><div style="font-size:8px;opacity:.55">الراتب الآن</div><div style="font-size:12px;font-weight:900">$'+fmt(o.salNow)+'</div></div>'
+        +'<div style="background:rgba(255,255,255,.7);border-radius:9px;padding:7px"><div style="font-size:8px;opacity:.55">بعد التقفيل</div><div style="font-size:12px;font-weight:900;color:#1f7a4d">$'+fmt(o.salNext)+'</div></div>'
+        +'</div>'
+        +'<div style="background:rgba(47,158,99,.16);border-radius:9px;padding:8px;margin-top:6px;display:flex;align-items:center">'
+        +'<span style="font-size:10px;font-weight:800">فرق الراتب بعد التقفيل</span><span style="flex:1"></span>'
+        +'<span style="font-size:14px;font-weight:900;color:#1f7a4d">+$'+fmt(o.diff)+'</span></div>'
+        +'<div style="margin-top:7px;background:rgba(255,255,255,.7);border-radius:9px;padding:8px">'
+        +'<div style="font-size:9.5px;font-weight:900;margin-bottom:4px">\uD83D\uDC8E الألماس</div>'
+        +(o.alm>0?('<div style="font-size:10px;line-height:1.7">عنده <b>'+fmt(o.alm)+'</b> ألماس \u00B7 راتبه <b>$'+fmt(o.almSal)+'</b><br>الفك التراكمي (يدعم نفسه ويرجع له 30% كل دورة) يعطي <b>'+fmt(o.almBack)+'</b> كونز<br>'
+          +(o.almCovers?'<span style="color:#1f7a4d;font-weight:900">\u2713 يكفي يقفل تارقته بدون دعم منك</span>':'<span style="color:#c0392b;font-weight:900">ينقصه بعد الفك '+fmt(o.needAfterAlm)+' كونز</span>')+'</div>')
+          :'<div style="font-size:10px;opacity:.6">ما عنده ألماس</div>')
+        +'</div>'
+        +'<div style="margin-top:6px;background:rgba(255,255,255,.7);border-radius:9px;padding:8px">'
+        +'<div style="font-size:9.5px;font-weight:900;margin-bottom:4px">\uD83D\uDCB0 راتب الوكيل</div>'
+        +'<div style="font-size:10px;line-height:1.7">راتب الوكيل الآن <b>$'+fmt(o.wkNow)+'</b> = <b>'+fmt(o.wkKonz)+'</b> كونز (\u00D71950)<br>'
+        +(o.wkCovers?('<span style="color:#1f7a4d;font-weight:900">\u2713 راتبه يقفل تارقته ويزيد '+fmt(-o.wkGap)+' كونز</span>')
+          :('<span style="color:#c0392b;font-weight:900">ينقصه '+fmt(o.wkGap)+' كونز فوق راتبه</span>'))
+        +'<br>بعد التقفيل راتب الوكيل يصير <b>$'+fmt(o.wkNext)+'</b></div>'
+        +'</div></div>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h||'<div class="empty" style="padding:14px">'+(T.rows.length?"ما فيه حسابات بهذا الفلتر":"ارفع ملف السستم من فوق")+'</div>';
+  var nd=0; for(var z=0;z<ls.length;z++)nd+=ls[z].need;
+  if($("tq_need"))$("tq_need").textContent=fmt(nd);
+  if($("tq_sub"))$("tq_sub").textContent=T.rows.length?("$"+fmt(Math.round(nd/c.rateBuy))+" \u00B7 "+ls.length+" حساب بالفلتر \u00B7 من "+T.rows.length):"ارفع ملف السستم";
+  var sn=$("tq_selNote");
+  if(sn){ var cnt=0; for(var q2 in T.sel)if(T.sel[q2])cnt++;
+    sn.textContent=cnt?("محدد: "+cnt+" حساب"):"اضغط \u2610 قدام أي حساب تحدده \u00B7 اضغط اسمه تفتح تفاصيله"; }
+}
 function bkInit(){ if(!S.bk)S.bk={ppl:[]}; if(!S.bk.ppl)S.bk.ppl=[]; return S.bk; }
 function bkAdd(){ var B=bkInit();
   var nm=($("bk_nm").value||"").trim(), en=($("bk_en").value||"").trim();
@@ -3147,7 +3341,8 @@ var SNAP_MAP={
   pane14:{t:"الثنائي",k:["duo"]},
   pane15:{t:"المجاميع",k:["sn"]},
   pane16:{t:"رصيد الشحن",k:["sh"]},
-  pane17:{t:"البنوك",k:["bk"]}
+  pane17:{t:"البنوك",k:["bk"]},
+  pane18:{t:"تقفيل التارقت",k:["tq"]}
 };
 var SNAP_COLS=["#FFE3B3","#C9E7FF","#E4D9FF","#FFD6E4","#CFF3DD","#FFF3B0","#FFE0C7"];
 function snapList(pid){ S.snaps=S.snaps||{}; S.snaps[pid]=S.snaps[pid]||[]; return S.snaps[pid]; }
@@ -4350,6 +4545,7 @@ function render(){
       v7.innerHTML=h7;
     }
   }
+  if($("tq_list")) renderTq();
   if($("bk_list")) renderBk();
   renderSnaps();
   if($("sn_list")) renderSalNotes();
