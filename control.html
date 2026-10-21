@@ -471,6 +471,12 @@ async function checkStatus() {
 setInterval(checkStatus, 5000);
 checkStatus();
 
+// Prefill account ID from URL (?id=) when opened from Knuz Manager
+const prefillId = new URLSearchParams(location.search).get('id');
+if (prefillId) {
+  document.getElementById('accountId').value = prefillId.replace(/[^0-9]/g, '');
+}
+
 // ============================
 // Action runners (uses GET with URL params - more reliable)
 // ============================
